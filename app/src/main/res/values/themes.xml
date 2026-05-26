@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Finan" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/finan_primary</item>
+        <item name="colorPrimaryDark">@color/finan_primary_dark</item>
+        <item name="colorAccent">@color/finan_accent</item>
+        <item name="android:windowBackground">@color/finan_background</item>
+        <item name="android:textColorPrimary">@color/finan_text_primary</item>
+        <item name="android:textColorSecondary">@color/finan_text_secondary</item>
+    </style>
+</resources>

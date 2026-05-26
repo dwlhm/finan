@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="finan_background">#F4F6F8</color>
+    <color name="finan_surface">#FFFFFF</color>
+    <color name="finan_primary">#2D6A6A</color>
+    <color name="finan_primary_dark">#1F4E4E</color>
+    <color name="finan_accent">#5B8A8A</color>
+    <color name="finan_text_primary">#1A2830</color>
+    <color name="finan_text_secondary">#5C6B73</color>
+    <color name="finan_text_hint">#8A9AA3</color>
+    <color name="finan_divider">#DDE3E8</color>
+    <color name="finan_chip_bg">#E8ECEF</color>
+    <color name="finan_chip_selected">#2D6A6A</color>
+    <color name="finan_chip_text">#1A2830</color>
+    <color name="finan_chip_text_selected">#FFFFFF</color>
+    <color name="finan_expense">#C45C4A</color>
+    <color name="finan_income">#3D8B6E</color>
+    <color name="finan_bottom_nav_bg">#FFFFFF</color>
+</resources>

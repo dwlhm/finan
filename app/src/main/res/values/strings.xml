@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Finan</string>
+
+    <string name="capture_amount_hint">Nominal</string>
+    <string name="capture_type_label">Jenis transaksi</string>
+    <string name="capture_wallet_label">Dompet</string>
+    <string name="capture_category_more">Kategori lain…</string>
+    <string name="capture_category_search_hint">Cari kategori…</string>
+    <string name="capture_category_create_from_search">Buat kategori \"%1$s\"</string>
+    <string name="capture_category_add_new">+ Tambah kategori baru</string>
+    <string name="capture_category_add_new_dialog_title">Kategori baru</string>
+    <string name="capture_category_name_hint">Nama kategori</string>
+    <string name="capture_category_created">Kategori dibuat</string>
+    <string name="capture_category_name_empty">Nama kategori tidak boleh kosong</string>
+    <string name="capture_category_already_exists">Kategori sudah ada, dipilih otomatis</string>
+    <string name="capture_wallet_unknown">Dompet tidak tersedia</string>
+    <string name="capture_category_label">Kategori</string>
+    <string name="capture_save">Simpan</string>
+    <string name="capture_recent_label">Terakhir</string>
+    <string name="capture_recent_empty">Belum ada transaksi</string>
+    <string name="capture_details_toggle">Detail</string>
+    <string name="capture_note_hint">Catatan (opsional)</string>
+    <string name="capture_type_expense">Pengeluaran</string>
+    <string name="capture_type_income">Pemasukan</string>
+    <string name="capture_saved">Transaksi tersimpan</string>
+    <string name="capture_error_amount">Masukkan nominal yang valid</string>
+    <string name="capture_error_category">Pilih kategori</string>
+    <string name="capture_error_save">Gagal menyimpan transaksi</string>
+
+    <string name="nav_capture">Catat</string>
+    <string name="nav_history">Riwayat</string>
+    <string name="nav_summary">Ringkasan</string>
+    <string name="nav_wallet">Dompet</string>
+    <string name="nav_settings">Pengaturan</string>
+
+    <string name="history_title">Riwayat</string>
+    <string name="history_empty">Belum ada transaksi</string>
+
+    <string name="summary_title">Ringkasan</string>
+    <string name="summary_month_expense_format">Pengeluaran %1$s: %2$s</string>
+    <string name="summary_month_income_format">Pemasukan bulan ini: %1$s</string>
+    <string name="summary_today_heading">Hari ini</string>
+    <string name="summary_today_expense_format">Pengeluaran hari ini: %1$s</string>
+    <string name="summary_today_income_format">Pemasukan hari ini: %1$s</string>
+    <string name="summary_categories_heading">Kategori terbesar (bulan ini)</string>
+    <string name="summary_category_line_format">%1$s — %2$s</string>
+    <string name="summary_wallets_heading">Saldo dompet</string>
+    <string name="summary_wallet_line_format">%1$s: %2$s</string>
+    <string name="summary_no_expense">Belum ada pengeluaran bulan ini</string>
+
+    <string name="wallet_title">Dompet</string>
+    <string name="wallet_empty">Belum ada dompet</string>
+    <string name="wallet_balance_format">Saldo: %1$s</string>
+
+    <string name="category_title">Kategori</string>
+    <string name="category_empty">Belum ada kategori</string>
+    <string name="category_type_expense">Pengeluaran</string>
+    <string name="category_type_income">Pemasukan</string>
+    <string name="category_type_both">Keduanya</string>
+
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_export">Ekspor data</string>
+    <string name="settings_export_hint">Ekspor transaksi ke file CSV (format Finan v1)</string>
+    <string name="settings_export_success">Ekspor berhasil</string>
+    <string name="settings_export_failed">Ekspor gagal</string>
+    <string name="settings_manage_categories">Kelola kategori</string>
+    <string name="settings_export_filename">finan_export.csv</string>
+
+    <string name="common_currency_prefix">Rp</string>
+</resources>
