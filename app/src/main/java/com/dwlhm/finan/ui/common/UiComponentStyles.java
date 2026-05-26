@@ -2,6 +2,7 @@ package com.dwlhm.finan.ui.common;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.widget.Button;
 
@@ -50,5 +51,11 @@ public final class UiComponentStyles {
 
   public static int dp(@NonNull Context context, int value) {
     return Math.round(value * context.getResources().getDisplayMetrics().density);
+  }
+
+  public static int selectableItemBackground(@NonNull Context context) {
+    TypedValue outValue = new TypedValue();
+    context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+    return outValue.resourceId;
   }
 }

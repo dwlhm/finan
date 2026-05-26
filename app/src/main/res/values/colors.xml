@@ -15,10 +15,18 @@
     <color name="finan_chip_text_selected">#FFFFFF</color>
     <color name="finan_expense">#C45C4A</color>
     <color name="finan_income">#3D8B6E</color>
+    <color name="finan_expense_bg">#FFF1EE</color>
+    <color name="finan_expense_stroke">#EACCC5</color>
+    <color name="finan_income_bg">#EEF8F3</color>
+    <color name="finan_income_stroke">#CAE7DA</color>
     <color name="finan_emphasis_bg">#FFF8ED</color>
     <color name="finan_emphasis_stroke">#E9D7BF</color>
     <color name="finan_control_bg">#F9FBFC</color>
     <color name="finan_warm_accent">#D28B45</color>
+    <color name="finan_summary_on_hero">#FFFFFF</color>
+    <color name="finan_summary_on_hero_muted">#D7E8E6</color>
+    <color name="finan_summary_hero_divider">#5E8C8A</color>
+    <color name="finan_summary_progress_bg">#E9EEF2</color>
     <color name="finan_bottom_nav_bg">#FFFFFF</color>
     <color name="finan_bottom_nav_active_bg">#E6F0EF</color>
 </resources>

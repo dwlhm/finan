@@ -46,6 +46,58 @@ public final class SummaryService {
     return loadMonth(today.getYear(), today.getMonthValue(), today);
   }
 
+  public MonthlySummary loadRange(LocalDate startDate, LocalDate endDate) {
+    return loadRange(startDate, endDate, null, null);
+  }
+
+  public MonthlySummary loadRange(
+      LocalDate startDate, LocalDate endDate, Long walletId, Long categoryId) {
+    LocalDate normalizedStart = startDate.isAfter(endDate) ? endDate : startDate;
+    LocalDate normalizedEnd = startDate.isAfter(endDate) ? startDate : endDate;
+    MonthRange startRange = MonthRange.forDay(normalizedStart, zoneId);
+    MonthRange endRange = MonthRange.forDay(normalizedEnd, zoneId);
+    long startInclusive = startRange.getStartInclusive();
+    long endExclusive = endRange.getEndExclusive();
+
+    long expense =
+        summaryDao.sumByTypeBetween(
+            TransactionType.EXPENSE.name(), startInclusive, endExclusive, walletId, categoryId);
+    long income =
+        summaryDao.sumByTypeBetween(
+            TransactionType.INCOME.name(), startInclusive, endExclusive, walletId, categoryId);
+
+    List<CategoryTotal> topCategories = new ArrayList<>();
+    for (SummaryDao.CategorySumRow row :
+        summaryDao.topExpenseByCategory(
+            startInclusive, endExclusive, TOP_CATEGORY_LIMIT, walletId, categoryId)) {
+      Category category = categoryDao.findById(row.categoryId);
+      String name = category != null ? category.getName() : "#" + row.categoryId;
+      topCategories.add(new CategoryTotal(row.categoryId, name, row.totalMinor));
+    }
+
+    List<WalletBalance> balances = new ArrayList<>();
+    for (Wallet wallet : walletDao.findAll()) {
+      if (walletId != null && wallet.getId() != walletId) {
+        continue;
+      }
+      balances.add(
+          new WalletBalance(
+              wallet.getId(),
+              wallet.getName(),
+              summaryDao.walletBalanceBefore(wallet.getId(), endExclusive)));
+    }
+
+    return new MonthlySummary(
+        normalizedStart.getYear(),
+        normalizedStart.getMonthValue(),
+        expense,
+        income,
+        expense,
+        income,
+        topCategories,
+        balances);
+  }
+
   public MonthlySummary loadMonth(int year, int month, LocalDate today) {
     MonthRange monthRange = MonthRange.forMonth(year, month, zoneId);
     MonthRange dayRange = MonthRange.forDay(today, zoneId);
@@ -75,7 +127,10 @@ public final class SummaryService {
     List<WalletBalance> balances = new ArrayList<>();
     for (Wallet wallet : walletDao.findAll()) {
       balances.add(
-          new WalletBalance(wallet.getId(), wallet.getName(), wallet.getCachedBalanceMinor()));
+          new WalletBalance(
+              wallet.getId(),
+              wallet.getName(),
+              summaryDao.walletBalanceBefore(wallet.getId(), dayRange.getEndExclusive())));
     }
 
     return new MonthlySummary(
