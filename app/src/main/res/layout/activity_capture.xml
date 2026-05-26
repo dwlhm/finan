@@ -9,183 +9,207 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:clipToPadding="false"
         android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/app_name"
-                android:textAppearance="@style/Finan.Text.Title" />
+            android:orientation="vertical">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@drawable/bg_card"
                 android:orientation="vertical"
                 android:padding="16dp">
+
+                <LinearLayout
+                    style="@style/Finan.Panel.Emphasis"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/common_currency_prefix"
+                        android:textColor="@color/finan_warm_accent"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/capture_amount"
+                        style="@style/Finan.EditText.Transparent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:hint="@string/capture_amount_hint"
+                        android:inputType="numberDecimal"
+                        android:textAppearance="@style/Finan.Text.Amount" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/Finan.Panel.Section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp">
+
+                    <TextView
+                        style="@style/Finan.Text.SectionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/capture_type_label" />
+
+                    <RadioGroup
+                        android:id="@+id/capture_type_group"
+                        style="@style/Finan.Control.RadioGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp">
+
+                        <RadioButton
+                            android:id="@+id/capture_type_expense"
+                            style="@style/Finan.Control.RadioButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:buttonTint="@color/radio_expense_tint"
+                            android:checked="true"
+                            android:text="@string/capture_type_expense" />
+
+                        <RadioButton
+                            android:id="@+id/capture_type_income"
+                            style="@style/Finan.Control.RadioButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:buttonTint="@color/radio_income_tint"
+                            android:text="@string/capture_type_income" />
+                    </RadioGroup>
+
+                    <TextView
+                        style="@style/Finan.Text.SectionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/capture_wallet_label" />
+
+                    <Spinner
+                        android:id="@+id/capture_wallet_spinner"
+                        style="@style/Finan.Control.Surface"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/Finan.Panel.Section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp">
+
+                    <TextView
+                        style="@style/Finan.Text.SectionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/capture_category_label" />
+
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fillViewport="false"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
+
+                        <LinearLayout
+                            android:id="@+id/capture_quick_categories"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal" />
+                    </HorizontalScrollView>
+
+                    <Button
+                        android:id="@+id/capture_category_more"
+                        style="@style/Finan.Button.Select"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/capture_category_more" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/capture_details_toggle"
+                    style="@style/Finan.Control.CollapsibleToggle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp">
+
+                    <TextView
+                        style="@style/Finan.Text.CollapsibleLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/capture_details_toggle" />
+
+                    <ImageView
+                        android:id="@+id/capture_details_chevron"
+                        style="@style/Finan.Icon.ControlIndicator"
+                        android:src="@drawable/ic_expand_more" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/capture_details_panel"
+                    style="@style/Finan.Panel.CollapsibleContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/capture_note"
+                        style="@style/Finan.EditText.Transparent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/capture_note_hint"
+                        android:inputType="textCapSentences" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/capture_save"
+                    style="@style/Finan.Button.Primary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/capture_save" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/common_currency_prefix"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/capture_recent_label"
                     android:textColor="@color/finan_text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-                <EditText
-                    android:id="@+id/capture_amount"
+                <ListView
+                    android:id="@+id/capture_recent_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@android:color/transparent"
-                    android:hint="@string/capture_amount_hint"
-                    android:importantForAutofill="no"
-                    android:inputType="numberDecimal"
-                    android:textAppearance="@style/Finan.Text.Amount" />
-            </LinearLayout>
+                    android:layout_marginTop="8dp"
+                    android:divider="@android:color/transparent"
+                    android:dividerHeight="8dp"
+                    android:nestedScrollingEnabled="true" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/capture_type_label"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="14sp" />
-
-            <RadioGroup
-                android:id="@+id/capture_type_group"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal">
-
-                <RadioButton
-                    android:id="@+id/capture_type_expense"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:checked="true"
-                    android:text="@string/capture_type_expense" />
-
-                <RadioButton
-                    android:id="@+id/capture_type_income"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:text="@string/capture_type_income" />
-            </RadioGroup>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/capture_wallet_label"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="14sp" />
-
-            <Spinner
-                android:id="@+id/capture_wallet_spinner"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_card"
-                android:minHeight="48dp"
-                android:padding="8dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/capture_category_label"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="14sp" />
-
-            <LinearLayout
-                android:id="@+id/capture_quick_categories"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="horizontal" />
-
-            <Button
-                android:id="@+id/capture_category_more"
-                style="@style/Finan.Button.Nav"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_card"
-                android:gravity="start|center_vertical"
-                android:minHeight="48dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="@string/capture_category_more" />
-
-            <Button
-                android:id="@+id/capture_details_toggle"
-                style="@style/Finan.Button.Nav"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/capture_details_toggle" />
-
-            <LinearLayout
-                android:id="@+id/capture_details_panel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_card"
-                android:orientation="vertical"
-                android:padding="12dp"
-                android:visibility="gone">
-
-                <EditText
-                    android:id="@+id/capture_note"
+                <TextView
+                    android:id="@+id/capture_recent_empty"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/capture_note_hint"
-                    android:importantForAutofill="no"
-                    android:inputType="textCapSentences" />
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="@string/capture_recent_empty"
+                    android:textColor="@color/finan_text_hint"
+                    android:visibility="gone" />
             </LinearLayout>
-
-            <Button
-                android:id="@+id/capture_save"
-                style="@style/Finan.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/capture_save" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/capture_recent_label"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <ListView
-                android:id="@+id/capture_recent_list"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:divider="@color/finan_divider"
-                android:dividerHeight="1dp"
-                android:nestedScrollingEnabled="true" />
-
-            <TextView
-                android:id="@+id/capture_recent_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:text="@string/capture_recent_empty"
-                android:textColor="@color/finan_text_hint"
-                android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

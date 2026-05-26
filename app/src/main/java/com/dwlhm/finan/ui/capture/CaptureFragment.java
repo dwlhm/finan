@@ -16,7 +16,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
@@ -26,8 +25,10 @@ import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.CollapsibleController;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
+import com.dwlhm.finan.ui.common.UiComponentStyles;
 import com.dwlhm.finan.ui.history.TransactionListAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
@@ -48,7 +49,6 @@ public final class CaptureFragment extends ScreenFragment {
   private LinearLayout quickCategories;
   private Button categoryMoreButton;
   private Spinner walletSpinner;
-  private View detailsPanel;
   private RadioGroup typeGroup;
   private EditText noteInput;
   private ListView recentList;
@@ -83,14 +83,12 @@ public final class CaptureFragment extends ScreenFragment {
     quickCategories = view.findViewById(R.id.capture_quick_categories);
     categoryMoreButton = view.findViewById(R.id.capture_category_more);
     walletSpinner = view.findViewById(R.id.capture_wallet_spinner);
-    detailsPanel = view.findViewById(R.id.capture_details_panel);
     typeGroup = view.findViewById(R.id.capture_type_group);
     noteInput = view.findViewById(R.id.capture_note);
     recentList = view.findViewById(R.id.capture_recent_list);
     recentEmpty = view.findViewById(R.id.capture_recent_empty);
 
     Button saveButton = view.findViewById(R.id.capture_save);
-    Button detailsToggle = view.findViewById(R.id.capture_details_toggle);
 
     recentAdapter =
         new TransactionListAdapter(requireContext(), services.categoryDao, services.walletDao);
@@ -124,10 +122,11 @@ public final class CaptureFragment extends ScreenFragment {
 
     categoryMoreButton.setOnClickListener(v -> openCategorySearchDialog());
 
-    detailsToggle.setOnClickListener(
-        v ->
-            detailsPanel.setVisibility(
-                detailsPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+    CollapsibleController.bind(
+        view,
+        R.id.capture_details_toggle,
+        R.id.capture_details_panel,
+        R.id.capture_details_chevron);
 
     saveButton.setOnClickListener(v -> saveTransaction());
 
@@ -219,11 +218,11 @@ public final class CaptureFragment extends ScreenFragment {
     for (Category category : quickCategoryList) {
       Button chip = new Button(requireContext(), null, android.R.attr.borderlessButtonStyle);
       chip.setText(category.getName());
-      chip.setAllCaps(false);
-      chip.setTextSize(13f);
+      UiComponentStyles.prepareChip(chip);
       LinearLayout.LayoutParams params =
-          new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-      params.setMarginEnd(8);
+          new LinearLayout.LayoutParams(
+              LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+      params.setMarginEnd(UiComponentStyles.dp(requireContext(), 8));
       chip.setLayoutParams(params);
       styleChip(chip, category);
       chip.setOnClickListener(
@@ -243,6 +242,7 @@ public final class CaptureFragment extends ScreenFragment {
     } else {
       categoryMoreButton.setText(R.string.capture_category_more);
     }
+    styleCategoryMoreButton(fromMoreList);
   }
 
   private boolean isInQuickList(Category category) {
@@ -275,13 +275,20 @@ public final class CaptureFragment extends ScreenFragment {
 
   private void styleChip(Button chip, Category category) {
     boolean selected = selectedCategory != null && selectedCategory.getId() == category.getId();
-    if (selected) {
-      chip.setBackgroundResource(R.drawable.bg_chip_selected);
-      chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.finan_chip_text_selected));
-    } else {
-      chip.setBackgroundResource(R.drawable.bg_chip);
-      chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.finan_chip_text));
-    }
+    int selectedBackgroundRes =
+        selectedType == TransactionType.INCOME
+            ? R.drawable.bg_chip_selected_income
+            : R.drawable.bg_chip_selected_expense;
+    UiComponentStyles.setChipSelected(requireContext(), chip, selected, selectedBackgroundRes);
+  }
+
+  private void styleCategoryMoreButton(boolean selected) {
+    int selectedBackgroundRes =
+        selectedType == TransactionType.INCOME
+            ? R.drawable.bg_control_selected_income
+            : R.drawable.bg_control_selected_expense;
+    UiComponentStyles.setSelectButtonSelected(
+        requireContext(), categoryMoreButton, selected, selectedBackgroundRes);
   }
 
   private void saveTransaction() {
