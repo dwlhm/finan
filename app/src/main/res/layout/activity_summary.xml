@@ -105,6 +105,4 @@
                 android:orientation="vertical" />
         </LinearLayout>
     </ScrollView>
-
-    <include layout="@layout/layout_bottom_nav" />
 </LinearLayout>

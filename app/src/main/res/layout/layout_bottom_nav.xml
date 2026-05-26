@@ -6,46 +6,93 @@
     android:background="@drawable/bg_bottom_nav"
     android:elevation="4dp"
     android:orientation="horizontal"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="8dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="6dp">
 
-    <Button
+    <LinearLayout
         android:id="@+id/nav_capture"
-        style="@style/Finan.Button.Nav"
+        style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_weight="1"
-        android:text="@string/nav_capture" />
+        android:contentDescription="@string/nav_capture">
 
-    <Button
+        <ImageView
+            style="@style/Finan.BottomNavIcon"
+            android:src="@drawable/ic_nav_capture" />
+
+        <TextView
+            style="@style/Finan.Text.BottomNavLabel"
+            android:text="@string/nav_capture" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/nav_history"
-        style="@style/Finan.Button.Nav"
+        style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_weight="1"
-        android:text="@string/nav_history" />
+        android:contentDescription="@string/nav_history">
 
-    <Button
+        <ImageView
+            style="@style/Finan.BottomNavIcon"
+            android:src="@drawable/ic_nav_history" />
+
+        <TextView
+            style="@style/Finan.Text.BottomNavLabel"
+            android:text="@string/nav_history" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/nav_summary"
-        style="@style/Finan.Button.Nav"
+        style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_weight="1"
-        android:text="@string/nav_summary" />
+        android:contentDescription="@string/nav_summary">
 
-    <Button
+        <ImageView
+            style="@style/Finan.BottomNavIcon"
+            android:src="@drawable/ic_nav_summary" />
+
+        <TextView
+            style="@style/Finan.Text.BottomNavLabel"
+            android:text="@string/nav_summary" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/nav_wallet"
-        style="@style/Finan.Button.Nav"
+        style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_weight="1"
-        android:text="@string/nav_wallet" />
+        android:contentDescription="@string/nav_wallet">
 
-    <Button
+        <ImageView
+            style="@style/Finan.BottomNavIcon"
+            android:src="@drawable/ic_nav_wallet" />
+
+        <TextView
+            style="@style/Finan.Text.BottomNavLabel"
+            android:text="@string/nav_wallet" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/nav_settings"
-        style="@style/Finan.Button.Nav"
+        style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_weight="1"
-        android:text="@string/nav_settings" />
+        android:contentDescription="@string/nav_settings">
+
+        <ImageView
+            style="@style/Finan.BottomNavIcon"
+            android:src="@drawable/ic_nav_settings" />
+
+        <TextView
+            style="@style/Finan.Text.BottomNavLabel"
+            android:text="@string/nav_settings" />
+    </LinearLayout>
 </LinearLayout>

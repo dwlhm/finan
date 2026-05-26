@@ -14,6 +14,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
@@ -25,7 +26,7 @@ import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.ui.common.AppServices;
-import com.dwlhm.finan.ui.common.BaseActivity;
+import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.history.TransactionListAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
@@ -34,7 +35,7 @@ import com.dwlhm.finan.util.money.MoneyParser;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CaptureActivity extends BaseActivity {
+public final class CaptureFragment extends ScreenFragment {
 
   private static final int RECENT_LIMIT = 8;
   private static final int QUICK_CATEGORY_SLOTS = 4;
@@ -64,11 +65,11 @@ public class CaptureActivity extends BaseActivity {
   private boolean suppressWalletSpinner;
 
   @Override
-  protected void onCreate(@Nullable Bundle savedInstanceState) {
-    services = ServicesProvider.get(this);
+  public void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    services = ServicesProvider.get(requireContext());
     transactionService = services.transactionService;
     defaultsStore = services.defaultsStore;
-    super.onCreate(savedInstanceState);
   }
 
   @Override
@@ -77,21 +78,22 @@ public class CaptureActivity extends BaseActivity {
   }
 
   @Override
-  protected void onReady() {
-    amountInput = findViewById(R.id.capture_amount);
-    quickCategories = findViewById(R.id.capture_quick_categories);
-    categoryMoreButton = findViewById(R.id.capture_category_more);
-    walletSpinner = findViewById(R.id.capture_wallet_spinner);
-    detailsPanel = findViewById(R.id.capture_details_panel);
-    typeGroup = findViewById(R.id.capture_type_group);
-    noteInput = findViewById(R.id.capture_note);
-    recentList = findViewById(R.id.capture_recent_list);
-    recentEmpty = findViewById(R.id.capture_recent_empty);
+  protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    amountInput = view.findViewById(R.id.capture_amount);
+    quickCategories = view.findViewById(R.id.capture_quick_categories);
+    categoryMoreButton = view.findViewById(R.id.capture_category_more);
+    walletSpinner = view.findViewById(R.id.capture_wallet_spinner);
+    detailsPanel = view.findViewById(R.id.capture_details_panel);
+    typeGroup = view.findViewById(R.id.capture_type_group);
+    noteInput = view.findViewById(R.id.capture_note);
+    recentList = view.findViewById(R.id.capture_recent_list);
+    recentEmpty = view.findViewById(R.id.capture_recent_empty);
 
-    Button saveButton = findViewById(R.id.capture_save);
-    Button detailsToggle = findViewById(R.id.capture_details_toggle);
+    Button saveButton = view.findViewById(R.id.capture_save);
+    Button detailsToggle = view.findViewById(R.id.capture_details_toggle);
 
-    recentAdapter = new TransactionListAdapter(this, services.categoryDao, services.walletDao);
+    recentAdapter =
+        new TransactionListAdapter(requireContext(), services.categoryDao, services.walletDao);
     recentList.setAdapter(recentAdapter);
 
     resolveActiveWallet();
@@ -109,7 +111,7 @@ public class CaptureActivity extends BaseActivity {
     walletSpinner.setOnItemSelectedListener(
         new AdapterView.OnItemSelectedListener() {
           @Override
-          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+          public void onItemSelected(AdapterView<?> parent, View selectedView, int position, long id) {
             if (suppressWalletSpinner || position < 0 || position >= wallets.size()) {
               return;
             }
@@ -137,7 +139,7 @@ public class CaptureActivity extends BaseActivity {
   }
 
   @Override
-  protected void onResume() {
+  public void onResume() {
     super.onResume();
     resolveActiveWallet();
     bindWalletSpinner();
@@ -188,7 +190,7 @@ public class CaptureActivity extends BaseActivity {
     }
 
     ArrayAdapter<String> adapter =
-        new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
+        new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, labels);
     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
     suppressWalletSpinner = true;
@@ -215,7 +217,7 @@ public class CaptureActivity extends BaseActivity {
   private void bindQuickCategoryChips() {
     quickCategories.removeAllViews();
     for (Category category : quickCategoryList) {
-      Button chip = new Button(this, null, android.R.attr.borderlessButtonStyle);
+      Button chip = new Button(requireContext(), null, android.R.attr.borderlessButtonStyle);
       chip.setText(category.getName());
       chip.setAllCaps(false);
       chip.setTextSize(13f);
@@ -255,7 +257,7 @@ public class CaptureActivity extends BaseActivity {
   private void openCategorySearchDialog() {
     CategorySearchDialog dialog =
         new CategorySearchDialog(
-            this,
+            requireContext(),
             services.categoryDao,
             selectedType,
             allCategoriesForType,
@@ -275,10 +277,10 @@ public class CaptureActivity extends BaseActivity {
     boolean selected = selectedCategory != null && selectedCategory.getId() == category.getId();
     if (selected) {
       chip.setBackgroundResource(R.drawable.bg_chip_selected);
-      chip.setTextColor(ContextCompat.getColor(this, R.color.finan_chip_text_selected));
+      chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.finan_chip_text_selected));
     } else {
       chip.setBackgroundResource(R.drawable.bg_chip);
-      chip.setTextColor(ContextCompat.getColor(this, R.color.finan_chip_text));
+      chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.finan_chip_text));
     }
   }
 
@@ -287,15 +289,15 @@ public class CaptureActivity extends BaseActivity {
     try {
       amountMinor = MoneyParser.parse(amountInput.getText().toString());
     } catch (IllegalArgumentException e) {
-      Toast.makeText(this, R.string.capture_error_amount, Toast.LENGTH_SHORT).show();
+      Toast.makeText(requireContext(), R.string.capture_error_amount, Toast.LENGTH_SHORT).show();
       return;
     }
     if (selectedCategory == null) {
-      Toast.makeText(this, R.string.capture_error_category, Toast.LENGTH_SHORT).show();
+      Toast.makeText(requireContext(), R.string.capture_error_category, Toast.LENGTH_SHORT).show();
       return;
     }
     if (activeWallet == null) {
-      Toast.makeText(this, R.string.capture_wallet_unknown, Toast.LENGTH_SHORT).show();
+      Toast.makeText(requireContext(), R.string.capture_wallet_unknown, Toast.LENGTH_SHORT).show();
       return;
     }
 
@@ -316,12 +318,12 @@ public class CaptureActivity extends BaseActivity {
     try {
       transactionService.save(transaction);
     } catch (IllegalArgumentException e) {
-      Toast.makeText(this, R.string.capture_error_save, Toast.LENGTH_SHORT).show();
+      Toast.makeText(requireContext(), R.string.capture_error_save, Toast.LENGTH_SHORT).show();
       return;
     }
 
     defaultsStore.setLastWalletId(activeWallet.getId());
-    Toast.makeText(this, R.string.capture_saved, Toast.LENGTH_SHORT).show();
+    Toast.makeText(requireContext(), R.string.capture_saved, Toast.LENGTH_SHORT).show();
     amountInput.setText("");
     noteInput.setText("");
     selectedCategory = null;

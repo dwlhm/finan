@@ -1,18 +1,22 @@
 package com.dwlhm.finan.ui.settings;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.domain.model.Transaction;
-import com.dwlhm.finan.ui.common.BaseActivity;
-import com.dwlhm.finan.ui.common.FinanIntents;
+import com.dwlhm.finan.ui.common.ScreenFragment;
+import com.dwlhm.finan.ui.common.ScreenNavigator;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 
 import java.io.IOException;
@@ -20,31 +24,35 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class SettingsActivity extends BaseActivity {
+public final class SettingsFragment extends ScreenFragment {
 
   private ActivityResultLauncher<Intent> exportLauncher;
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
+  public void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
     exportLauncher =
         registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-              if (result.getResultCode() != RESULT_OK || result.getData() == null) {
+              if (result.getResultCode() != Activity.RESULT_OK
+                  || result.getData() == null) {
                 return;
               }
               Uri uri = result.getData().getData();
               if (uri == null) {
-                Toast.makeText(this, R.string.settings_export_failed, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.settings_export_failed, Toast.LENGTH_SHORT)
+                    .show();
                 return;
               }
               if (writeCsvExport(uri)) {
-                Toast.makeText(this, R.string.settings_export_success, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.settings_export_success, Toast.LENGTH_SHORT)
+                    .show();
               } else {
-                Toast.makeText(this, R.string.settings_export_failed, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.settings_export_failed, Toast.LENGTH_SHORT)
+                    .show();
               }
             });
-    super.onCreate(savedInstanceState);
   }
 
   @Override
@@ -53,15 +61,12 @@ public class SettingsActivity extends BaseActivity {
   }
 
   @Override
-  protected void onReady() {
-    Button exportButton = findViewById(R.id.settings_export);
-    Button categoriesButton = findViewById(R.id.settings_categories);
+  protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    Button exportButton = view.findViewById(R.id.settings_export);
+    Button categoriesButton = view.findViewById(R.id.settings_categories);
 
     exportButton.setOnClickListener(v -> launchExportPicker());
-    categoriesButton.setOnClickListener(
-        v ->
-            startActivity(
-                FinanIntents.categories(this).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)));
+    categoriesButton.setOnClickListener(v -> openCategories());
   }
 
   private void launchExportPicker() {
@@ -72,11 +77,17 @@ public class SettingsActivity extends BaseActivity {
     exportLauncher.launch(intent);
   }
 
+  private void openCategories() {
+    if (requireActivity() instanceof ScreenNavigator) {
+      ((ScreenNavigator) requireActivity()).openCategories();
+    }
+  }
+
   private boolean writeCsvExport(Uri destination) {
     List<Transaction> transactions =
-        ServicesProvider.get(this).transactionGateway.findAll();
-    String csv = ServicesProvider.get(this).exportService.toCsv(transactions);
-    try (OutputStream out = getContentResolver().openOutputStream(destination)) {
+        ServicesProvider.get(requireContext()).transactionGateway.findAll();
+    String csv = ServicesProvider.get(requireContext()).exportService.toCsv(transactions);
+    try (OutputStream out = requireContext().getContentResolver().openOutputStream(destination)) {
       if (out == null) {
         return false;
       }

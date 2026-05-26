@@ -9,16 +9,21 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.ui.common.AppServices;
-import com.dwlhm.finan.ui.common.BaseActivity;
+import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class CategoryListActivity extends BaseActivity {
+public final class CategoryListFragment extends ScreenFragment {
+
+  public static final String TAG = "category_list";
 
   private AppServices services;
   private CategoryAdapter adapter;
@@ -26,9 +31,9 @@ public class CategoryListActivity extends BaseActivity {
   private TextView emptyView;
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    services = ServicesProvider.get(this);
+  public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    services = ServicesProvider.get(requireContext());
   }
 
   @Override
@@ -37,11 +42,17 @@ public class CategoryListActivity extends BaseActivity {
   }
 
   @Override
-  protected void onReady() {
-    listView = findViewById(R.id.category_list);
-    emptyView = findViewById(R.id.category_empty);
-    adapter = new CategoryAdapter(this);
+  protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    listView = view.findViewById(R.id.category_list);
+    emptyView = view.findViewById(R.id.category_empty);
+    adapter = new CategoryAdapter(requireContext());
     listView.setAdapter(adapter);
+    reload();
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
     reload();
   }
 
@@ -52,7 +63,7 @@ public class CategoryListActivity extends BaseActivity {
     listView.setVisibility(empty ? View.GONE : View.VISIBLE);
   }
 
-  private static class CategoryAdapter extends BaseAdapter {
+  private static final class CategoryAdapter extends BaseAdapter {
 
     private final Context context;
     private final LayoutInflater inflater;

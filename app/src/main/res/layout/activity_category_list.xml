@@ -31,6 +31,4 @@
         android:text="@string/category_empty"
         android:textColor="@color/finan_text_hint"
         android:visibility="gone" />
-
-    <include layout="@layout/layout_bottom_nav" />
 </LinearLayout>

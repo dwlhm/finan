@@ -9,17 +9,20 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.ui.common.AppServices;
-import com.dwlhm.finan.ui.common.BaseActivity;
+import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class WalletListActivity extends BaseActivity {
+public final class WalletListFragment extends ScreenFragment {
 
   private AppServices services;
   private WalletAdapter adapter;
@@ -27,9 +30,9 @@ public class WalletListActivity extends BaseActivity {
   private TextView emptyView;
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    services = ServicesProvider.get(this);
+  public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    services = ServicesProvider.get(requireContext());
   }
 
   @Override
@@ -38,16 +41,16 @@ public class WalletListActivity extends BaseActivity {
   }
 
   @Override
-  protected void onReady() {
-    listView = findViewById(R.id.wallet_list);
-    emptyView = findViewById(R.id.wallet_empty);
-    adapter = new WalletAdapter(this);
+  protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    listView = view.findViewById(R.id.wallet_list);
+    emptyView = view.findViewById(R.id.wallet_empty);
+    adapter = new WalletAdapter(requireContext());
     listView.setAdapter(adapter);
     reload();
   }
 
   @Override
-  protected void onResume() {
+  public void onResume() {
     super.onResume();
     reload();
   }
@@ -59,7 +62,7 @@ public class WalletListActivity extends BaseActivity {
     listView.setVisibility(empty ? View.GONE : View.VISIBLE);
   }
 
-  private class WalletAdapter extends BaseAdapter {
+  private static final class WalletAdapter extends BaseAdapter {
 
     private final Context context;
     private final LayoutInflater inflater;

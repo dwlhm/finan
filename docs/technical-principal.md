@@ -125,7 +125,7 @@ Contoh:
 | Local setting        | SharedPreferences              |
 | Database lokal       | SQLite                         |
 | Date/time default    | Java/platform API              |
-| Navigation sederhana | Activity/manual view switching |
+| Bottom navigation    | Single Activity + Fragment transaction |
 | List sederhana       | native/list ringan dulu        |
 
 Library boleh dipakai jika implementasi manual menjadi terlalu mahal, rawan bug, atau justru membuat kode lebih sulit dirawat.

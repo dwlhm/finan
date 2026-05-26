@@ -11,33 +11,13 @@
         android:theme="@style/Theme.Finan">
 
         <activity
-            android:name=".ui.capture.CaptureActivity"
+            android:name=".ui.MainActivity"
             android:exported="true"
-            android:windowSoftInputMode="stateVisible">
+            android:windowSoftInputMode="stateVisible|adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".ui.history.HistoryActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.summary.SummaryActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.wallet.WalletListActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.category.CategoryListActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.settings.SettingsActivity"
-            android:exported="false" />
     </application>
 </manifest>

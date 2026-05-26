@@ -5,12 +5,15 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.common.AppServices;
-import com.dwlhm.finan.ui.common.BaseActivity;
+import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 
-public class HistoryActivity extends BaseActivity {
+public final class HistoryFragment extends ScreenFragment {
 
   private AppServices services;
   private TransactionListAdapter adapter;
@@ -18,9 +21,9 @@ public class HistoryActivity extends BaseActivity {
   private TextView emptyView;
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    services = ServicesProvider.get(this);
+  public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    services = ServicesProvider.get(requireContext());
   }
 
   @Override
@@ -29,17 +32,17 @@ public class HistoryActivity extends BaseActivity {
   }
 
   @Override
-  protected void onReady() {
-    listView = findViewById(R.id.history_list);
-    emptyView = findViewById(R.id.history_empty);
+  protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    listView = view.findViewById(R.id.history_list);
+    emptyView = view.findViewById(R.id.history_empty);
     adapter =
-        new TransactionListAdapter(this, services.categoryDao, services.walletDao);
+        new TransactionListAdapter(requireContext(), services.categoryDao, services.walletDao);
     listView.setAdapter(adapter);
     reload();
   }
 
   @Override
-  protected void onResume() {
+  public void onResume() {
     super.onResume();
     reload();
   }

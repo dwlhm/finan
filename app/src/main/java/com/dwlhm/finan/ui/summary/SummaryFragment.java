@@ -1,15 +1,22 @@
 package com.dwlhm.finan.ui.summary;
 
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.domain.model.CategoryTotal;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.WalletBalance;
-import com.dwlhm.finan.ui.common.BaseActivity;
+import com.dwlhm.finan.service.summary.SummaryService;
+import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
@@ -17,9 +24,10 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SummaryActivity extends BaseActivity {
+public final class SummaryFragment extends ScreenFragment {
 
   private final ExecutorService executor = Executors.newSingleThreadExecutor();
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
   private ProgressBar loading;
   private TextView monthExpense;
@@ -36,25 +44,26 @@ public class SummaryActivity extends BaseActivity {
   }
 
   @Override
-  protected void onReady() {
-    loading = findViewById(R.id.summary_loading);
-    monthExpense = findViewById(R.id.summary_month_expense);
-    monthIncome = findViewById(R.id.summary_month_income);
-    todayExpense = findViewById(R.id.summary_today_expense);
-    todayIncome = findViewById(R.id.summary_today_income);
-    categoryList = findViewById(R.id.summary_category_list);
-    walletList = findViewById(R.id.summary_wallet_list);
-    emptyMessage = findViewById(R.id.summary_empty);
+  protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    loading = view.findViewById(R.id.summary_loading);
+    monthExpense = view.findViewById(R.id.summary_month_expense);
+    monthIncome = view.findViewById(R.id.summary_month_income);
+    todayExpense = view.findViewById(R.id.summary_today_expense);
+    todayIncome = view.findViewById(R.id.summary_today_income);
+    categoryList = view.findViewById(R.id.summary_category_list);
+    walletList = view.findViewById(R.id.summary_wallet_list);
+    emptyMessage = view.findViewById(R.id.summary_empty);
   }
 
   @Override
-  protected void onResume() {
+  public void onResume() {
     super.onResume();
     loadSummaryAsync();
   }
 
   @Override
-  protected void onDestroy() {
+  public void onDestroy() {
+    mainHandler.removeCallbacksAndMessages(null);
     executor.shutdownNow();
     super.onDestroy();
   }
@@ -62,12 +71,13 @@ public class SummaryActivity extends BaseActivity {
   private void loadSummaryAsync() {
     loading.setVisibility(View.VISIBLE);
     emptyMessage.setVisibility(View.GONE);
+    SummaryService summaryService = ServicesProvider.get(requireContext()).summaryService;
     executor.execute(
         () -> {
-          MonthlySummary summary = ServicesProvider.get(this).summaryService.loadCurrentMonth();
-          runOnUiThread(
+          MonthlySummary summary = summaryService.loadCurrentMonth();
+          mainHandler.post(
               () -> {
-                if (isFinishing()) {
+                if (!isAdded() || getView() == null) {
                   return;
                 }
                 bindSummary(summary);
@@ -84,7 +94,10 @@ public class SummaryActivity extends BaseActivity {
             summary.getYear(),
             summary.getMonth());
     monthExpense.setText(
-        getString(R.string.summary_month_expense_format, monthLabel, format(summary.getMonthExpenseMinor())));
+        getString(
+            R.string.summary_month_expense_format,
+            monthLabel,
+            format(summary.getMonthExpenseMinor())));
     monthIncome.setText(
         getString(R.string.summary_month_income_format, format(summary.getMonthIncomeMinor())));
     todayExpense.setText(
@@ -99,11 +112,13 @@ public class SummaryActivity extends BaseActivity {
     } else {
       emptyMessage.setVisibility(View.GONE);
       for (CategoryTotal row : summary.getTopExpenseCategories()) {
-        TextView line = new TextView(this);
+        TextView line = new TextView(requireContext());
         line.setText(
             getString(
-                R.string.summary_category_line_format, row.getCategoryName(), format(row.getTotalMinor())));
-        line.setTextColor(getColor(R.color.finan_text_primary));
+                R.string.summary_category_line_format,
+                row.getCategoryName(),
+                format(row.getTotalMinor())));
+        line.setTextColor(requireContext().getColor(R.color.finan_text_primary));
         line.setTextSize(15f);
         line.setPadding(0, 0, 0, 12);
         categoryList.addView(line);
@@ -112,11 +127,13 @@ public class SummaryActivity extends BaseActivity {
 
     walletList.removeAllViews();
     for (WalletBalance wallet : summary.getWalletBalances()) {
-      TextView line = new TextView(this);
+      TextView line = new TextView(requireContext());
       line.setText(
           getString(
-              R.string.summary_wallet_line_format, wallet.getWalletName(), format(wallet.getBalanceMinor())));
-      line.setTextColor(getColor(R.color.finan_text_secondary));
+              R.string.summary_wallet_line_format,
+              wallet.getWalletName(),
+              format(wallet.getBalanceMinor())));
+      line.setTextColor(requireContext().getColor(R.color.finan_text_secondary));
       line.setTextSize(14f);
       line.setPadding(0, 0, 0, 8);
       walletList.addView(line);

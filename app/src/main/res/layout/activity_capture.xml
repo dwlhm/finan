@@ -188,6 +188,4 @@
                 android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
-
-    <include layout="@layout/layout_bottom_nav" />
 </LinearLayout>
