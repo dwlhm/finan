@@ -63,9 +63,11 @@ public final class SettingsFragment extends ScreenFragment {
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     Button exportButton = view.findViewById(R.id.settings_export);
+    Button walletsButton = view.findViewById(R.id.settings_wallets);
     Button categoriesButton = view.findViewById(R.id.settings_categories);
 
     exportButton.setOnClickListener(v -> launchExportPicker());
+    walletsButton.setOnClickListener(v -> openWallets());
     categoriesButton.setOnClickListener(v -> openCategories());
   }
 
@@ -80,6 +82,12 @@ public final class SettingsFragment extends ScreenFragment {
   private void openCategories() {
     if (requireActivity() instanceof ScreenNavigator) {
       ((ScreenNavigator) requireActivity()).openCategories();
+    }
+  }
+
+  private void openWallets() {
+    if (requireActivity() instanceof ScreenNavigator) {
+      ((ScreenNavigator) requireActivity()).openWallets();
     }
   }
 

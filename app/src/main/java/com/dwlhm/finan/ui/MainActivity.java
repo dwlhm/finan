@@ -25,6 +25,7 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
 
   private static final String KEY_SELECTED_SCREEN = "selected_screen";
   private static final String BACK_STACK_CATEGORY = "category";
+  private static final String BACK_STACK_WALLET = "wallet";
 
   private Screen selectedScreen = Screen.CAPTURE;
 
@@ -53,16 +54,24 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
 
   @Override
   public void openCategories() {
+    openSettingsChild(new CategoryListFragment(), CategoryListFragment.TAG, BACK_STACK_CATEGORY);
+  }
+
+  @Override
+  public void openWallets() {
+    openSettingsChild(new WalletListFragment(), WalletListFragment.TAG, BACK_STACK_WALLET);
+  }
+
+  private void openSettingsChild(Fragment fragment, String tag, String backStackName) {
     FragmentManager fragmentManager = getSupportFragmentManager();
     fragmentManager.executePendingTransactions();
 
-    Fragment existing = fragmentManager.findFragmentByTag(CategoryListFragment.TAG);
+    Fragment existing = fragmentManager.findFragmentByTag(tag);
     if (existing != null && existing.isVisible()) {
       return;
     }
 
     Fragment currentTab = fragmentManager.findFragmentByTag(selectedScreen.tag);
-    CategoryListFragment categoryFragment = new CategoryListFragment();
     FragmentTransaction transaction =
         fragmentManager
             .beginTransaction()
@@ -77,10 +86,10 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
       transaction.hide(currentTab);
       transaction.setMaxLifecycle(currentTab, Lifecycle.State.STARTED);
     }
-    transaction.add(R.id.main_content, categoryFragment, CategoryListFragment.TAG);
-    transaction.setMaxLifecycle(categoryFragment, Lifecycle.State.RESUMED);
-    transaction.setPrimaryNavigationFragment(categoryFragment);
-    transaction.addToBackStack(BACK_STACK_CATEGORY);
+    transaction.add(R.id.main_content, fragment, tag);
+    transaction.setMaxLifecycle(fragment, Lifecycle.State.RESUMED);
+    transaction.setPrimaryNavigationFragment(fragment);
+    transaction.addToBackStack(backStackName);
     transaction.commit();
     syncBottomNav();
   }
@@ -89,7 +98,6 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     setNavClick(R.id.nav_capture, Screen.CAPTURE);
     setNavClick(R.id.nav_history, Screen.HISTORY);
     setNavClick(R.id.nav_summary, Screen.SUMMARY);
-    setNavClick(R.id.nav_wallet, Screen.WALLET);
     setNavClick(R.id.nav_settings, Screen.SETTINGS);
     syncBottomNav();
   }
@@ -149,7 +157,6 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     setSelected(R.id.nav_capture, selectedScreen == Screen.CAPTURE);
     setSelected(R.id.nav_history, selectedScreen == Screen.HISTORY);
     setSelected(R.id.nav_summary, selectedScreen == Screen.SUMMARY);
-    setSelected(R.id.nav_wallet, selectedScreen == Screen.WALLET);
     setSelected(R.id.nav_settings, selectedScreen == Screen.SETTINGS);
   }
 
@@ -162,7 +169,6 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     CAPTURE("capture"),
     HISTORY("history"),
     SUMMARY("summary"),
-    WALLET("wallet"),
     SETTINGS("settings");
 
     private final String tag;
@@ -177,8 +183,6 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
           return new HistoryFragment();
         case SUMMARY:
           return new SummaryFragment();
-        case WALLET:
-          return new WalletListFragment();
         case SETTINGS:
           return new SettingsFragment();
         case CAPTURE:

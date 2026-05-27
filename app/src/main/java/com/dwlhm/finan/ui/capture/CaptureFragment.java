@@ -31,6 +31,7 @@ import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
 import com.dwlhm.finan.ui.history.TransactionListAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
+import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
 
 import java.util.ArrayList;
@@ -80,6 +81,7 @@ public final class CaptureFragment extends ScreenFragment {
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     amountInput = view.findViewById(R.id.capture_amount);
+    MoneyInputFormatter.attach(amountInput, false);
     quickCategories = view.findViewById(R.id.capture_quick_categories);
     categoryMoreButton = view.findViewById(R.id.capture_category_more);
     walletSpinner = view.findViewById(R.id.capture_wallet_spinner);

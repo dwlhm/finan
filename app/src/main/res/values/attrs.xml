@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="titleText" format="reference|string" />
+    <attr name="actionIcon" format="reference" />
+    <attr name="actionContentDescription" format="reference|string" />
+    <attr name="labelText" format="reference|string" />
+    <attr name="fieldHint" format="reference|string" />
+    <attr name="primaryText" format="reference|string" />
+    <attr name="secondaryText" format="reference|string" />
+
+    <declare-styleable name="ScreenHeaderView">
+        <attr name="titleText" />
+        <attr name="actionIcon" />
+        <attr name="actionContentDescription" />
+    </declare-styleable>
+
+    <declare-styleable name="FinanDialogCardView">
+        <attr name="titleText" />
+    </declare-styleable>
+
+    <declare-styleable name="LabeledEditTextView">
+        <attr name="labelText" />
+        <attr name="fieldHint" />
+        <attr name="android:inputType" />
+    </declare-styleable>
+
+    <declare-styleable name="DialogActionsView">
+        <attr name="primaryText" />
+        <attr name="secondaryText" />
+    </declare-styleable>
+</resources>

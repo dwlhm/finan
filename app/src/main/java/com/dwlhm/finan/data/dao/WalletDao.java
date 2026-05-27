@@ -44,6 +44,48 @@ public final class WalletDao {
     return db.update("wallets", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
   }
 
+  public void clearDefaultWalletsExcept(long walletId) {
+    ContentValues values = new ContentValues();
+    values.put("is_default", 0);
+    db.update("wallets", values, "id <> ?", new String[]{String.valueOf(walletId)});
+  }
+
+  public boolean updateName(long id, String name) {
+    ContentValues values = new ContentValues();
+    values.put("name", name);
+    return db.update("wallets", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
+  }
+
+  public boolean updateNameAndDefault(long id, String name, boolean makeDefault) {
+    db.beginTransaction();
+    try {
+      ContentValues nameValues = new ContentValues();
+      nameValues.put("name", name);
+      int updatedRows =
+          db.update("wallets", nameValues, "id = ?", new String[]{String.valueOf(id)});
+      if (updatedRows <= 0) {
+        return false;
+      }
+      if (makeDefault) {
+        ContentValues clearValues = new ContentValues();
+        clearValues.put("is_default", 0);
+        db.update("wallets", clearValues, "id <> ?", new String[]{String.valueOf(id)});
+
+        ContentValues defaultValues = new ContentValues();
+        defaultValues.put("is_default", 1);
+        int defaultRows =
+            db.update("wallets", defaultValues, "id = ?", new String[]{String.valueOf(id)});
+        if (defaultRows <= 0) {
+          return false;
+        }
+      }
+      db.setTransactionSuccessful();
+      return true;
+    } finally {
+      db.endTransaction();
+    }
+  }
+
   public boolean delete(long id) {
     return db.delete("wallets", "id = ?", new String[]{String.valueOf(id)}) > 0;
   }

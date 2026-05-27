@@ -63,23 +63,6 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/nav_wallet"
-        style="@style/Finan.BottomNavItem"
-        android:layout_width="0dp"
-        android:layout_height="52dp"
-        android:layout_weight="1"
-        android:contentDescription="@string/nav_wallet">
-
-        <ImageView
-            style="@style/Finan.BottomNavIcon"
-            android:src="@drawable/ic_nav_wallet" />
-
-        <TextView
-            style="@style/Finan.Text.BottomNavLabel"
-            android:text="@string/nav_wallet" />
-    </LinearLayout>
-
-    <LinearLayout
         android:id="@+id/nav_settings"
         style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"

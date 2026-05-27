@@ -16,6 +16,7 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.ScreenFragment;
+import com.dwlhm.finan.ui.common.ScreenHeaderView;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 
 import java.util.ArrayList;
@@ -45,6 +46,8 @@ public final class CategoryListFragment extends ScreenFragment {
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     listView = view.findViewById(R.id.category_list);
     emptyView = view.findViewById(R.id.category_empty);
+    ScreenHeaderView headerView = view.findViewById(R.id.category_header);
+    headerView.setOnBackClickListener(v -> goBack());
     adapter = new CategoryAdapter(requireContext());
     listView.setAdapter(adapter);
     reload();
@@ -61,6 +64,10 @@ public final class CategoryListFragment extends ScreenFragment {
     boolean empty = adapter.getCount() == 0;
     emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
     listView.setVisibility(empty ? View.GONE : View.VISIBLE);
+  }
+
+  private void goBack() {
+    requireActivity().getSupportFragmentManager().popBackStack();
   }
 
   private static final class CategoryAdapter extends BaseAdapter {

@@ -31,7 +31,6 @@
     <string name="nav_capture">Catat</string>
     <string name="nav_history">Riwayat</string>
     <string name="nav_summary">Ringkasan</string>
-    <string name="nav_wallet">Dompet</string>
     <string name="nav_settings">Pengaturan</string>
 
     <string name="history_title">Riwayat</string>
@@ -68,8 +67,28 @@
     <string name="summary_no_expense">Belum ada pengeluaran pada periode ini</string>
 
     <string name="wallet_title">Dompet</string>
+    <string name="wallet_add">Tambah dompet</string>
     <string name="wallet_empty">Belum ada dompet</string>
-    <string name="wallet_balance_format">Saldo: %1$s</string>
+    <string name="wallet_total_balance_label">Saldo total</string>
+    <string name="wallet_count_format">%1$d dompet</string>
+    <string name="wallet_default_format">Default: %1$s</string>
+    <string name="wallet_default_none">Belum dipilih</string>
+    <string name="wallet_default_badge">Default</string>
+    <string name="wallet_add_dialog_title">Tambah dompet</string>
+    <string name="wallet_edit_dialog_title">Edit dompet</string>
+    <string name="wallet_edit_name">Edit dompet</string>
+    <string name="wallet_save_name">Simpan</string>
+    <string name="wallet_name_hint">Nama dompet</string>
+    <string name="wallet_name_example">Cash harian</string>
+    <string name="wallet_initial_balance_hint">Saldo awal</string>
+    <string name="wallet_initial_balance_example">Rp 0</string>
+    <string name="wallet_make_default">Jadikan dompet default</string>
+    <string name="wallet_error_name">Nama dompet tidak boleh kosong</string>
+    <string name="wallet_error_balance">Saldo awal tidak valid</string>
+    <string name="wallet_error_create">Gagal membuat dompet</string>
+    <string name="wallet_error_update">Gagal memperbarui dompet</string>
+    <string name="wallet_created">Dompet dibuat</string>
+    <string name="wallet_updated">Dompet diperbarui</string>
 
     <string name="category_title">Kategori</string>
     <string name="category_empty">Belum ada kategori</string>
@@ -82,8 +101,10 @@
     <string name="settings_export_hint">Ekspor transaksi ke file CSV (format Finan v1)</string>
     <string name="settings_export_success">Ekspor berhasil</string>
     <string name="settings_export_failed">Ekspor gagal</string>
+    <string name="settings_manage_wallets">Kelola dompet</string>
     <string name="settings_manage_categories">Kelola kategori</string>
     <string name="settings_export_filename">finan_export.csv</string>
 
     <string name="common_currency_prefix">Rp</string>
+    <string name="common_back">Kembali</string>
 </resources>

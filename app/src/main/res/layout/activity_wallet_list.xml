@@ -1,26 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/finan_background"
     android:orientation="vertical">
 
-    <TextView
+    <com.dwlhm.finan.ui.common.ScreenHeaderView
+        android:id="@+id/wallet_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="@string/wallet_title"
-        android:textAppearance="@style/Finan.Text.Title" />
+        app:actionContentDescription="@string/wallet_add"
+        app:actionIcon="@drawable/ic_add"
+        app:titleText="@string/wallet_title" />
+
+    <LinearLayout
+        android:id="@+id/wallet_summary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/wallet_total_balance_label"
+            android:textAppearance="@style/Finan.Text.SectionLabel" />
+
+        <TextView
+            android:id="@+id/wallet_total_balance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:includeFontPadding="false"
+            android:textColor="@color/finan_text_primary"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/wallet_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/finan_text_secondary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/wallet_default"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/finan_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 
     <ListView
         android:id="@+id/wallet_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="@color/finan_divider"
-        android:dividerHeight="1dp"
+        android:clipToPadding="false"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="8dp"
         android:paddingStart="16dp"
-        android:paddingEnd="16dp" />
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp" />
 
     <TextView
         android:id="@+id/wallet_empty"
