@@ -35,6 +35,11 @@
 
     <string name="history_title">Riwayat</string>
     <string name="history_empty">Belum ada transaksi</string>
+    <string name="history_empty_hint">Transaksi yang kamu catat akan muncul di sini.</string>
+    <string name="history_count_format">%1$d transaksi terbaru</string>
+    <string name="history_transactions_label">Transaksi</string>
+    <string name="history_income_label">Masuk</string>
+    <string name="history_expense_label">Keluar</string>
 
     <string name="transaction_detail_title">Detail transaksi</string>
     <string name="transaction_edit_title">Edit transaksi</string>

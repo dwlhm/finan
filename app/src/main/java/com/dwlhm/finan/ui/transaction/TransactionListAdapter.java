@@ -1,6 +1,7 @@
 package com.dwlhm.finan.ui.transaction;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -71,9 +72,11 @@ public class TransactionListAdapter extends BaseAdapter {
     if (convertView == null) {
       convertView = inflater.inflate(R.layout.item_transaction, parent, false);
       holder = new ViewHolder();
+      holder.typeIndicator = convertView.findViewById(R.id.item_transaction_type_indicator);
       holder.category = convertView.findViewById(R.id.item_transaction_category);
       holder.amount = convertView.findViewById(R.id.item_transaction_amount);
       holder.meta = convertView.findViewById(R.id.item_transaction_meta);
+      holder.note = convertView.findViewById(R.id.item_transaction_note);
       convertView.setTag(holder);
     } else {
       holder = (ViewHolder) convertView.getTag();
@@ -86,24 +89,36 @@ public class TransactionListAdapter extends BaseAdapter {
     holder.category.setText(category != null ? category.getName() : "—");
 
     String formatted = MoneyFormatter.format(transaction.getAmountMinor());
+    int typeColor;
     if (transaction.getType() == TransactionType.INCOME) {
       holder.amount.setText("+" + formatted);
-      holder.amount.setTextColor(ContextCompat.getColor(context, R.color.finan_income));
+      typeColor = ContextCompat.getColor(context, R.color.finan_income);
     } else {
       holder.amount.setText("-" + formatted);
-      holder.amount.setTextColor(ContextCompat.getColor(context, R.color.finan_expense));
+      typeColor = ContextCompat.getColor(context, R.color.finan_expense);
     }
+    holder.amount.setTextColor(typeColor);
+    holder.typeIndicator.setBackgroundColor(typeColor);
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
-    holder.meta.setText(walletName + " · " + when);
+    holder.meta.setText(TextUtils.isEmpty(walletName) ? when : walletName + " · " + when);
+
+    String note = transaction.getNote();
+    boolean hasNote = !TextUtils.isEmpty(note) && !TextUtils.isEmpty(note.trim());
+    holder.note.setVisibility(hasNote ? View.VISIBLE : View.GONE);
+    if (hasNote) {
+      holder.note.setText(note.trim());
+    }
 
     return convertView;
   }
 
   private static class ViewHolder {
+    View typeIndicator;
     TextView category;
     TextView amount;
     TextView meta;
+    TextView note;
   }
 }
