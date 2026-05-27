@@ -36,6 +36,25 @@
     <string name="history_title">Riwayat</string>
     <string name="history_empty">Belum ada transaksi</string>
 
+    <string name="transaction_detail_title">Detail transaksi</string>
+    <string name="transaction_edit_title">Edit transaksi</string>
+    <string name="transaction_amount_label">Nominal</string>
+    <string name="transaction_type_label">Jenis</string>
+    <string name="transaction_wallet_label">Dompet</string>
+    <string name="transaction_category_label">Kategori</string>
+    <string name="transaction_date_label">Tanggal</string>
+    <string name="transaction_note_label">Catatan</string>
+    <string name="transaction_note_empty">Tidak ada catatan</string>
+    <string name="transaction_category_pick">Pilih kategori</string>
+    <string name="transaction_edit_action">Edit</string>
+    <string name="transaction_edit_save">Simpan</string>
+    <string name="transaction_updated">Transaksi diperbarui</string>
+    <string name="transaction_not_found">Transaksi tidak ditemukan</string>
+    <string name="transaction_error_amount">Masukkan nominal yang valid</string>
+    <string name="transaction_error_category">Pilih kategori</string>
+    <string name="transaction_error_wallet">Pilih dompet</string>
+    <string name="transaction_error_update">Gagal memperbarui transaksi</string>
+
     <string name="summary_title">Ringkasan</string>
     <string name="summary_period_format">%1$s %2$d</string>
     <string name="summary_date_picker_title">Pilih rentang tanggal</string>

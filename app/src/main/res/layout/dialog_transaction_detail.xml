@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.dwlhm.finan.ui.common.FinanDialogCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp">
+
+    <TextView
+        android:id="@+id/transaction_dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/transaction_detail_title"
+        android:textAppearance="@style/Finan.Text.Title" />
+
+    <LinearLayout
+        android:id="@+id/transaction_detail_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/transaction_detail_amount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/Finan.Text.Amount" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/transaction_type_label" />
+
+        <TextView
+            android:id="@+id/transaction_detail_type"
+            style="@style/Finan.Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/transaction_wallet_label" />
+
+        <TextView
+            android:id="@+id/transaction_detail_wallet"
+            style="@style/Finan.Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/transaction_category_label" />
+
+        <TextView
+            android:id="@+id/transaction_detail_category"
+            style="@style/Finan.Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/transaction_date_label" />
+
+        <TextView
+            android:id="@+id/transaction_detail_date"
+            style="@style/Finan.Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/transaction_note_label" />
+
+        <TextView
+            android:id="@+id/transaction_detail_note"
+            style="@style/Finan.Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/transaction_edit_panel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <com.dwlhm.finan.ui.common.LabeledEditTextView
+            android:id="@+id/transaction_edit_amount_field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            app:fieldHint="@string/capture_amount_hint"
+            app:labelText="@string/transaction_amount_label" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/transaction_type_label" />
+
+        <RadioGroup
+            android:id="@+id/transaction_edit_type_group"
+            style="@style/Finan.Control.RadioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
+
+            <RadioButton
+                android:id="@+id/transaction_edit_type_expense"
+                style="@style/Finan.Control.RadioButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:buttonTint="@color/radio_expense_tint"
+                android:text="@string/capture_type_expense" />
+
+            <RadioButton
+                android:id="@+id/transaction_edit_type_income"
+                style="@style/Finan.Control.RadioButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:buttonTint="@color/radio_income_tint"
+                android:text="@string/capture_type_income" />
+        </RadioGroup>
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/transaction_wallet_label" />
+
+        <Spinner
+            android:id="@+id/transaction_edit_wallet_spinner"
+            style="@style/Finan.Control.Surface"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/transaction_category_label" />
+
+        <Button
+            android:id="@+id/transaction_edit_category_button"
+            style="@style/Finan.Button.Select"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/transaction_category_pick" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/transaction_note_label" />
+
+        <EditText
+            android:id="@+id/transaction_edit_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_control_surface"
+            android:hint="@string/capture_note_hint"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences|textMultiLine"
+            android:minHeight="72dp"
+            android:padding="12dp"
+            android:textColor="@color/finan_text_primary"
+            android:textColorHint="@color/finan_text_hint" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/transaction_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="end|center_vertical"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/transaction_action_secondary"
+            style="@style/Finan.Button.Nav"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="96dp"
+            android:text="@android:string/cancel" />
+
+        <Button
+            android:id="@+id/transaction_action_primary"
+            style="@style/Finan.Button.Primary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minWidth="0dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:text="@string/transaction_edit_action" />
+    </LinearLayout>
+</com.dwlhm.finan.ui.common.FinanDialogCardView>

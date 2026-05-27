@@ -1,4 +1,4 @@
-package com.dwlhm.finan.ui.capture;
+package com.dwlhm.finan.ui.common;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -17,7 +17,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import com.dwlhm.finan.R;
@@ -206,7 +205,7 @@ public final class CategorySearchDialog extends Dialog {
       if (shouldShowCreateFromSearch()) {
         count++;
       }
-      count++; // add new at end
+      count++;
       return count;
     }
 

@@ -12,6 +12,8 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
+import com.dwlhm.finan.ui.transaction.TransactionDetailDialog;
+import com.dwlhm.finan.ui.transaction.TransactionListAdapter;
 
 public final class HistoryFragment extends ScreenFragment {
 
@@ -38,6 +40,11 @@ public final class HistoryFragment extends ScreenFragment {
     adapter =
         new TransactionListAdapter(requireContext(), services.categoryDao, services.walletDao);
     listView.setAdapter(adapter);
+    listView.setOnItemClickListener(
+        (parent, itemView, position, id) ->
+            new TransactionDetailDialog(
+                    requireContext(), services, adapter.getItem(position), this::reload)
+                .show());
     reload();
   }
 

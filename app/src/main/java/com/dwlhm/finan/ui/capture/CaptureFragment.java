@@ -25,11 +25,13 @@ import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.CategorySearchDialog;
 import com.dwlhm.finan.ui.common.CollapsibleController;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
-import com.dwlhm.finan.ui.history.TransactionListAdapter;
+import com.dwlhm.finan.ui.transaction.TransactionDetailDialog;
+import com.dwlhm.finan.ui.transaction.TransactionListAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
@@ -95,6 +97,11 @@ public final class CaptureFragment extends ScreenFragment {
     recentAdapter =
         new TransactionListAdapter(requireContext(), services.categoryDao, services.walletDao);
     recentList.setAdapter(recentAdapter);
+    recentList.setOnItemClickListener(
+        (parent, itemView, position, id) ->
+            new TransactionDetailDialog(
+                    requireContext(), services, recentAdapter.getItem(position), this::refreshRecent)
+                .show());
 
     resolveActiveWallet();
 
