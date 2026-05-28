@@ -36,10 +36,25 @@
     <string name="history_title">Riwayat</string>
     <string name="history_empty">Belum ada transaksi</string>
     <string name="history_empty_hint">Transaksi yang kamu catat akan muncul di sini.</string>
-    <string name="history_count_format">%1$d transaksi terbaru</string>
+    <string name="history_count_format">%1$d transaksi ditampilkan</string>
     <string name="history_transactions_label">Transaksi</string>
     <string name="history_income_label">Masuk</string>
     <string name="history_expense_label">Keluar</string>
+    <string name="history_filter_title">Filter riwayat</string>
+    <string name="history_filter_content_description">Filter dan urutkan riwayat</string>
+    <string name="history_filter_active_content_description">Filter aktif: %1$s, %2$s, %3$s, %4$s</string>
+    <string name="history_date_range_title">Rentang tanggal</string>
+    <string name="history_date_range_content_description">Pilih rentang tanggal riwayat</string>
+    <string name="history_date_range_all">Semua tanggal</string>
+    <string name="history_date_start_placeholder">Pilih tanggal mulai</string>
+    <string name="history_date_end_placeholder">Pilih tanggal selesai</string>
+    <string name="history_type_filter_label">Jenis transaksi</string>
+    <string name="history_type_filter_title">Pilih jenis transaksi</string>
+    <string name="history_all_types">Semua jenis</string>
+    <string name="history_sort_label">Urutkan tanggal</string>
+    <string name="history_sort_title">Urutkan berdasarkan tanggal</string>
+    <string name="history_sort_newest">Terbaru dulu</string>
+    <string name="history_sort_oldest">Terlama dulu</string>
 
     <string name="transaction_detail_title">Detail transaksi</string>
     <string name="transaction_edit_title">Edit transaksi</string>

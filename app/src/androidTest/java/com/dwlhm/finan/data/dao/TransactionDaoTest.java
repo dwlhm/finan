@@ -104,4 +104,48 @@ public class TransactionDaoTest {
         assertEquals(2_000, recent.get(0).getAmountMinor());
         assertEquals(1_000, recent.get(1).getAmountMinor());
     }
+
+    @Test
+    public void findHistory_filtersAndSortsInQuery() {
+        long base = System.currentTimeMillis();
+        long otherWalletId = walletDao.insert("Tabungan", "IDR", false, 0L, base);
+        long otherCategoryId = categoryDao.insert("Bonus", "BOTH", 100, 0, null);
+
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, null, base, base);
+        dao.insert(
+                2_000, "INCOME", walletId, categoryId, base + 1, null, null, null, base + 1, base + 1);
+        dao.insert(
+                3_000, "EXPENSE", otherWalletId, categoryId, base + 2, null, null, null, base + 2, base + 2);
+        dao.insert(
+                4_000, "EXPENSE", walletId, otherCategoryId, base + 3, null, null, null, base + 3, base + 3);
+        dao.insert(5_000, "EXPENSE", walletId, categoryId, base + 4, null, null, null, base + 4, base + 4);
+
+        List<Transaction> newestFirst =
+                dao.findHistory(walletId, categoryId, "EXPENSE", null, null, false);
+        assertEquals(2, newestFirst.size());
+        assertEquals(5_000, newestFirst.get(0).getAmountMinor());
+        assertEquals(1_000, newestFirst.get(1).getAmountMinor());
+
+        List<Transaction> oldestFirst =
+                dao.findHistory(walletId, categoryId, "EXPENSE", null, null, true);
+        assertEquals(2, oldestFirst.size());
+        assertEquals(1_000, oldestFirst.get(0).getAmountMinor());
+        assertEquals(5_000, oldestFirst.get(1).getAmountMinor());
+    }
+
+    @Test
+    public void findHistory_filtersByOccurredAtRange() {
+        long base = System.currentTimeMillis();
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, null, base, base);
+        dao.insert(
+                2_000, "EXPENSE", walletId, categoryId, base + 10, null, null, null, base + 10, base + 10);
+        dao.insert(
+                3_000, "EXPENSE", walletId, categoryId, base + 20, null, null, null, base + 20, base + 20);
+
+        List<Transaction> history =
+                dao.findHistory(null, null, null, base + 10, base + 20, true);
+
+        assertEquals(1, history.size());
+        assertEquals(2_000, history.get(0).getAmountMinor());
+    }
 }

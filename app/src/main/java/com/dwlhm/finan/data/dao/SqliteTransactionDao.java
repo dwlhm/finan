@@ -77,6 +77,24 @@ public final class SqliteTransactionDao implements TransactionGateway {
   }
 
   @Override
+  public List<com.dwlhm.finan.domain.model.Transaction> findHistory(
+      Long walletId,
+      Long categoryId,
+      TransactionType type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis,
+      boolean oldestFirst) {
+    List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
+    String typeName = type == null ? null : type.name();
+    for (Transaction entity :
+        table.findHistory(
+            walletId, categoryId, typeName, startInclusiveMillis, endExclusiveMillis, oldestFirst)) {
+      result.add(toDomain(entity));
+    }
+    return result;
+  }
+
+  @Override
   public List<com.dwlhm.finan.domain.model.Transaction> findAll() {
     List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
     for (Transaction entity : table.findAll()) {

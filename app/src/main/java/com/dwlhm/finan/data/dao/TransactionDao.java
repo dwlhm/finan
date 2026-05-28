@@ -126,6 +126,33 @@ public final class TransactionDao {
     return transactions;
   }
 
+  public List<Transaction> findHistory(
+      Long walletId,
+      Long categoryId,
+      String type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis,
+      boolean oldestFirst) {
+    List<Transaction> transactions = new ArrayList<>();
+    List<String> args = new ArrayList<>();
+    String selection =
+        historySelection(walletId, categoryId, type, startInclusiveMillis, endExclusiveMillis, args);
+    try (Cursor c =
+        db.query(
+            "transactions",
+            null,
+            selection,
+            args.isEmpty() ? null : args.toArray(new String[0]),
+            null,
+            null,
+            oldestFirst ? "occurred_at ASC, id ASC" : "occurred_at DESC, id DESC")) {
+      while (c.moveToNext()) {
+        transactions.add(map(c));
+      }
+    }
+    return transactions;
+  }
+
   public Transaction findLast() {
     List<Transaction> recent = findRecent(1);
     return recent.isEmpty() ? null : recent.get(0);
@@ -175,6 +202,34 @@ public final class TransactionDao {
     } else {
       values.put(key, value);
     }
+  }
+
+  private static String historySelection(
+      Long walletId,
+      Long categoryId,
+      String type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis,
+      List<String> args) {
+    StringBuilder selection = new StringBuilder();
+    appendHistoryFilter(selection, args, "wallet_id = ?", walletId);
+    appendHistoryFilter(selection, args, "category_id = ?", categoryId);
+    appendHistoryFilter(selection, args, "type = ?", type);
+    appendHistoryFilter(selection, args, "occurred_at >= ?", startInclusiveMillis);
+    appendHistoryFilter(selection, args, "occurred_at < ?", endExclusiveMillis);
+    return selection.length() == 0 ? null : selection.toString();
+  }
+
+  private static void appendHistoryFilter(
+      StringBuilder selection, List<String> args, String clause, Object value) {
+    if (value == null) {
+      return;
+    }
+    if (selection.length() > 0) {
+      selection.append(" AND ");
+    }
+    selection.append(clause);
+    args.add(String.valueOf(value));
   }
 
   private static Transaction map(Cursor c) {

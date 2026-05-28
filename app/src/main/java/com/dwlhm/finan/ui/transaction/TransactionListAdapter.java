@@ -1,6 +1,8 @@
 package com.dwlhm.finan.ui.transaction;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +28,23 @@ import java.util.List;
 import java.util.Locale;
 
 public class TransactionListAdapter extends BaseAdapter {
+
+  private static final int[] CATEGORY_COLORS = {
+    Color.rgb(84, 105, 212),
+    Color.rgb(205, 93, 127),
+    Color.rgb(76, 144, 111),
+    Color.rgb(205, 126, 70),
+    Color.rgb(117, 95, 173),
+    Color.rgb(56, 137, 162)
+  };
+  private static final int[] WALLET_COLORS = {
+    Color.rgb(45, 106, 106),
+    Color.rgb(158, 126, 58),
+    Color.rgb(91, 119, 153),
+    Color.rgb(143, 100, 85),
+    Color.rgb(87, 131, 91),
+    Color.rgb(129, 101, 157)
+  };
 
   private final Context context;
   private final LayoutInflater inflater;
@@ -72,7 +91,8 @@ public class TransactionListAdapter extends BaseAdapter {
     if (convertView == null) {
       convertView = inflater.inflate(R.layout.item_transaction, parent, false);
       holder = new ViewHolder();
-      holder.typeIndicator = convertView.findViewById(R.id.item_transaction_type_indicator);
+      holder.categoryIndicator = convertView.findViewById(R.id.item_transaction_category_indicator);
+      holder.walletIndicator = convertView.findViewById(R.id.item_transaction_wallet_indicator);
       holder.category = convertView.findViewById(R.id.item_transaction_category);
       holder.amount = convertView.findViewById(R.id.item_transaction_amount);
       holder.meta = convertView.findViewById(R.id.item_transaction_meta);
@@ -87,6 +107,18 @@ public class TransactionListAdapter extends BaseAdapter {
     Wallet wallet = walletTable.findById(transaction.getWalletId());
 
     holder.category.setText(category != null ? category.getName() : "—");
+    setIndicatorColor(
+        holder.categoryIndicator,
+        colorFor(
+            CATEGORY_COLORS,
+            transaction.getCategoryId(),
+            category != null ? category.getName() : ""));
+    setIndicatorColor(
+        holder.walletIndicator,
+        colorFor(
+            WALLET_COLORS,
+            transaction.getWalletId(),
+            wallet != null ? wallet.getName() : ""));
 
     String formatted = MoneyFormatter.format(transaction.getAmountMinor());
     int typeColor;
@@ -98,7 +130,6 @@ public class TransactionListAdapter extends BaseAdapter {
       typeColor = ContextCompat.getColor(context, R.color.finan_expense);
     }
     holder.amount.setTextColor(typeColor);
-    holder.typeIndicator.setBackgroundColor(typeColor);
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
@@ -114,8 +145,28 @@ public class TransactionListAdapter extends BaseAdapter {
     return convertView;
   }
 
+  private void setIndicatorColor(View indicator, int color) {
+    GradientDrawable background = new GradientDrawable();
+    background.setColor(color);
+    background.setCornerRadius(dp(2));
+    indicator.setBackground(background);
+  }
+
+  private int colorFor(int[] palette, long id, String name) {
+    int hash = (int) (id ^ (id >>> 32));
+    if (!TextUtils.isEmpty(name)) {
+      hash = (31 * hash) + name.hashCode();
+    }
+    return palette[Math.floorMod(hash, palette.length)];
+  }
+
+  private int dp(int value) {
+    return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);
+  }
+
   private static class ViewHolder {
-    View typeIndicator;
+    View categoryIndicator;
+    View walletIndicator;
     TextView category;
     TextView amount;
     TextView meta;

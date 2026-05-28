@@ -96,6 +96,18 @@ public class BalanceServiceTest {
         }
 
         @Override
+        public List<Transaction> findHistory(
+                Long walletId,
+                Long categoryId,
+                TransactionType type,
+                Long startInclusiveMillis,
+                Long endExclusiveMillis,
+                boolean oldestFirst
+        ) {
+            return new ArrayList<>(transactions);
+        }
+
+        @Override
         public List<Transaction> findByWalletId(long walletId) {
             List<Transaction> result = new ArrayList<>();
             for (Transaction t : transactions) {
