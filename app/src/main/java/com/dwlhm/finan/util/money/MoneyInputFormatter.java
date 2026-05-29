@@ -6,6 +6,8 @@ import android.widget.EditText;
 
 public final class MoneyInputFormatter {
 
+  private static final String IDR_PREFIX = "Rp ";
+
   private MoneyInputFormatter() {}
 
   public static void attach(EditText input, boolean includeCurrencyPrefix) {
@@ -37,12 +39,14 @@ public final class MoneyInputFormatter {
 
       String raw = s.toString();
       if (raw.trim().isEmpty()) {
+        restoreCurrencyPrefixIfNeeded();
         return;
       }
 
       boolean negative = raw.trim().startsWith("-");
       String digits = raw.replaceAll("[^0-9]", "");
       if (digits.isEmpty()) {
+        restoreCurrencyPrefixIfNeeded();
         return;
       }
 
@@ -67,6 +71,16 @@ public final class MoneyInputFormatter {
       selfChange = true;
       input.setText(formatted);
       input.setSelection(formatted.length());
+      selfChange = false;
+    }
+
+    private void restoreCurrencyPrefixIfNeeded() {
+      if (!includeCurrencyPrefix || !input.hasFocus()) {
+        return;
+      }
+      selfChange = true;
+      input.setText(IDR_PREFIX);
+      input.setSelection(IDR_PREFIX.length());
       selfChange = false;
     }
   }

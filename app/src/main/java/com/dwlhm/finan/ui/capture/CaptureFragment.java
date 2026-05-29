@@ -1,8 +1,13 @@
 package com.dwlhm.finan.ui.capture;
 
+import android.content.Context;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -66,6 +71,7 @@ public final class CaptureFragment extends ScreenFragment {
   private List<Category> allCategoriesForType = new ArrayList<>();
   private List<Category> quickCategoryList = new ArrayList<>();
   private boolean suppressWalletSpinner;
+  private boolean amountAutoFocusExpired;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -83,7 +89,7 @@ public final class CaptureFragment extends ScreenFragment {
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     amountInput = view.findViewById(R.id.capture_amount);
-    MoneyInputFormatter.attach(amountInput, false);
+    MoneyInputFormatter.attach(amountInput, true);
     quickCategories = view.findViewById(R.id.capture_quick_categories);
     categoryMoreButton = view.findViewById(R.id.capture_category_more);
     walletSpinner = view.findViewById(R.id.capture_wallet_spinner);
@@ -107,6 +113,7 @@ public final class CaptureFragment extends ScreenFragment {
 
     typeGroup.setOnCheckedChangeListener(
         (group, checkedId) -> {
+          expireAmountAutoFocus();
           selectedType =
               checkedId == R.id.capture_type_income
                   ? TransactionType.INCOME
@@ -122,6 +129,7 @@ public final class CaptureFragment extends ScreenFragment {
             if (suppressWalletSpinner || position < 0 || position >= wallets.size()) {
               return;
             }
+            expireAmountAutoFocus();
             activeWallet = wallets.get(position);
           }
 
@@ -129,7 +137,11 @@ public final class CaptureFragment extends ScreenFragment {
           public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-    categoryMoreButton.setOnClickListener(v -> openCategorySearchDialog());
+    categoryMoreButton.setOnClickListener(
+        v -> {
+          expireAmountAutoFocus();
+          openCategorySearchDialog();
+        });
 
     CollapsibleController.bind(
         view,
@@ -137,13 +149,18 @@ public final class CaptureFragment extends ScreenFragment {
         R.id.capture_details_panel,
         R.id.capture_details_chevron);
 
-    saveButton.setOnClickListener(v -> saveTransaction());
+    saveButton.setOnClickListener(
+        v -> {
+          expireAmountAutoFocus();
+          saveTransaction();
+        });
+    installAmountAutoFocusExpiry(view);
 
     bindWalletSpinner();
     bindCategories();
     refreshRecent();
 
-    amountInput.requestFocus();
+    requestAmountFocus();
   }
 
   @Override
@@ -236,6 +253,7 @@ public final class CaptureFragment extends ScreenFragment {
       styleChip(chip, category);
       chip.setOnClickListener(
           v -> {
+            expireAmountAutoFocus();
             selectedCategory = category;
             updateCategoryMoreButtonLabel();
             bindQuickCategoryChips();
@@ -347,7 +365,53 @@ public final class CaptureFragment extends ScreenFragment {
     bindWalletSpinner();
     bindCategories();
     refreshRecent();
-    amountInput.requestFocus();
+    requestAmountFocus();
+  }
+
+  private void installAmountAutoFocusExpiry(@NonNull View root) {
+    bindAmountAutoFocusExpiryOnTouchTree(root);
+  }
+
+  private void bindAmountAutoFocusExpiryOnTouchTree(View view) {
+    if (view == null || view == amountInput) {
+      return;
+    }
+    view.setOnTouchListener(
+        (touchedView, event) -> {
+          if (event.getActionMasked() == MotionEvent.ACTION_DOWN && isOutsideAmountInput(event)) {
+            expireAmountAutoFocus();
+          }
+          return false;
+        });
+    if (!(view instanceof ViewGroup)) {
+      return;
+    }
+    ViewGroup group = (ViewGroup) view;
+    for (int i = 0; i < group.getChildCount(); i++) {
+      bindAmountAutoFocusExpiryOnTouchTree(group.getChildAt(i));
+    }
+  }
+
+  private boolean isOutsideAmountInput(MotionEvent event) {
+    Rect amountBounds = new Rect();
+    amountInput.getGlobalVisibleRect(amountBounds);
+    return !amountBounds.contains(Math.round(event.getRawX()), Math.round(event.getRawY()));
+  }
+
+  private void expireAmountAutoFocus() {
+    amountAutoFocusExpired = true;
+    amountInput.clearFocus();
+    InputMethodManager imm =
+        (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+    if (imm != null) {
+      imm.hideSoftInputFromWindow(amountInput.getWindowToken(), 0);
+    }
+  }
+
+  private void requestAmountFocus() {
+    if (!amountAutoFocusExpired) {
+      amountInput.requestFocus();
+    }
   }
 
   private void refreshRecent() {

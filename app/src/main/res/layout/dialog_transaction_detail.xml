@@ -109,7 +109,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:inputType="numberDecimal"
-            app:fieldHint="@string/capture_amount_hint"
+            app:fieldHint="@string/capture_amount_placeholder"
             app:labelText="@string/transaction_amount_label" />
 
         <TextView

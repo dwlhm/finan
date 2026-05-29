@@ -2,7 +2,8 @@
 <resources>
     <string name="app_name">Finan</string>
 
-    <string name="capture_amount_hint">Nominal</string>
+    <string name="capture_amount_label">Nominal</string>
+    <string name="capture_amount_placeholder">Rp 0</string>
     <string name="capture_type_label">Jenis transaksi</string>
     <string name="capture_wallet_label">Dompet</string>
     <string name="capture_category_more">Kategori lain…</string>

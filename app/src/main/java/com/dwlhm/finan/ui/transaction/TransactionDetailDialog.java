@@ -96,7 +96,7 @@ public final class TransactionDetailDialog extends Dialog {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.dialog_transaction_detail);
     bindViews();
-    MoneyInputFormatter.attach(amountInput, false);
+    MoneyInputFormatter.attach(amountInput, true);
     categoryButton.setOnClickListener(v -> openCategorySearchDialog());
     if (!reloadTransaction()) {
       dismiss();
@@ -193,7 +193,7 @@ public final class TransactionDetailDialog extends Dialog {
   }
 
   private void bindEdit() {
-    amountInput.setText(MoneyFormatter.formatWithoutCurrency(transaction.getAmountMinor()));
+    amountInput.setText(MoneyFormatter.format(transaction.getAmountMinor()));
     amountInput.setSelection(amountInput.getText().length());
     noteInput.setText(transaction.getNote() == null ? "" : transaction.getNote());
     noteInput.setSelection(noteInput.getText().length());
