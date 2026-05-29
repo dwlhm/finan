@@ -12,6 +12,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RadioGroup;
@@ -54,6 +55,8 @@ public final class CaptureFragment extends ScreenFragment {
   private DefaultsStore defaultsStore;
 
   private EditText amountInput;
+  private LinearLayout amountShortcuts;
+  private ImageButton amountShortcutsEditButton;
   private LinearLayout quickCategories;
   private Button categoryMoreButton;
   private Spinner walletSpinner;
@@ -67,6 +70,7 @@ public final class CaptureFragment extends ScreenFragment {
   private TransactionType selectedType = TransactionType.EXPENSE;
   private TransactionListAdapter recentAdapter;
 
+  private List<Long> amountShortcutList = new ArrayList<>();
   private List<Wallet> wallets = new ArrayList<>();
   private List<Category> allCategoriesForType = new ArrayList<>();
   private List<Category> quickCategoryList = new ArrayList<>();
@@ -90,6 +94,8 @@ public final class CaptureFragment extends ScreenFragment {
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     amountInput = view.findViewById(R.id.capture_amount);
     MoneyInputFormatter.attach(amountInput, true);
+    amountShortcuts = view.findViewById(R.id.capture_amount_shortcuts);
+    amountShortcutsEditButton = view.findViewById(R.id.capture_amount_shortcuts_edit);
     quickCategories = view.findViewById(R.id.capture_quick_categories);
     categoryMoreButton = view.findViewById(R.id.capture_category_more);
     walletSpinner = view.findViewById(R.id.capture_wallet_spinner);
@@ -143,6 +149,12 @@ public final class CaptureFragment extends ScreenFragment {
           openCategorySearchDialog();
         });
 
+    amountShortcutsEditButton.setOnClickListener(
+        v -> {
+          expireAmountAutoFocus();
+          openAmountShortcutDialog();
+        });
+
     CollapsibleController.bind(
         view,
         R.id.capture_details_toggle,
@@ -157,6 +169,7 @@ public final class CaptureFragment extends ScreenFragment {
     installAmountAutoFocusExpiry(view);
 
     bindWalletSpinner();
+    bindAmountShortcuts();
     bindCategories();
     refreshRecent();
 
@@ -237,6 +250,53 @@ public final class CaptureFragment extends ScreenFragment {
 
     bindQuickCategoryChips();
     updateCategoryMoreButtonLabel();
+  }
+
+  private void bindAmountShortcuts() {
+    amountShortcutList = defaultsStore.getAmountShortcuts();
+    amountShortcuts.removeAllViews();
+    for (Long amount : amountShortcutList) {
+      if (amount == null || amount <= 0L) {
+        continue;
+      }
+      Button chip = new Button(requireContext(), null, android.R.attr.borderlessButtonStyle);
+      chip.setText(MoneyFormatter.format(amount));
+      UiComponentStyles.prepareChip(chip);
+      chip.setMinWidth(UiComponentStyles.dp(requireContext(), 78));
+      chip.setMinHeight(UiComponentStyles.dp(requireContext(), 34));
+      int horizontalPadding = UiComponentStyles.dp(requireContext(), 6);
+      chip.setPadding(horizontalPadding, 0, horizontalPadding, 0);
+      chip.setTextSize(12f);
+      UiComponentStyles.setChipSelected(requireContext(), chip, false, R.drawable.bg_chip);
+      LinearLayout.LayoutParams params =
+          new LinearLayout.LayoutParams(
+              LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+      params.setMarginEnd(UiComponentStyles.dp(requireContext(), 6));
+      chip.setLayoutParams(params);
+      chip.setOnClickListener(
+          v -> {
+            expireAmountAutoFocus();
+            setAmountInput(amount);
+          });
+      amountShortcuts.addView(chip);
+    }
+  }
+
+  private void setAmountInput(long amountMinor) {
+    String formatted = MoneyFormatter.format(amountMinor);
+    amountInput.setText(formatted);
+    amountInput.setSelection(formatted.length());
+  }
+
+  private void openAmountShortcutDialog() {
+    new AmountShortcutDialog(
+            requireContext(),
+            amountShortcutList,
+            shortcuts -> {
+              defaultsStore.setAmountShortcuts(shortcuts);
+              bindAmountShortcuts();
+            })
+        .show();
   }
 
   private void bindQuickCategoryChips() {

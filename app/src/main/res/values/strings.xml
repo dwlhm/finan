@@ -4,6 +4,18 @@
 
     <string name="capture_amount_label">Nominal</string>
     <string name="capture_amount_placeholder">Rp 0</string>
+    <string name="capture_amount_shortcuts_edit_content_description">Edit shortcut nominal</string>
+    <string name="capture_amount_shortcut_dialog_title">Shortcut nominal</string>
+    <string name="capture_amount_shortcut_input_label">Nominal shortcut</string>
+    <string name="capture_amount_shortcut_input_hint">Rp 25.000</string>
+    <string name="capture_amount_shortcut_add">Tambah shortcut</string>
+    <string name="capture_amount_shortcut_empty">Belum ada shortcut nominal</string>
+    <string name="capture_amount_shortcut_save">Simpan</string>
+    <string name="capture_amount_shortcut_invalid">Masukkan nominal shortcut yang valid</string>
+    <string name="capture_amount_shortcut_duplicate">Shortcut nominal sudah ada</string>
+    <string name="capture_amount_shortcut_move_up">Pindahkan ke atas</string>
+    <string name="capture_amount_shortcut_move_down">Pindahkan ke bawah</string>
+    <string name="capture_amount_shortcut_delete">Hapus shortcut</string>
     <string name="capture_type_label">Jenis transaksi</string>
     <string name="capture_wallet_label">Dompet</string>
     <string name="capture_category_more">Kategori lain…</string>

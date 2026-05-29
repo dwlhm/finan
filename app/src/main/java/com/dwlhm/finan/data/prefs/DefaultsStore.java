@@ -3,6 +3,9 @@ package com.dwlhm.finan.data.prefs;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class DefaultsStore {
 
   private static final String PREFS_NAME = "finan_defaults";
@@ -10,6 +13,7 @@ public final class DefaultsStore {
   private static final String KEY_DEFAULT_WALLET_ID = "default_wallet_id";
   private static final String KEY_LAST_WALLET_ID = "last_wallet_id";
   private static final String KEY_DRAFT_JSON = "draft_json";
+  private static final String KEY_AMOUNT_SHORTCUTS = "amount_shortcuts";
 
   private final SharedPreferences prefs;
 
@@ -54,5 +58,56 @@ public final class DefaultsStore {
 
   public void clearDraft() {
     prefs.edit().remove(KEY_DRAFT_JSON).apply();
+  }
+
+  public List<Long> getAmountShortcuts() {
+    if (!prefs.contains(KEY_AMOUNT_SHORTCUTS)) {
+      return defaultAmountShortcuts();
+    }
+
+    String serialized = prefs.getString(KEY_AMOUNT_SHORTCUTS, "");
+    List<Long> shortcuts = new ArrayList<>();
+    if (serialized == null || serialized.trim().isEmpty()) {
+      return shortcuts;
+    }
+
+    String[] parts = serialized.split(",");
+    for (String part : parts) {
+      try {
+        long amount = Long.parseLong(part.trim());
+        if (amount > 0L) {
+          shortcuts.add(amount);
+        }
+      } catch (NumberFormatException ignored) {
+        // Skip malformed entries so one bad value does not reset the user's list.
+      }
+    }
+    return shortcuts;
+  }
+
+  public void setAmountShortcuts(List<Long> amountShortcuts) {
+    StringBuilder serialized = new StringBuilder();
+    if (amountShortcuts != null) {
+      for (Long amount : amountShortcuts) {
+        if (amount == null || amount <= 0L) {
+          continue;
+        }
+        if (serialized.length() > 0) {
+          serialized.append(',');
+        }
+        serialized.append(amount);
+      }
+    }
+    prefs.edit().putString(KEY_AMOUNT_SHORTCUTS, serialized.toString()).apply();
+  }
+
+  private List<Long> defaultAmountShortcuts() {
+    List<Long> shortcuts = new ArrayList<>();
+    shortcuts.add(5_000L);
+    shortcuts.add(10_000L);
+    shortcuts.add(20_000L);
+    shortcuts.add(50_000L);
+    shortcuts.add(100_000L);
+    return shortcuts;
   }
 }

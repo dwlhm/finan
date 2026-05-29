@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.dwlhm.finan.ui.common.FinanDialogCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="14dp"
+    app:titleText="@string/capture_amount_shortcut_dialog_title">
+
+    <com.dwlhm.finan.ui.common.LabeledEditTextView
+        android:id="@+id/amount_shortcut_field"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:inputType="numberDecimal"
+        app:fieldHint="@string/capture_amount_shortcut_input_hint"
+        app:labelText="@string/capture_amount_shortcut_input_label" />
+
+    <Button
+        android:id="@+id/amount_shortcut_add"
+        style="@style/Finan.Button.Select"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:drawableStart="@drawable/ic_add"
+        android:drawablePadding="4dp"
+        android:gravity="center"
+        android:minHeight="42dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/capture_amount_shortcut_add" />
+
+    <ListView
+        android:id="@+id/amount_shortcut_list"
+        android:layout_width="match_parent"
+        android:layout_height="192dp"
+        android:layout_marginTop="10dp"
+        android:divider="@color/finan_divider"
+        android:dividerHeight="1dp" />
+
+    <TextView
+        android:id="@+id/amount_shortcut_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_control_surface"
+        android:gravity="center"
+        android:minHeight="56dp"
+        android:padding="8dp"
+        android:text="@string/capture_amount_shortcut_empty"
+        android:textColor="@color/finan_text_hint"
+        android:visibility="gone" />
+
+    <com.dwlhm.finan.ui.common.DialogActionsView
+        android:id="@+id/amount_shortcut_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        app:primaryText="@string/capture_amount_shortcut_save" />
+</com.dwlhm.finan.ui.common.FinanDialogCardView>

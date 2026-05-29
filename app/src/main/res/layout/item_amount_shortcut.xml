@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="44dp"
+    android:orientation="horizontal"
+    android:paddingStart="4dp"
+    android:paddingEnd="0dp">
+
+    <TextView
+        android:id="@+id/amount_shortcut_item_amount"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="@style/Finan.Text.Body"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <ImageButton
+        android:id="@+id/amount_shortcut_move_up"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/capture_amount_shortcut_move_up"
+        android:padding="5dp"
+        android:scaleType="center"
+        android:src="@drawable/ic_arrow_up"
+        android:tint="@color/finan_primary" />
+
+    <ImageButton
+        android:id="@+id/amount_shortcut_move_down"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/capture_amount_shortcut_move_down"
+        android:padding="5dp"
+        android:scaleType="center"
+        android:src="@drawable/ic_arrow_down"
+        android:tint="@color/finan_primary" />
+
+    <ImageButton
+        android:id="@+id/amount_shortcut_delete"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/capture_amount_shortcut_delete"
+        android:padding="5dp"
+        android:scaleType="center"
+        android:src="@drawable/ic_delete"
+        android:tint="@color/finan_expense" />
+</LinearLayout>
