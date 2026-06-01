@@ -1,6 +1,9 @@
 package com.dwlhm.finan.data.dao;
 
 import com.dwlhm.finan.data.entity.Transaction;
+import com.dwlhm.finan.domain.model.HistoryPageCursor;
+import com.dwlhm.finan.domain.model.PageResult;
+import com.dwlhm.finan.domain.model.HistoryTotals;
 import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.ArrayList;
@@ -92,6 +95,51 @@ public final class SqliteTransactionDao implements TransactionGateway {
       result.add(toDomain(entity));
     }
     return result;
+  }
+
+  @Override
+  public PageResult<com.dwlhm.finan.domain.model.Transaction, HistoryPageCursor> findHistoryPage(
+      Long walletId,
+      Long categoryId,
+      TransactionType type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis,
+      boolean oldestFirst,
+      HistoryPageCursor cursor,
+      int limit) {
+    String typeName = type == null ? null : type.name();
+    Long cursorOccurredAt = cursor == null ? null : cursor.occurredAt();
+    Long cursorId = cursor == null ? null : cursor.id();
+    List<com.dwlhm.finan.domain.model.Transaction> items = new ArrayList<>();
+    for (Transaction entity :
+        table.findHistoryPage(
+            walletId,
+            categoryId,
+            typeName,
+            startInclusiveMillis,
+            endExclusiveMillis,
+            oldestFirst,
+            cursorOccurredAt,
+            cursorId,
+            limit + 1)) {
+      items.add(toDomain(entity));
+    }
+    return PageResult.fromLimitPlusOne(
+        items, limit, t -> new HistoryPageCursor(t.getOccurredAt(), t.getId()));
+  }
+
+  @Override
+  public HistoryTotals findHistoryTotals(
+      Long walletId,
+      Long categoryId,
+      TransactionType type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis) {
+    String typeName = type == null ? null : type.name();
+    TransactionDao.HistoryTotalsRow row =
+        table.findHistoryTotals(
+            walletId, categoryId, typeName, startInclusiveMillis, endExclusiveMillis);
+    return new HistoryTotals(row.count, row.incomeMinor, row.expenseMinor);
   }
 
   @Override

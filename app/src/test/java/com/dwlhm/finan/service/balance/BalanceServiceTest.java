@@ -108,6 +108,32 @@ public class BalanceServiceTest {
         }
 
         @Override
+        public com.dwlhm.finan.domain.model.PageResult<
+                        Transaction, com.dwlhm.finan.domain.model.HistoryPageCursor>
+                findHistoryPage(
+                Long walletId,
+                Long categoryId,
+                TransactionType type,
+                Long startInclusiveMillis,
+                Long endExclusiveMillis,
+                boolean oldestFirst,
+                com.dwlhm.finan.domain.model.HistoryPageCursor cursor,
+                int limit) {
+            return new com.dwlhm.finan.domain.model.PageResult<>(
+                    new ArrayList<>(transactions), false, null);
+        }
+
+        @Override
+        public com.dwlhm.finan.domain.model.HistoryTotals findHistoryTotals(
+                Long walletId,
+                Long categoryId,
+                TransactionType type,
+                Long startInclusiveMillis,
+                Long endExclusiveMillis) {
+            return new com.dwlhm.finan.domain.model.HistoryTotals(transactions.size(), 0L, 0L);
+        }
+
+        @Override
         public List<Transaction> findByWalletId(long walletId) {
             List<Transaction> result = new ArrayList<>();
             for (Transaction t : transactions) {

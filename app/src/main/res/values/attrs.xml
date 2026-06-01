@@ -28,4 +28,11 @@
         <attr name="primaryText" />
         <attr name="secondaryText" />
     </declare-styleable>
+
+    <declare-styleable name="InfiniteScrollListView">
+        <attr name="infiniteScrollPageSize" format="integer" />
+        <attr name="infiniteScrollLoadThreshold" format="integer" />
+        <attr name="infiniteScrollItemSpacing" format="dimension" />
+        <attr name="infiniteScrollLoadingLayout" format="reference" />
+    </declare-styleable>
 </resources>

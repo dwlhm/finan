@@ -10,7 +10,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -21,6 +20,9 @@ import androidx.core.content.ContextCompat;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
+import com.dwlhm.finan.domain.model.HistoryPageCursor;
+import com.dwlhm.finan.domain.model.HistoryTotals;
+import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.ui.common.AppServices;
@@ -28,8 +30,9 @@ import com.dwlhm.finan.ui.common.FilterDialog;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
+import com.dwlhm.finan.ui.common.infinitescroll.InfiniteScrollListView;
 import com.dwlhm.finan.ui.transaction.TransactionDetailDialog;
-import com.dwlhm.finan.ui.transaction.TransactionListAdapter;
+import com.dwlhm.finan.ui.transaction.TransactionRecyclerAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
 import java.time.LocalDate;
@@ -56,8 +59,8 @@ public final class HistoryFragment extends ScreenFragment {
   private static final long SORT_OLDEST_ID = 1L;
 
   private AppServices services;
-  private TransactionListAdapter adapter;
-  private ListView listView;
+  private InfiniteScrollListView historyList;
+  private TransactionRecyclerAdapter adapter;
   private View emptyView;
   private View summaryView;
   private ImageButton filterButton;
@@ -93,7 +96,7 @@ public final class HistoryFragment extends ScreenFragment {
     selectedCategoryId = restoreFilterId(savedInstanceState, CATEGORY_FILTER_STATE_KEY);
     selectedTypeId = restoreFilterId(savedInstanceState, TYPE_FILTER_STATE_KEY);
     selectedSortId = restoreFilterId(savedInstanceState, SORT_STATE_KEY);
-    listView = view.findViewById(R.id.history_list);
+    historyList = view.findViewById(R.id.history_list);
     emptyView = view.findViewById(R.id.history_empty);
     summaryView = view.findViewById(R.id.history_summary);
     filterButton = view.findViewById(R.id.history_filter_button);
@@ -105,13 +108,10 @@ public final class HistoryFragment extends ScreenFragment {
     filterButton.setOnClickListener(v -> showHistoryFilterDialog());
     dateRangeView.setOnClickListener(v -> showDateRangeDialog());
     adapter =
-        new TransactionListAdapter(requireContext(), services.categoryDao, services.walletDao);
-    listView.setAdapter(adapter);
-    listView.setOnItemClickListener(
-        (parent, itemView, position, id) ->
-            new TransactionDetailDialog(
-                    requireContext(), services, adapter.getItem(position), this::reload)
-                .show());
+        new TransactionRecyclerAdapter(requireContext(), services.categoryDao, services.walletDao);
+    adapter.setOnTransactionClickListener(
+        (transaction, position) -> openTransactionDetail(position));
+    historyList.setup(adapter, this::loadHistoryPage);
     normalizeDateRange();
     updateDateRangeView();
     updateFilterButton();
@@ -154,21 +154,45 @@ public final class HistoryFragment extends ScreenFragment {
     selectedTypeId = validTypeIdOrNull(selectedTypeId);
     selectedSortId = validSortIdOrNull(selectedSortId);
 
-    List<Transaction> transactions =
-        services.transactionGateway.findHistory(
+    HistoryTotals totals =
+        services.transactionGateway.findHistoryTotals(
             selectedWalletId,
             selectedCategoryId,
             selectedTransactionType(),
             selectedStartMillis(),
-            selectedEndExclusiveMillis(),
-            Objects.equals(selectedSortId, SORT_OLDEST_ID));
-    adapter.setTransactions(transactions);
-    renderSummary(transactions);
-    boolean empty = transactions.isEmpty();
+            selectedEndExclusiveMillis());
+    renderSummary(totals);
+    historyList.reload();
+    updateEmptyState(totals.getCount() == 0);
+  }
+
+  private PageResult<Transaction, HistoryPageCursor> loadHistoryPage(
+      @Nullable HistoryPageCursor cursor) {
+    return services.transactionGateway.findHistoryPage(
+        selectedWalletId,
+        selectedCategoryId,
+        selectedTransactionType(),
+        selectedStartMillis(),
+        selectedEndExclusiveMillis(),
+        Objects.equals(selectedSortId, SORT_OLDEST_ID),
+        cursor,
+        historyList.getPageSize());
+  }
+
+  private void updateEmptyState(boolean empty) {
     emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
     summaryView.setVisibility(empty ? View.GONE : View.VISIBLE);
     countView.setVisibility(empty ? View.GONE : View.VISIBLE);
-    listView.setVisibility(empty ? View.GONE : View.VISIBLE);
+    historyList.setVisibility(empty ? View.GONE : View.VISIBLE);
+  }
+
+  private void openTransactionDetail(int position) {
+    new TransactionDetailDialog(
+            requireContext(),
+            services,
+            adapter.getTransactionAt(position),
+            this::reload)
+        .show();
   }
 
   private void showHistoryFilterDialog() {
@@ -310,23 +334,12 @@ public final class HistoryFragment extends ScreenFragment {
         .show();
   }
 
-  private void renderSummary(List<Transaction> transactions) {
-    long incomeMinor = 0L;
-    long expenseMinor = 0L;
-
-    for (Transaction transaction : transactions) {
-      if (transaction.getType() == TransactionType.INCOME) {
-        incomeMinor += transaction.getAmountMinor();
-      } else {
-        expenseMinor += transaction.getAmountMinor();
-      }
-    }
-
-    int count = transactions.size();
+  private void renderSummary(HistoryTotals totals) {
+    int count = totals.getCount();
     countView.setText(getString(R.string.history_count_format, count));
     totalTransactionsView.setText(String.valueOf(count));
-    incomeTotalView.setText(MoneyFormatter.format(incomeMinor));
-    expenseTotalView.setText(MoneyFormatter.format(expenseMinor));
+    incomeTotalView.setText(MoneyFormatter.format(totals.getIncomeMinor()));
+    expenseTotalView.setText(MoneyFormatter.format(totals.getExpenseMinor()));
   }
 
   private List<FilterDialog.Option> walletFilterOptions(List<Wallet> wallets) {

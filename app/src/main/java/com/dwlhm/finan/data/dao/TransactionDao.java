@@ -153,6 +153,78 @@ public final class TransactionDao {
     return transactions;
   }
 
+  public List<Transaction> findHistoryPage(
+      Long walletId,
+      Long categoryId,
+      String type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis,
+      boolean oldestFirst,
+      Long cursorOccurredAt,
+      Long cursorId,
+      int limit) {
+    List<Transaction> transactions = new ArrayList<>();
+    List<String> args = new ArrayList<>();
+    String selection =
+        historyPageSelection(
+            walletId,
+            categoryId,
+            type,
+            startInclusiveMillis,
+            endExclusiveMillis,
+            oldestFirst,
+            cursorOccurredAt,
+            cursorId,
+            args);
+    try (Cursor c =
+        db.query(
+            "transactions",
+            null,
+            selection,
+            args.isEmpty() ? null : args.toArray(new String[0]),
+            null,
+            null,
+            oldestFirst ? "occurred_at ASC, id ASC" : "occurred_at DESC, id DESC",
+            String.valueOf(limit))) {
+      while (c.moveToNext()) {
+        transactions.add(map(c));
+      }
+    }
+    return transactions;
+  }
+
+  public HistoryTotalsRow findHistoryTotals(
+      Long walletId,
+      Long categoryId,
+      String type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis) {
+    List<String> args = new ArrayList<>();
+    String selection =
+        historySelection(walletId, categoryId, type, startInclusiveMillis, endExclusiveMillis, args);
+    String[] selectionArgs = args.isEmpty() ? null : args.toArray(new String[0]);
+    int count = 0;
+    long incomeMinor = 0L;
+    long expenseMinor = 0L;
+    try (Cursor c =
+        db.rawQuery(
+            "SELECT COUNT(*) AS tx_count,"
+                + " COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount_minor ELSE 0 END), 0)"
+                + " AS income_minor,"
+                + " COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount_minor ELSE 0 END), 0)"
+                + " AS expense_minor"
+                + " FROM transactions"
+                + (selection == null ? "" : " WHERE " + selection),
+            selectionArgs)) {
+      if (c.moveToFirst()) {
+        count = c.getInt(c.getColumnIndexOrThrow("tx_count"));
+        incomeMinor = c.getLong(c.getColumnIndexOrThrow("income_minor"));
+        expenseMinor = c.getLong(c.getColumnIndexOrThrow("expense_minor"));
+      }
+    }
+    return new HistoryTotalsRow(count, incomeMinor, expenseMinor);
+  }
+
   public Transaction findLast() {
     List<Transaction> recent = findRecent(1);
     return recent.isEmpty() ? null : recent.get(0);
@@ -230,6 +302,50 @@ public final class TransactionDao {
     }
     selection.append(clause);
     args.add(String.valueOf(value));
+  }
+
+  private static String historyPageSelection(
+      Long walletId,
+      Long categoryId,
+      String type,
+      Long startInclusiveMillis,
+      Long endExclusiveMillis,
+      boolean oldestFirst,
+      Long cursorOccurredAt,
+      Long cursorId,
+      List<String> args) {
+    StringBuilder selection = new StringBuilder();
+    String base =
+        historySelection(walletId, categoryId, type, startInclusiveMillis, endExclusiveMillis, args);
+    if (base != null) {
+      selection.append(base);
+    }
+    if (cursorOccurredAt != null && cursorId != null) {
+      if (selection.length() > 0) {
+        selection.append(" AND ");
+      }
+      if (oldestFirst) {
+        selection.append("(occurred_at > ? OR (occurred_at = ? AND id > ?))");
+      } else {
+        selection.append("(occurred_at < ? OR (occurred_at = ? AND id < ?))");
+      }
+      args.add(String.valueOf(cursorOccurredAt));
+      args.add(String.valueOf(cursorOccurredAt));
+      args.add(String.valueOf(cursorId));
+    }
+    return selection.length() == 0 ? null : selection.toString();
+  }
+
+  public static final class HistoryTotalsRow {
+    public final int count;
+    public final long incomeMinor;
+    public final long expenseMinor;
+
+    public HistoryTotalsRow(int count, long incomeMinor, long expenseMinor) {
+      this.count = count;
+      this.incomeMinor = incomeMinor;
+      this.expenseMinor = expenseMinor;
+    }
   }
 
   private static Transaction map(Cursor c) {

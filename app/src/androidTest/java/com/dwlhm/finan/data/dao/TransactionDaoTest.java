@@ -148,4 +148,72 @@ public class TransactionDaoTest {
         assertEquals(1, history.size());
         assertEquals(2_000, history.get(0).getAmountMinor());
     }
+
+    @Test
+    public void findHistoryPage_usesCursorKeysetPagination() {
+        long base = System.currentTimeMillis();
+        for (int i = 0; i < 5; i++) {
+            dao.insert(
+                    (i + 1) * 1_000L,
+                    "EXPENSE",
+                    walletId,
+                    categoryId,
+                    base + i,
+                    null,
+                    null,
+                    null,
+                    base + i,
+                    base + i);
+        }
+
+        List<Transaction> firstPage =
+                dao.findHistoryPage(null, null, null, null, null, false, null, null, 2);
+        assertEquals(2, firstPage.size());
+        assertEquals(5_000, firstPage.get(0).getAmountMinor());
+        assertEquals(4_000, firstPage.get(1).getAmountMinor());
+
+        Transaction last = firstPage.get(1);
+        List<Transaction> secondPage =
+                dao.findHistoryPage(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        last.getOccurredAt(),
+                        last.getId(),
+                        2);
+        assertEquals(2, secondPage.size());
+        assertEquals(3_000, secondPage.get(0).getAmountMinor());
+        assertEquals(2_000, secondPage.get(1).getAmountMinor());
+
+        Transaction lastSecond = secondPage.get(1);
+        List<Transaction> thirdPage =
+                dao.findHistoryPage(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        lastSecond.getOccurredAt(),
+                        lastSecond.getId(),
+                        2);
+        assertEquals(1, thirdPage.size());
+        assertEquals(1_000, thirdPage.get(0).getAmountMinor());
+    }
+
+    @Test
+    public void findHistoryTotals_aggregatesFilteredRows() {
+        long base = System.currentTimeMillis();
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, null, base, base);
+        dao.insert(2_000, "INCOME", walletId, categoryId, base + 1, null, null, null, base + 1, base + 1);
+        dao.insert(3_000, "EXPENSE", walletId, categoryId, base + 2, null, null, null, base + 2, base + 2);
+
+        TransactionDao.HistoryTotalsRow totals = dao.findHistoryTotals(null, null, null, null, null);
+        assertEquals(3, totals.count);
+        assertEquals(2_000, totals.incomeMinor);
+        assertEquals(4_000, totals.expenseMinor);
+    }
 }
