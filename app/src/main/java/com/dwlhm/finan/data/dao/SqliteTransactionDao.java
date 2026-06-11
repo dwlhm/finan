@@ -2,36 +2,42 @@ package com.dwlhm.finan.data.dao;
 
 import com.dwlhm.finan.data.entity.Transaction;
 import com.dwlhm.finan.domain.model.HistoryPageCursor;
-import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.HistoryTotals;
+import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
 public final class SqliteTransactionDao implements TransactionGateway {
 
   private final TransactionDao table;
+  private final TransactionTagDao transactionTags;
 
-  public SqliteTransactionDao(TransactionDao table) {
+  public SqliteTransactionDao(TransactionDao table, TransactionTagDao transactionTags) {
     this.table = table;
+    this.transactionTags = transactionTags;
   }
 
   @Override
   public long insert(com.dwlhm.finan.domain.model.Transaction transaction) {
     long now = System.currentTimeMillis();
     long occurredAt = transaction.getOccurredAt() > 0L ? transaction.getOccurredAt() : now;
-    return table.insert(
-        transaction.getAmountMinor(),
-        transaction.getType().name(),
-        transaction.getWalletId(),
-        transaction.getCategoryId(),
-        occurredAt,
-        transaction.getNote(),
-        null,
-        null,
-        now,
-        now);
+    long id =
+        table.insert(
+            transaction.getAmountMinor(),
+            transaction.getType().name(),
+            transaction.getWalletId(),
+            transaction.getCategoryId(),
+            occurredAt,
+            transaction.getNote(),
+            transaction.getMerchantId(),
+            now,
+            now);
+    transactionTags.replaceAll(id, transaction.getTagIds());
+    return id;
   }
 
   @Override
@@ -49,10 +55,10 @@ public final class SqliteTransactionDao implements TransactionGateway {
         transaction.getCategoryId(),
         transaction.getOccurredAt(),
         transaction.getNote(),
-        existing.getTag(),
-        existing.getMerchant(),
+        transaction.getMerchantId(),
         existing.getCreatedAt(),
         now);
+    transactionTags.replaceAll(transaction.getId(), transaction.getTagIds());
   }
 
   @Override
@@ -72,11 +78,8 @@ public final class SqliteTransactionDao implements TransactionGateway {
 
   @Override
   public List<com.dwlhm.finan.domain.model.Transaction> findRecent(int limit) {
-    List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
-    for (Transaction entity : table.findRecent(limit)) {
-      result.add(toDomain(entity));
-    }
-    return result;
+    List<Transaction> entities = table.findRecent(limit);
+    return toDomainList(entities);
   }
 
   @Override
@@ -87,14 +90,10 @@ public final class SqliteTransactionDao implements TransactionGateway {
       Long startInclusiveMillis,
       Long endExclusiveMillis,
       boolean oldestFirst) {
-    List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
     String typeName = type == null ? null : type.name();
-    for (Transaction entity :
+    return toDomainList(
         table.findHistory(
-            walletId, categoryId, typeName, startInclusiveMillis, endExclusiveMillis, oldestFirst)) {
-      result.add(toDomain(entity));
-    }
-    return result;
+            walletId, categoryId, typeName, startInclusiveMillis, endExclusiveMillis, oldestFirst));
   }
 
   @Override
@@ -110,20 +109,18 @@ public final class SqliteTransactionDao implements TransactionGateway {
     String typeName = type == null ? null : type.name();
     Long cursorOccurredAt = cursor == null ? null : cursor.occurredAt();
     Long cursorId = cursor == null ? null : cursor.id();
-    List<com.dwlhm.finan.domain.model.Transaction> items = new ArrayList<>();
-    for (Transaction entity :
-        table.findHistoryPage(
-            walletId,
-            categoryId,
-            typeName,
-            startInclusiveMillis,
-            endExclusiveMillis,
-            oldestFirst,
-            cursorOccurredAt,
-            cursorId,
-            limit + 1)) {
-      items.add(toDomain(entity));
-    }
+    List<com.dwlhm.finan.domain.model.Transaction> items =
+        toDomainList(
+            table.findHistoryPage(
+                walletId,
+                categoryId,
+                typeName,
+                startInclusiveMillis,
+                endExclusiveMillis,
+                oldestFirst,
+                cursorOccurredAt,
+                cursorId,
+                limit + 1));
     return PageResult.fromLimitPlusOne(
         items, limit, t -> new HistoryPageCursor(t.getOccurredAt(), t.getId()));
   }
@@ -143,34 +140,65 @@ public final class SqliteTransactionDao implements TransactionGateway {
   }
 
   @Override
-  public List<com.dwlhm.finan.domain.model.Transaction> findAll() {
-    List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
-    for (Transaction entity : table.findAll()) {
-      result.add(toDomain(entity));
+  public void forEachTransaction(Consumer<com.dwlhm.finan.domain.model.Transaction> consumer) {
+    List<Transaction> entities = table.findAll();
+    List<com.dwlhm.finan.domain.model.Transaction> domain = toDomainList(entities);
+    for (com.dwlhm.finan.domain.model.Transaction transaction : domain) {
+      consumer.accept(transaction);
     }
-    return result;
+  }
+
+  @Override
+  public List<com.dwlhm.finan.domain.model.Transaction> findAll() {
+    return toDomainList(table.findAll());
   }
 
   @Override
   public List<com.dwlhm.finan.domain.model.Transaction> findByWalletId(long walletId) {
+    return toDomainList(table.findByWalletId(walletId));
+  }
+
+  private List<com.dwlhm.finan.domain.model.Transaction> toDomainList(List<Transaction> entities) {
     List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
-    for (Transaction entity : table.findByWalletId(walletId)) {
-      result.add(toDomain(entity));
+    if (entities.isEmpty()) {
+      return result;
+    }
+    List<Long> transactionIds = new ArrayList<>();
+    for (Transaction entity : entities) {
+      if (entity != null) {
+        transactionIds.add(entity.getId());
+      }
+    }
+    Map<Long, List<Long>> tagIdsByTransaction =
+        transactionTags.findTagIdsByTransactions(transactionIds);
+    for (Transaction entity : entities) {
+      com.dwlhm.finan.domain.model.Transaction domain = toDomain(entity);
+      if (domain != null) {
+        List<Long> tagIds = tagIdsByTransaction.get(entity.getId());
+        if (tagIds != null) {
+          domain.setTagIds(tagIds);
+        }
+        result.add(domain);
+      }
     }
     return result;
   }
 
-  private static com.dwlhm.finan.domain.model.Transaction toDomain(Transaction entity) {
+  private com.dwlhm.finan.domain.model.Transaction toDomain(Transaction entity) {
     if (entity == null) {
       return null;
     }
-    return new com.dwlhm.finan.domain.model.Transaction(
-        entity.getId(),
-        entity.getAmountMinor(),
-        TransactionType.valueOf(entity.getType()),
-        entity.getWalletId(),
-        entity.getCategoryId(),
-        entity.getOccurredAt(),
-        entity.getNote());
+    com.dwlhm.finan.domain.model.Transaction domain =
+        new com.dwlhm.finan.domain.model.Transaction(
+            entity.getId(),
+            entity.getAmountMinor(),
+            TransactionType.valueOf(entity.getType()),
+            entity.getWalletId(),
+            entity.getCategoryId(),
+            entity.getOccurredAt(),
+            entity.getNote());
+    domain.setMerchantId(entity.getMerchantId());
+    domain.setTagIds(transactionTags.findTagIdsByTransaction(entity.getId()));
+    return domain;
   }
 }

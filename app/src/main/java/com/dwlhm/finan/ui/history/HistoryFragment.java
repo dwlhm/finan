@@ -26,6 +26,7 @@ import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.EntityLookup;
 import com.dwlhm.finan.ui.common.FilterDialog;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
@@ -42,6 +43,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 public final class HistoryFragment extends ScreenFragment {
@@ -75,6 +77,9 @@ public final class HistoryFragment extends ScreenFragment {
   private Long selectedCategoryId;
   private Long selectedTypeId;
   private Long selectedSortId;
+  private int reloadGeneration;
+  private Map<Long, Category> categoriesById = Map.of();
+  private Map<Long, Wallet> walletsById = Map.of();
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -107,15 +112,18 @@ public final class HistoryFragment extends ScreenFragment {
     expenseTotalView = view.findViewById(R.id.history_expense_total);
     filterButton.setOnClickListener(v -> showHistoryFilterDialog());
     dateRangeView.setOnClickListener(v -> showDateRangeDialog());
-    adapter =
-        new TransactionRecyclerAdapter(requireContext(), services.categoryDao, services.walletDao);
+    adapter = new TransactionRecyclerAdapter(requireContext());
     adapter.setOnTransactionClickListener(
         (transaction, position) -> openTransactionDetail(position));
-    historyList.setup(adapter, this::loadHistoryPage);
+    historyList.setup(adapter, this::loadHistoryPage, services.dbWorker::compute);
     normalizeDateRange();
     updateDateRangeView();
-    updateFilterButton();
-    reload();
+  }
+
+  @Override
+  public void onDestroyView() {
+    reloadGeneration++;
+    super.onDestroyView();
   }
 
   @Override
@@ -143,27 +151,57 @@ public final class HistoryFragment extends ScreenFragment {
   public void onResume() {
     super.onResume();
     updateDateRangeView();
-    updateFilterButton();
     reload();
   }
 
   private void reload() {
     normalizeDateRange();
-    selectedWalletId = validWalletIdOrNull(selectedWalletId);
-    selectedCategoryId = validCategoryIdOrNull(selectedCategoryId);
-    selectedTypeId = validTypeIdOrNull(selectedTypeId);
-    selectedSortId = validSortIdOrNull(selectedSortId);
+    int generation = ++reloadGeneration;
+    Long requestWalletId = selectedWalletId;
+    Long requestCategoryId = selectedCategoryId;
+    Long requestTypeId = selectedTypeId;
+    Long requestSortId = selectedSortId;
+    Long startMillis = selectedStartMillis();
+    Long endExclusiveMillis = selectedEndExclusiveMillis();
 
-    HistoryTotals totals =
-        services.transactionGateway.findHistoryTotals(
-            selectedWalletId,
-            selectedCategoryId,
-            selectedTransactionType(),
-            selectedStartMillis(),
-            selectedEndExclusiveMillis());
-    renderSummary(totals);
-    historyList.reload();
-    updateEmptyState(totals.getCount() == 0);
+    services.dbWorker.compute(
+        () -> {
+          List<Wallet> wallets = services.walletDao.findAll();
+          List<Category> categories = services.categoryDao.findAllOrdered();
+          Map<Long, Wallet> walletMap = EntityLookup.indexWallets(wallets);
+          Map<Long, Category> categoryMap = EntityLookup.indexCategories(categories);
+          Map<Long, com.dwlhm.finan.data.entity.Tag> tagMap =
+              EntityLookup.indexTags(services.tagDao.findAllOrderByUsage());
+          Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantMap =
+              EntityLookup.indexMerchants(services.merchantDao.findAllOrderByUsage());
+          Long walletId = validWalletIdOrNull(requestWalletId, walletMap);
+          Long categoryId = validCategoryIdOrNull(requestCategoryId, categoryMap);
+          Long typeId = validTypeIdOrNull(requestTypeId);
+          Long sortId = validSortIdOrNull(requestSortId);
+          TransactionType type = transactionTypeFor(typeId);
+          HistoryTotals totals =
+              services.transactionGateway.findHistoryTotals(
+                  walletId, categoryId, type, startMillis, endExclusiveMillis);
+          return new HistoryReloadData(
+              walletMap, categoryMap, tagMap, merchantMap, walletId, categoryId, typeId, sortId, totals);
+        },
+        data -> {
+          if (!isAdded() || generation != reloadGeneration || data == null) {
+            return;
+          }
+          walletsById = data.walletsById;
+          categoriesById = data.categoriesById;
+          selectedWalletId = data.walletId;
+          selectedCategoryId = data.categoryId;
+          selectedTypeId = data.typeId;
+          selectedSortId = data.sortId;
+          adapter.setEntityLookups(
+              categoriesById, walletsById, data.tagsById, data.merchantsById);
+          renderSummary(data.totals);
+          historyList.reload();
+          updateEmptyState(data.totals.getCount() == 0);
+          updateFilterButton();
+        });
   }
 
   private PageResult<Transaction, HistoryPageCursor> loadHistoryPage(
@@ -196,58 +234,69 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private void showHistoryFilterDialog() {
-    selectedWalletId = validWalletIdOrNull(selectedWalletId);
-    selectedCategoryId = validCategoryIdOrNull(selectedCategoryId);
-    selectedTypeId = validTypeIdOrNull(selectedTypeId);
-    selectedSortId = validSortIdOrNull(selectedSortId);
-
-    ArrayList<FilterDialog.Group> groups = new ArrayList<>();
-    groups.add(
-        new FilterDialog.Group(
-            getString(R.string.summary_wallet_filter_label),
-            getString(R.string.summary_wallet_filter_title),
-            walletFilterOptions(services.walletDao.findAll()),
-            selectedWalletId));
-    groups.add(
-        new FilterDialog.Group(
-            getString(R.string.summary_category_filter_label),
-            getString(R.string.summary_category_filter_title),
-            categoryFilterOptions(services.categoryDao.findAllOrdered()),
-            selectedCategoryId));
-    groups.add(
-        new FilterDialog.Group(
-            getString(R.string.history_type_filter_label),
-            getString(R.string.history_type_filter_title),
-            typeFilterOptions(),
-            selectedTypeId));
-    groups.add(
-        new FilterDialog.Group(
-            getString(R.string.history_sort_label),
-            getString(R.string.history_sort_title),
-            sortOptions(),
-            selectedSortId));
-
-    FilterDialog.show(
-        requireContext(),
-        getString(R.string.history_filter_title),
-        getString(R.string.summary_range_apply),
-        getString(R.string.summary_filter_reset),
-        groups,
-        selectedIds -> {
-          selectedWalletId = selectedIds.get(0);
-          selectedCategoryId = selectedIds.get(1);
-          selectedTypeId = selectedIds.get(2);
-          selectedSortId = selectedIds.get(3);
-          updateFilterButton();
-          reload();
-        },
+    services.dbWorker.compute(
         () -> {
-          selectedWalletId = null;
-          selectedCategoryId = null;
-          selectedTypeId = null;
-          selectedSortId = null;
-          updateFilterButton();
-          reload();
+          List<Wallet> wallets = services.walletDao.findAll();
+          List<Category> categories = services.categoryDao.findAllOrdered();
+          return new FilterSourceData(wallets, categories);
+        },
+        data -> {
+          if (!isAdded() || data == null) {
+            return;
+          }
+          Long walletId = validWalletIdOrNull(selectedWalletId, EntityLookup.indexWallets(data.wallets));
+          Long categoryId =
+              validCategoryIdOrNull(
+                  selectedCategoryId, EntityLookup.indexCategories(data.categories));
+          Long typeId = validTypeIdOrNull(selectedTypeId);
+          Long sortId = validSortIdOrNull(selectedSortId);
+
+          ArrayList<FilterDialog.Group> groups = new ArrayList<>();
+          groups.add(
+              new FilterDialog.Group(
+                  getString(R.string.summary_wallet_filter_label),
+                  getString(R.string.summary_wallet_filter_title),
+                  walletFilterOptions(data.wallets),
+                  walletId));
+          groups.add(
+              new FilterDialog.Group(
+                  getString(R.string.summary_category_filter_label),
+                  getString(R.string.summary_category_filter_title),
+                  categoryFilterOptions(data.categories),
+                  categoryId));
+          groups.add(
+              new FilterDialog.Group(
+                  getString(R.string.history_type_filter_label),
+                  getString(R.string.history_type_filter_title),
+                  typeFilterOptions(),
+                  typeId));
+          groups.add(
+              new FilterDialog.Group(
+                  getString(R.string.history_sort_label),
+                  getString(R.string.history_sort_title),
+                  sortOptions(),
+                  sortId));
+
+          FilterDialog.show(
+              requireContext(),
+              getString(R.string.history_filter_title),
+              getString(R.string.summary_range_apply),
+              getString(R.string.summary_filter_reset),
+              groups,
+              selectedIds -> {
+                selectedWalletId = selectedIds.get(0);
+                selectedCategoryId = selectedIds.get(1);
+                selectedTypeId = selectedIds.get(2);
+                selectedSortId = selectedIds.get(3);
+                reload();
+              },
+              () -> {
+                selectedWalletId = null;
+                selectedCategoryId = null;
+                selectedTypeId = null;
+                selectedSortId = null;
+                reload();
+              });
         });
   }
 
@@ -379,11 +428,6 @@ public final class HistoryFragment extends ScreenFragment {
     if (filterButton == null) {
       return;
     }
-    selectedWalletId = validWalletIdOrNull(selectedWalletId);
-    selectedCategoryId = validCategoryIdOrNull(selectedCategoryId);
-    selectedTypeId = validTypeIdOrNull(selectedTypeId);
-    selectedSortId = validSortIdOrNull(selectedSortId);
-
     String walletLabel = walletFilterLabel(selectedWalletId);
     String categoryLabel = categoryFilterLabel(selectedCategoryId);
     String typeLabel = typeFilterLabel(selectedTypeId);
@@ -572,14 +616,12 @@ public final class HistoryFragment extends ScreenFragment {
     return new DateRange(today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
   }
 
-  private Long validWalletIdOrNull(Long walletId) {
-    return walletId != null && services.walletDao.findById(walletId) == null ? null : walletId;
+  private static Long validWalletIdOrNull(Long walletId, Map<Long, Wallet> walletsById) {
+    return walletId != null && !walletsById.containsKey(walletId) ? null : walletId;
   }
 
-  private Long validCategoryIdOrNull(Long categoryId) {
-    return categoryId != null && services.categoryDao.findById(categoryId) == null
-        ? null
-        : categoryId;
+  private static Long validCategoryIdOrNull(Long categoryId, Map<Long, Category> categoriesById) {
+    return categoryId != null && !categoriesById.containsKey(categoryId) ? null : categoryId;
   }
 
   private Long validTypeIdOrNull(Long typeId) {
@@ -594,17 +636,21 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private TransactionType selectedTransactionType() {
-    if (selectedTypeId == null) {
+    return transactionTypeFor(selectedTypeId);
+  }
+
+  private static TransactionType transactionTypeFor(Long typeId) {
+    if (typeId == null) {
       return null;
     }
-    return selectedTypeId == TYPE_INCOME_ID ? TransactionType.INCOME : TransactionType.EXPENSE;
+    return typeId == TYPE_INCOME_ID ? TransactionType.INCOME : TransactionType.EXPENSE;
   }
 
   private String walletFilterLabel(Long walletId) {
     if (walletId == null) {
       return getString(R.string.summary_all_wallets);
     }
-    Wallet wallet = services.walletDao.findById(walletId);
+    Wallet wallet = walletsById.get(walletId);
     return wallet == null ? getString(R.string.summary_all_wallets) : wallet.getName();
   }
 
@@ -612,7 +658,7 @@ public final class HistoryFragment extends ScreenFragment {
     if (categoryId == null) {
       return getString(R.string.summary_all_categories);
     }
-    Category category = services.categoryDao.findById(categoryId);
+    Category category = categoriesById.get(categoryId);
     return category == null ? getString(R.string.summary_all_categories) : category.getName();
   }
 
@@ -654,6 +700,49 @@ public final class HistoryFragment extends ScreenFragment {
     private DateRange(@Nullable LocalDate start, @Nullable LocalDate end) {
       this.start = start;
       this.end = end;
+    }
+  }
+
+  private static final class HistoryReloadData {
+    private final Map<Long, Wallet> walletsById;
+    private final Map<Long, Category> categoriesById;
+    private final Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById;
+    private final Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById;
+    private final Long walletId;
+    private final Long categoryId;
+    private final Long typeId;
+    private final Long sortId;
+    private final HistoryTotals totals;
+
+    private HistoryReloadData(
+        Map<Long, Wallet> walletsById,
+        Map<Long, Category> categoriesById,
+        Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById,
+        Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById,
+        Long walletId,
+        Long categoryId,
+        Long typeId,
+        Long sortId,
+        HistoryTotals totals) {
+      this.walletsById = walletsById;
+      this.categoriesById = categoriesById;
+      this.tagsById = tagsById;
+      this.merchantsById = merchantsById;
+      this.walletId = walletId;
+      this.categoryId = categoryId;
+      this.typeId = typeId;
+      this.sortId = sortId;
+      this.totals = totals;
+    }
+  }
+
+  private static final class FilterSourceData {
+    private final List<Wallet> wallets;
+    private final List<Category> categories;
+
+    private FilterSourceData(List<Wallet> wallets, List<Category> categories) {
+      this.wallets = wallets;
+      this.categories = categories;
     }
   }
 }

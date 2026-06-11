@@ -14,6 +14,14 @@ public final class FinanApplication extends Application {
     services = AppServices.create(this);
   }
 
+  @Override
+  public void onTerminate() {
+    if (services != null) {
+      services.dbWorker.shutdown();
+    }
+    super.onTerminate();
+  }
+
   public AppServices getServices() {
     return services;
   }

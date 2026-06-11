@@ -9,8 +9,7 @@ public final class Transaction {
   private final long categoryId;
   private final long occurredAt;
   private final String note;
-  private final String tag;
-  private final String merchant;
+  private final Long merchantId;
   private final long createdAt;
   private final long updatedAt;
 
@@ -22,8 +21,7 @@ public final class Transaction {
       long categoryId,
       long occurredAt,
       String note,
-      String tag,
-      String merchant,
+      Long merchantId,
       long createdAt,
       long updatedAt) {
     this.id = id;
@@ -33,8 +31,7 @@ public final class Transaction {
     this.categoryId = categoryId;
     this.occurredAt = occurredAt;
     this.note = note;
-    this.tag = tag;
-    this.merchant = merchant;
+    this.merchantId = merchantId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -67,12 +64,8 @@ public final class Transaction {
     return note;
   }
 
-  public String getTag() {
-    return tag;
-  }
-
-  public String getMerchant() {
-    return merchant;
+  public Long getMerchantId() {
+    return merchantId;
   }
 
   public long getCreatedAt() {

@@ -1,5 +1,9 @@
 package com.dwlhm.finan.domain.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class Transaction {
 
     private long id;
@@ -9,6 +13,8 @@ public class Transaction {
     private long categoryId;
     private long occurredAt;
     private String note;
+    private Long merchantId;
+    private List<Long> tagIds = Collections.emptyList();
 
     public Transaction(
             long id,
@@ -82,5 +88,25 @@ public class Transaction {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public Long getMerchantId() {
+        return merchantId;
+    }
+
+    public void setMerchantId(Long merchantId) {
+        this.merchantId = merchantId;
+    }
+
+    public List<Long> getTagIds() {
+        return tagIds;
+    }
+
+    public void setTagIds(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            this.tagIds = Collections.emptyList();
+            return;
+        }
+        this.tagIds = Collections.unmodifiableList(new ArrayList<>(tagIds));
     }
 }

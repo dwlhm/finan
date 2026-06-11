@@ -6,6 +6,8 @@ import com.dwlhm.finan.domain.rule.ValidationRules;
 import com.dwlhm.finan.domain.rule.ValidationResult;
 import com.dwlhm.finan.service.balance.BalanceService;
 import com.dwlhm.finan.service.category.CategoryUsageService;
+import com.dwlhm.finan.service.merchant.MerchantUsageService;
+import com.dwlhm.finan.service.tag.TagUsageService;
 import com.dwlhm.finan.util.date.OccurredAtHelper;
 import com.dwlhm.finan.util.date.TimeProvider;
 
@@ -16,17 +18,23 @@ public class TransactionService {
     private final TransactionGateway transactionDao;
     private final BalanceService balanceService;
     private final CategoryUsageService categoryUsageService;
+    private final TagUsageService tagUsageService;
+    private final MerchantUsageService merchantUsageService;
     private final TimeProvider timeProvider;
 
     public TransactionService(
             TransactionGateway transactionDao,
             BalanceService balanceService,
             CategoryUsageService categoryUsageService,
+            TagUsageService tagUsageService,
+            MerchantUsageService merchantUsageService,
             TimeProvider timeProvider
     ) {
         this.transactionDao = transactionDao;
         this.balanceService = balanceService;
         this.categoryUsageService = categoryUsageService;
+        this.tagUsageService = tagUsageService;
+        this.merchantUsageService = merchantUsageService;
         this.timeProvider = timeProvider;
     }
 
@@ -40,6 +48,11 @@ public class TransactionService {
         transaction.setId(id);
         balanceService.applyTransaction(transaction);
         categoryUsageService.bumpUsage(transaction.getCategoryId());
+        tagUsageService.bumpUsageForTags(transaction.getTagIds());
+        Long merchantId = transaction.getMerchantId();
+        if (merchantId != null) {
+            merchantUsageService.bumpUsage(merchantId);
+        }
         return id;
     }
 
@@ -62,6 +75,11 @@ public class TransactionService {
             balanceService.recalculate(existing.getWalletId());
         }
         categoryUsageService.bumpUsage(transaction.getCategoryId());
+        tagUsageService.bumpUsageForTags(transaction.getTagIds());
+        Long merchantId = transaction.getMerchantId();
+        if (merchantId != null) {
+            merchantUsageService.bumpUsage(merchantId);
+        }
     }
 
     public void delete(long transactionId) {
@@ -73,6 +91,7 @@ public class TransactionService {
         balanceService.recalculate(existing.getWalletId());
     }
 
+    /** Deletes the most recent transaction by occurred_at. Capture undo uses {@link #delete(long)} with a known id. */
     public boolean undoLast() {
         Transaction last = transactionDao.findLast();
         if (last == null) {

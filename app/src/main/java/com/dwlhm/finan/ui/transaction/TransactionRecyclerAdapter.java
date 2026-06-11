@@ -11,12 +11,11 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.dwlhm.finan.R;
-import com.dwlhm.finan.data.dao.CategoryDao;
-import com.dwlhm.finan.data.dao.WalletDao;
 import com.dwlhm.finan.data.entity.Category;
+import com.dwlhm.finan.data.entity.Merchant;
+import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
@@ -24,11 +23,13 @@ import com.dwlhm.finan.ui.common.infinitescroll.InfiniteScrollRecyclerAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 
 public final class TransactionRecyclerAdapter
-    extends InfiniteScrollRecyclerAdapter<Transaction, TransactionRecyclerAdapter.TransactionViewHolder> {
+    extends InfiniteScrollRecyclerAdapter<Transaction, TransactionItemViewHolder> {
 
   private static final int[] CATEGORY_COLORS = {
     Color.rgb(84, 105, 212),
@@ -48,8 +49,10 @@ public final class TransactionRecyclerAdapter
   };
 
   private final Context context;
-  private final CategoryDao categoryTable;
-  private final WalletDao walletTable;
+  private Map<Long, Category> categoriesById = Collections.emptyMap();
+  private Map<Long, Wallet> walletsById = Collections.emptyMap();
+  private Map<Long, Tag> tagsById = Collections.emptyMap();
+  private Map<Long, Merchant> merchantsById = Collections.emptyMap();
   private final SimpleDateFormat dateFormat =
       new SimpleDateFormat("d MMM yyyy, HH:mm", new Locale("id", "ID"));
   private OnTransactionClickListener clickListener;
@@ -58,30 +61,52 @@ public final class TransactionRecyclerAdapter
     void onTransactionClick(Transaction transaction, int position);
   }
 
-  public TransactionRecyclerAdapter(
-      Context context, CategoryDao categoryTable, WalletDao walletTable) {
+  public TransactionRecyclerAdapter(Context context) {
     super(LayoutInflater.from(context), R.layout.item_infinite_scroll_loading);
     this.context = context;
-    this.categoryTable = categoryTable;
-    this.walletTable = walletTable;
+  }
+
+  public void setEntityLookups(
+      Map<Long, Category> categoriesById, Map<Long, Wallet> walletsById) {
+    setEntityLookups(categoriesById, walletsById, Collections.emptyMap(), Collections.emptyMap());
+  }
+
+  public void setEntityLookups(
+      Map<Long, Category> categoriesById,
+      Map<Long, Wallet> walletsById,
+      Map<Long, Tag> tagsById,
+      Map<Long, Merchant> merchantsById) {
+    this.categoriesById = categoriesById != null ? categoriesById : Collections.emptyMap();
+    this.walletsById = walletsById != null ? walletsById : Collections.emptyMap();
+    this.tagsById = tagsById != null ? tagsById : Collections.emptyMap();
+    this.merchantsById = merchantsById != null ? merchantsById : Collections.emptyMap();
+    notifyDataSetChanged();
   }
 
   public void setOnTransactionClickListener(OnTransactionClickListener clickListener) {
     this.clickListener = clickListener;
   }
 
+  public Transaction getTransactionAt(int position) {
+    return getItemAt(position);
+  }
+
   @NonNull
   @Override
-  protected TransactionViewHolder onCreateContentViewHolder(@NonNull ViewGroup parent) {
-    return new TransactionViewHolder(
+  protected TransactionItemViewHolder onCreateContentViewHolder(@NonNull ViewGroup parent) {
+    return new TransactionItemViewHolder(
         LayoutInflater.from(context).inflate(R.layout.item_transaction, parent, false));
   }
 
   @Override
   protected void onBindContentViewHolder(
-      @NonNull TransactionViewHolder holder, int position, @NonNull Transaction transaction) {
-    Category category = categoryTable.findById(transaction.getCategoryId());
-    Wallet wallet = walletTable.findById(transaction.getWalletId());
+      @NonNull TransactionItemViewHolder holder, int position, @NonNull Transaction transaction) {
+    Category category = categoriesById.get(transaction.getCategoryId());
+    Wallet wallet = walletsById.get(transaction.getWalletId());
+    Merchant merchant =
+        transaction.getMerchantId() == null
+            ? null
+            : merchantsById.get(transaction.getMerchantId());
 
     holder.category.setText(category != null ? category.getName() : "—");
     setIndicatorColor(
@@ -110,13 +135,14 @@ public final class TransactionRecyclerAdapter
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
-    holder.meta.setText(TextUtils.isEmpty(walletName) ? when : walletName + " · " + when);
+    holder.meta.setText(TransactionRowLabels.formatMeta(transaction, merchant, walletName, when));
 
-    String note = transaction.getNote();
-    boolean hasNote = !TextUtils.isEmpty(note) && !TextUtils.isEmpty(note.trim());
-    holder.note.setVisibility(hasNote ? View.VISIBLE : View.GONE);
-    if (hasNote) {
-      holder.note.setText(note.trim());
+    String tagLine = TransactionRowLabels.formatTagLine(transaction, tagsById);
+    String secondary = TransactionRowLabels.formatSecondaryLine(transaction, tagLine);
+    boolean hasSecondary = !TextUtils.isEmpty(secondary);
+    holder.note.setVisibility(hasSecondary ? View.VISIBLE : View.GONE);
+    if (hasSecondary) {
+      holder.note.setText(secondary);
     }
 
     holder.itemView.setOnClickListener(
@@ -144,24 +170,5 @@ public final class TransactionRecyclerAdapter
 
   private int dp(int value) {
     return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);
-  }
-
-  static final class TransactionViewHolder extends RecyclerView.ViewHolder {
-    final View categoryIndicator;
-    final View walletIndicator;
-    final TextView category;
-    final TextView amount;
-    final TextView meta;
-    final TextView note;
-
-    TransactionViewHolder(@NonNull View itemView) {
-      super(itemView);
-      categoryIndicator = itemView.findViewById(R.id.item_transaction_category_indicator);
-      walletIndicator = itemView.findViewById(R.id.item_transaction_wallet_indicator);
-      category = itemView.findViewById(R.id.item_transaction_category);
-      amount = itemView.findViewById(R.id.item_transaction_amount);
-      meta = itemView.findViewById(R.id.item_transaction_meta);
-      note = itemView.findViewById(R.id.item_transaction_note);
-    }
   }
 }

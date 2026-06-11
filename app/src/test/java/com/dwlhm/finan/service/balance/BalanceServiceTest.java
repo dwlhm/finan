@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 
@@ -142,6 +143,13 @@ public class BalanceServiceTest {
                 }
             }
             return result;
+        }
+
+        @Override
+        public void forEachTransaction(Consumer<Transaction> consumer) {
+            for (Transaction transaction : transactions) {
+                consumer.accept(transaction);
+            }
         }
 
         @Override

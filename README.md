@@ -24,7 +24,12 @@ app/src/androidTest/java/ # migration & DAO tests
 
 ## Build
 
-Requires **JDK 17+** (Android Studio JBR).
+Requires **JDK 17+** (Android Studio JBR) and Android SDK.
+
+1. Copy `local.properties.example` → `local.properties` and set `sdk.dir` (default macOS: `~/Library/Android/sdk`).
+2. Point `JAVA_HOME` to Android Studio JBR, e.g.  
+   `export JAVA_HOME="$HOME/Applications/Android Studio.app/Contents/jbr/Contents/Home"`
+3. Sync Gradle (Android Studio: **Sync Project**, or run `./gradlew` below).
 
 ```bash
 ./gradlew test

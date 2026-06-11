@@ -1,1 +1,2 @@
-sdk.dir=/path/to/Android/sdk
+# Copy to local.properties (gitignored) and adjust if your SDK path differs.
+sdk.dir=/Users/YOUR_USER/Library/Android/sdk

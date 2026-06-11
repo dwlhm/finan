@@ -5,8 +5,6 @@ import android.app.DatePickerDialog;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -27,8 +25,8 @@ import com.dwlhm.finan.domain.model.CategoryTotal;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.WalletBalance;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.EntityLookup;
 import com.dwlhm.finan.ui.common.FilterDialog;
-import com.dwlhm.finan.service.summary.SummaryService;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
@@ -40,9 +38,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Map;
 
 public final class SummaryFragment extends ScreenFragment {
 
@@ -53,8 +49,10 @@ public final class SummaryFragment extends ScreenFragment {
   private static final long FILTER_NONE_ID = -1L;
   private static final int CATEGORY_PROGRESS_MAX = 1000;
 
-  private final ExecutorService executor = Executors.newSingleThreadExecutor();
-  private final Handler mainHandler = new Handler(Looper.getMainLooper());
+  private AppServices services;
+  private int loadGeneration;
+  private Map<Long, Wallet> walletsById = Map.of();
+  private Map<Long, Category> categoriesById = Map.of();
   private LocalDate selectedStartDate = LocalDate.now();
   private LocalDate selectedEndDate = LocalDate.now();
   private Long selectedWalletId;
@@ -76,6 +74,18 @@ public final class SummaryFragment extends ScreenFragment {
   @Override
   protected int getLayoutResId() {
     return R.layout.activity_summary;
+  }
+
+  @Override
+  public void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    services = ServicesProvider.get(requireContext());
+  }
+
+  @Override
+  public void onDestroyView() {
+    loadGeneration++;
+    super.onDestroyView();
   }
 
   @Override
@@ -109,13 +119,6 @@ public final class SummaryFragment extends ScreenFragment {
   }
 
   @Override
-  public void onDestroy() {
-    mainHandler.removeCallbacksAndMessages(null);
-    executor.shutdownNow();
-    super.onDestroy();
-  }
-
-  @Override
   public void onSaveInstanceState(@NonNull Bundle outState) {
     outState.putString(START_DATE_STATE_KEY, selectedStartDate.toString());
     outState.putString(END_DATE_STATE_KEY, selectedEndDate.toString());
@@ -127,34 +130,42 @@ public final class SummaryFragment extends ScreenFragment {
   }
 
   private void loadSummaryAsync() {
+    int generation = ++loadGeneration;
     LocalDate requestedStartDate = selectedStartDate;
     LocalDate requestedEndDate = selectedEndDate;
     Long requestedWalletId = selectedWalletId;
     Long requestedCategoryId = selectedCategoryId;
     loading.setVisibility(View.VISIBLE);
     emptyMessage.setVisibility(View.GONE);
-    SummaryService summaryService = ServicesProvider.get(requireContext()).summaryService;
-    executor.execute(
+    services.dbWorker.compute(
         () -> {
+          List<Wallet> wallets = services.walletDao.findAll();
+          List<Category> categories = services.categoryDao.findAllOrdered();
+          Map<Long, Wallet> walletMap = EntityLookup.indexWallets(wallets);
+          Map<Long, Category> categoryMap = EntityLookup.indexCategories(categories);
+          Long walletId = validWalletIdOrNull(requestedWalletId, walletMap);
+          Long categoryId = validCategoryIdOrNull(requestedCategoryId, categoryMap);
           MonthlySummary summary =
-              summaryService.loadRange(
-                  requestedStartDate,
-                  requestedEndDate,
-                  requestedWalletId,
-                  requestedCategoryId);
-          mainHandler.post(
-              () -> {
-                if (!isAdded()
-                    || getView() == null
-                    || !requestedStartDate.equals(selectedStartDate)
-                    || !requestedEndDate.equals(selectedEndDate)
-                    || !Objects.equals(requestedWalletId, selectedWalletId)
-                    || !Objects.equals(requestedCategoryId, selectedCategoryId)) {
-                  return;
-                }
-                bindSummary(summary, requestedStartDate, requestedEndDate);
-                loading.setVisibility(View.GONE);
-              });
+              services.summaryService.loadRange(
+                  requestedStartDate, requestedEndDate, walletId, categoryId);
+          return new SummaryLoadData(walletMap, categoryMap, walletId, categoryId, summary);
+        },
+        data -> {
+          if (!isAdded()
+              || getView() == null
+              || generation != loadGeneration
+              || data == null
+              || !requestedStartDate.equals(selectedStartDate)
+              || !requestedEndDate.equals(selectedEndDate)) {
+            return;
+          }
+          walletsById = data.walletsById;
+          categoriesById = data.categoriesById;
+          selectedWalletId = data.walletId;
+          selectedCategoryId = data.categoryId;
+          bindSummary(data.summary, requestedStartDate, requestedEndDate);
+          updateFilterButton();
+          loading.setVisibility(View.GONE);
         });
   }
 
@@ -247,42 +258,51 @@ public final class SummaryFragment extends ScreenFragment {
   }
 
   private void showSummaryFilterDialog() {
-    Context context = requireContext();
-    AppServices services = ServicesProvider.get(context);
-    selectedWalletId = validWalletIdOrNull(services, selectedWalletId);
-    selectedCategoryId = validCategoryIdOrNull(services, selectedCategoryId);
-
-    ArrayList<FilterDialog.Group> groups = new ArrayList<>();
-    groups.add(
-        new FilterDialog.Group(
-            getString(R.string.summary_wallet_filter_label),
-            getString(R.string.summary_wallet_filter_title),
-            walletFilterOptions(services.walletDao.findAll()),
-            selectedWalletId));
-    groups.add(
-        new FilterDialog.Group(
-            getString(R.string.summary_category_filter_label),
-            getString(R.string.summary_category_filter_title),
-            categoryFilterOptions(services.categoryDao.findAllOrdered()),
-            selectedCategoryId));
-
-    FilterDialog.show(
-        context,
-        getString(R.string.summary_filter_title),
-        getString(R.string.summary_range_apply),
-        getString(R.string.summary_filter_reset),
-        groups,
-        selectedIds -> {
-          selectedWalletId = selectedIds.get(0);
-          selectedCategoryId = selectedIds.get(1);
-          updateFilterButton();
-          loadSummaryAsync();
-        },
+    services.dbWorker.compute(
         () -> {
-          selectedWalletId = null;
-          selectedCategoryId = null;
-          updateFilterButton();
-          loadSummaryAsync();
+          List<Wallet> wallets = services.walletDao.findAll();
+          List<Category> categories = services.categoryDao.findAllOrdered();
+          return new SummaryFilterSource(wallets, categories);
+        },
+        data -> {
+          if (!isAdded() || data == null) {
+            return;
+          }
+          Map<Long, Wallet> walletMap = EntityLookup.indexWallets(data.wallets);
+          Map<Long, Category> categoryMap = EntityLookup.indexCategories(data.categories);
+          Long walletId = validWalletIdOrNull(selectedWalletId, walletMap);
+          Long categoryId = validCategoryIdOrNull(selectedCategoryId, categoryMap);
+
+          ArrayList<FilterDialog.Group> groups = new ArrayList<>();
+          groups.add(
+              new FilterDialog.Group(
+                  getString(R.string.summary_wallet_filter_label),
+                  getString(R.string.summary_wallet_filter_title),
+                  walletFilterOptions(data.wallets),
+                  walletId));
+          groups.add(
+              new FilterDialog.Group(
+                  getString(R.string.summary_category_filter_label),
+                  getString(R.string.summary_category_filter_title),
+                  categoryFilterOptions(data.categories),
+                  categoryId));
+
+          FilterDialog.show(
+              requireContext(),
+              getString(R.string.summary_filter_title),
+              getString(R.string.summary_range_apply),
+              getString(R.string.summary_filter_reset),
+              groups,
+              selectedIds -> {
+                selectedWalletId = selectedIds.get(0);
+                selectedCategoryId = selectedIds.get(1);
+                loadSummaryAsync();
+              },
+              () -> {
+                selectedWalletId = null;
+                selectedCategoryId = null;
+                loadSummaryAsync();
+              });
         });
   }
 
@@ -493,12 +513,11 @@ public final class SummaryFragment extends ScreenFragment {
   }
 
   private void updateFilterButton() {
-    AppServices services = ServicesProvider.get(requireContext());
-    selectedWalletId = validWalletIdOrNull(services, selectedWalletId);
-    selectedCategoryId = validCategoryIdOrNull(services, selectedCategoryId);
-
-    String walletLabel = walletFilterLabel(services, selectedWalletId);
-    String categoryLabel = categoryFilterLabel(services, selectedCategoryId);
+    if (filterButton == null) {
+      return;
+    }
+    String walletLabel = walletFilterLabel(selectedWalletId);
+    String categoryLabel = categoryFilterLabel(selectedCategoryId);
     boolean active = selectedWalletId != null || selectedCategoryId != null;
     filterButton.setAlpha(active ? 1f : 0.82f);
     filterButton.setColorFilter(
@@ -512,30 +531,28 @@ public final class SummaryFragment extends ScreenFragment {
     filterButton.setTooltipText(filterButton.getContentDescription());
   }
 
-  private String walletFilterLabel(AppServices services, Long walletId) {
+  private String walletFilterLabel(Long walletId) {
     if (walletId == null) {
       return getString(R.string.summary_all_wallets);
     }
-    Wallet wallet = services.walletDao.findById(walletId);
+    Wallet wallet = walletsById.get(walletId);
     return wallet == null ? getString(R.string.summary_all_wallets) : wallet.getName();
   }
 
-  private String categoryFilterLabel(AppServices services, Long categoryId) {
+  private String categoryFilterLabel(Long categoryId) {
     if (categoryId == null) {
       return getString(R.string.summary_all_categories);
     }
-    Category category = services.categoryDao.findById(categoryId);
+    Category category = categoriesById.get(categoryId);
     return category == null ? getString(R.string.summary_all_categories) : category.getName();
   }
 
-  private Long validWalletIdOrNull(AppServices services, Long walletId) {
-    return walletId != null && services.walletDao.findById(walletId) == null ? null : walletId;
+  private static Long validWalletIdOrNull(Long walletId, Map<Long, Wallet> walletsById) {
+    return walletId != null && !walletsById.containsKey(walletId) ? null : walletId;
   }
 
-  private Long validCategoryIdOrNull(AppServices services, Long categoryId) {
-    return categoryId != null && services.categoryDao.findById(categoryId) == null
-        ? null
-        : categoryId;
+  private static Long validCategoryIdOrNull(Long categoryId, Map<Long, Category> categoriesById) {
+    return categoryId != null && !categoriesById.containsKey(categoryId) ? null : categoryId;
   }
 
   private String formatDateLabel(LocalDate date) {
@@ -601,6 +618,37 @@ public final class SummaryFragment extends ScreenFragment {
     private DateRange(LocalDate start, LocalDate end) {
       this.start = start;
       this.end = end;
+    }
+  }
+
+  private static final class SummaryLoadData {
+    private final Map<Long, Wallet> walletsById;
+    private final Map<Long, Category> categoriesById;
+    private final Long walletId;
+    private final Long categoryId;
+    private final MonthlySummary summary;
+
+    private SummaryLoadData(
+        Map<Long, Wallet> walletsById,
+        Map<Long, Category> categoriesById,
+        Long walletId,
+        Long categoryId,
+        MonthlySummary summary) {
+      this.walletsById = walletsById;
+      this.categoriesById = categoriesById;
+      this.walletId = walletId;
+      this.categoryId = categoryId;
+      this.summary = summary;
+    }
+  }
+
+  private static final class SummaryFilterSource {
+    private final List<Wallet> wallets;
+    private final List<Category> categories;
+
+    private SummaryFilterSource(List<Wallet> wallets, List<Category> categories) {
+      this.wallets = wallets;
+      this.categories = categories;
     }
   }
 }

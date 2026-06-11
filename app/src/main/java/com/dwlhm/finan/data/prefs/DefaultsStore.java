@@ -3,6 +3,9 @@ package com.dwlhm.finan.data.prefs;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +16,7 @@ public final class DefaultsStore {
   private static final String KEY_DEFAULT_WALLET_ID = "default_wallet_id";
   private static final String KEY_LAST_WALLET_ID = "last_wallet_id";
   private static final String KEY_DRAFT_JSON = "draft_json";
+  private static final String KEY_EDIT_DRAFT_PREFIX = "edit_draft_";
   private static final String KEY_AMOUNT_SHORTCUTS = "amount_shortcuts";
 
   private final SharedPreferences prefs;
@@ -58,6 +62,38 @@ public final class DefaultsStore {
 
   public void clearDraft() {
     prefs.edit().remove(KEY_DRAFT_JSON).apply();
+  }
+
+  @Nullable
+  public TransactionFormDraft getCaptureDraft() {
+    return TransactionFormDraft.fromJson(getDraftJson());
+  }
+
+  public void setCaptureDraft(@NonNull TransactionFormDraft draft) {
+    setDraftJson(draft.toJson());
+  }
+
+  public void clearCaptureDraft() {
+    clearDraft();
+  }
+
+  @Nullable
+  public TransactionFormDraft getEditDraft(long transactionId) {
+    return TransactionFormDraft.fromJson(
+        prefs.getString(editDraftKey(transactionId), null));
+  }
+
+  public void setEditDraft(long transactionId, @NonNull TransactionFormDraft draft) {
+    draft.setTransactionId(transactionId);
+    prefs.edit().putString(editDraftKey(transactionId), draft.toJson()).apply();
+  }
+
+  public void clearEditDraft(long transactionId) {
+    prefs.edit().remove(editDraftKey(transactionId)).apply();
+  }
+
+  private static String editDraftKey(long transactionId) {
+    return KEY_EDIT_DRAFT_PREFIX + transactionId;
   }
 
   public List<Long> getAmountShortcuts() {

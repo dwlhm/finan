@@ -6,14 +6,20 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.dwlhm.finan.data.migration.Migration;
 import com.dwlhm.finan.data.migration.Migration001Initial;
+import com.dwlhm.finan.data.migration.Migration002TransactionIndexes;
+import com.dwlhm.finan.data.migration.Migration003TagMerchantEntities;
 import com.dwlhm.finan.data.migration.MigrationRunner;
 
 public final class FinanDatabaseHelper extends SQLiteOpenHelper {
 
   public static final String DATABASE_NAME = "finan.db";
-  public static final int DATABASE_VERSION = 1;
+  public static final int DATABASE_VERSION = 3;
 
-  private static final Migration[] MIGRATIONS = {new Migration001Initial()};
+  private static final Migration[] MIGRATIONS = {
+    new Migration001Initial(),
+    new Migration002TransactionIndexes(),
+    new Migration003TagMerchantEntities()
+  };
 
   public FinanDatabaseHelper(Context context) {
     super(context, DATABASE_NAME, null, DATABASE_VERSION);

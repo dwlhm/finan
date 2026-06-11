@@ -1,6 +1,7 @@
 package com.dwlhm.finan.ui.common.infinitescroll;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.LayoutRes;
@@ -63,6 +64,10 @@ public abstract class InfiniteScrollRecyclerAdapter<T, VH extends RecyclerView.V
     }
   }
 
+  public boolean isLoadingFooterVisible() {
+    return loadingFooterVisible;
+  }
+
   @Override
   public final int getItemViewType(int position) {
     return position < items.size() ? 0 : VIEW_TYPE_LOADING_FOOTER;
@@ -77,8 +82,8 @@ public abstract class InfiniteScrollRecyclerAdapter<T, VH extends RecyclerView.V
   @Override
   public final RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
     if (viewType == VIEW_TYPE_LOADING_FOOTER) {
-      return new RecyclerView.ViewHolder(
-          inflater.inflate(loadingFooterLayoutRes, parent, false)) {};
+      return new LoadingFooterViewHolder(
+          inflater.inflate(loadingFooterLayoutRes, parent, false));
     }
     return onCreateContentViewHolder(parent);
   }
@@ -96,4 +101,10 @@ public abstract class InfiniteScrollRecyclerAdapter<T, VH extends RecyclerView.V
 
   protected abstract void onBindContentViewHolder(
       @NonNull VH holder, int position, @NonNull T item);
+
+  private static final class LoadingFooterViewHolder extends RecyclerView.ViewHolder {
+    LoadingFooterViewHolder(@NonNull View itemView) {
+      super(itemView);
+    }
+  }
 }

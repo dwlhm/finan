@@ -7,6 +7,7 @@ import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface TransactionGateway {
 
@@ -51,6 +52,8 @@ public interface TransactionGateway {
     );
 
     List<Transaction> findByWalletId(long walletId);
+
+    void forEachTransaction(Consumer<Transaction> consumer);
 
     List<Transaction> findAll();
 }

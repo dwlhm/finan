@@ -13,9 +13,9 @@ import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
-import com.dwlhm.finan.data.dao.CategoryDao;
-import com.dwlhm.finan.data.dao.WalletDao;
 import com.dwlhm.finan.data.entity.Category;
+import com.dwlhm.finan.data.entity.Merchant;
+import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
@@ -23,9 +23,11 @@ import com.dwlhm.finan.util.money.MoneyFormatter;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class TransactionListAdapter extends BaseAdapter {
 
@@ -48,18 +50,34 @@ public class TransactionListAdapter extends BaseAdapter {
 
   private final Context context;
   private final LayoutInflater inflater;
-  private final CategoryDao categoryTable;
-  private final WalletDao walletTable;
+  private Map<Long, Category> categoriesById = Collections.emptyMap();
+  private Map<Long, Wallet> walletsById = Collections.emptyMap();
+  private Map<Long, Tag> tagsById = Collections.emptyMap();
+  private Map<Long, Merchant> merchantsById = Collections.emptyMap();
   private final List<Transaction> items = new ArrayList<>();
   private final SimpleDateFormat dateFormat =
       new SimpleDateFormat("d MMM yyyy, HH:mm", new Locale("id", "ID"));
 
-  public TransactionListAdapter(
-      Context context, CategoryDao categoryTable, WalletDao walletTable) {
+  public TransactionListAdapter(Context context) {
     this.context = context;
     this.inflater = LayoutInflater.from(context);
-    this.categoryTable = categoryTable;
-    this.walletTable = walletTable;
+  }
+
+  public void setEntityLookups(
+      Map<Long, Category> categoriesById, Map<Long, Wallet> walletsById) {
+    setEntityLookups(categoriesById, walletsById, Collections.emptyMap(), Collections.emptyMap());
+  }
+
+  public void setEntityLookups(
+      Map<Long, Category> categoriesById,
+      Map<Long, Wallet> walletsById,
+      Map<Long, Tag> tagsById,
+      Map<Long, Merchant> merchantsById) {
+    this.categoriesById = categoriesById != null ? categoriesById : Collections.emptyMap();
+    this.walletsById = walletsById != null ? walletsById : Collections.emptyMap();
+    this.tagsById = tagsById != null ? tagsById : Collections.emptyMap();
+    this.merchantsById = merchantsById != null ? merchantsById : Collections.emptyMap();
+    notifyDataSetChanged();
   }
 
   public void setTransactions(List<Transaction> transactions) {
@@ -103,8 +121,12 @@ public class TransactionListAdapter extends BaseAdapter {
     }
 
     Transaction transaction = getItem(position);
-    Category category = categoryTable.findById(transaction.getCategoryId());
-    Wallet wallet = walletTable.findById(transaction.getWalletId());
+    Category category = categoriesById.get(transaction.getCategoryId());
+    Wallet wallet = walletsById.get(transaction.getWalletId());
+    Merchant merchant =
+        transaction.getMerchantId() == null
+            ? null
+            : merchantsById.get(transaction.getMerchantId());
 
     holder.category.setText(category != null ? category.getName() : "—");
     setIndicatorColor(
@@ -133,13 +155,14 @@ public class TransactionListAdapter extends BaseAdapter {
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
-    holder.meta.setText(TextUtils.isEmpty(walletName) ? when : walletName + " · " + when);
+    holder.meta.setText(TransactionRowLabels.formatMeta(transaction, merchant, walletName, when));
 
-    String note = transaction.getNote();
-    boolean hasNote = !TextUtils.isEmpty(note) && !TextUtils.isEmpty(note.trim());
-    holder.note.setVisibility(hasNote ? View.VISIBLE : View.GONE);
-    if (hasNote) {
-      holder.note.setText(note.trim());
+    String tagLine = TransactionRowLabels.formatTagLine(transaction, tagsById);
+    String secondary = TransactionRowLabels.formatSecondaryLine(transaction, tagLine);
+    boolean hasSecondary = !TextUtils.isEmpty(secondary);
+    holder.note.setVisibility(hasSecondary ? View.VISIBLE : View.GONE);
+    if (hasSecondary) {
+      holder.note.setText(secondary);
     }
 
     return convertView;

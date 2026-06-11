@@ -8,6 +8,7 @@ import com.dwlhm.finan.data.entity.Transaction;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class TransactionDao {
 
@@ -24,8 +25,7 @@ public final class TransactionDao {
       long categoryId,
       long occurredAt,
       String note,
-      String tag,
-      String merchant,
+      Long merchantId,
       long createdAt,
       long updatedAt) {
     ContentValues values = new ContentValues();
@@ -35,8 +35,7 @@ public final class TransactionDao {
     values.put("category_id", categoryId);
     values.put("occurred_at", occurredAt);
     putNullable(values, "note", note);
-    putNullable(values, "tag", tag);
-    putNullable(values, "merchant", merchant);
+    putNullableLong(values, "merchant_id", merchantId);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.insert("transactions", null, values);
@@ -50,8 +49,7 @@ public final class TransactionDao {
       long categoryId,
       long occurredAt,
       String note,
-      String tag,
-      String merchant,
+      Long merchantId,
       long createdAt,
       long updatedAt) {
     ContentValues values = new ContentValues();
@@ -61,8 +59,7 @@ public final class TransactionDao {
     values.put("category_id", categoryId);
     values.put("occurred_at", occurredAt);
     putNullable(values, "note", note);
-    putNullable(values, "tag", tag);
-    putNullable(values, "merchant", merchant);
+    putNullableLong(values, "merchant_id", merchantId);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.update("transactions", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
@@ -91,6 +88,11 @@ public final class TransactionDao {
 
   public List<Transaction> findAll() {
     List<Transaction> transactions = new ArrayList<>();
+    forEachOrdered(transactions::add);
+    return transactions;
+  }
+
+  public void forEachOrdered(Consumer<Transaction> consumer) {
     try (Cursor c =
         db.query(
             "transactions",
@@ -101,10 +103,9 @@ public final class TransactionDao {
             null,
             "occurred_at DESC, id DESC")) {
       while (c.moveToNext()) {
-        transactions.add(map(c));
+        consumer.accept(map(c));
       }
     }
-    return transactions;
   }
 
   public List<Transaction> findRecent(int limit) {
@@ -276,6 +277,14 @@ public final class TransactionDao {
     }
   }
 
+  private static void putNullableLong(ContentValues values, String key, Long value) {
+    if (value == null) {
+      values.putNull(key);
+    } else {
+      values.put(key, value);
+    }
+  }
+
   private static String historySelection(
       Long walletId,
       Long categoryId,
@@ -349,6 +358,11 @@ public final class TransactionDao {
   }
 
   private static Transaction map(Cursor c) {
+    int merchantIndex = c.getColumnIndex("merchant_id");
+    Long merchantId = null;
+    if (merchantIndex >= 0 && !c.isNull(merchantIndex)) {
+      merchantId = c.getLong(merchantIndex);
+    }
     return new Transaction(
         c.getLong(c.getColumnIndexOrThrow("id")),
         c.getLong(c.getColumnIndexOrThrow("amount_minor")),
@@ -357,8 +371,7 @@ public final class TransactionDao {
         c.getLong(c.getColumnIndexOrThrow("category_id")),
         c.getLong(c.getColumnIndexOrThrow("occurred_at")),
         c.getString(c.getColumnIndexOrThrow("note")),
-        c.getString(c.getColumnIndexOrThrow("tag")),
-        c.getString(c.getColumnIndexOrThrow("merchant")),
+        merchantId,
         c.getLong(c.getColumnIndexOrThrow("created_at")),
         c.getLong(c.getColumnIndexOrThrow("updated_at")));
   }

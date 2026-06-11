@@ -23,6 +23,7 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.dao.CategoryDao;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.ui.common.ServicesProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,7 @@ public final class CategorySearchDialog extends Dialog {
   private static final int VIEW_ADD_NEW = 2;
 
   private final CategoryDao categoryDao;
+  private final DbWorker dbWorker;
   private final TransactionType transactionType;
   private final List<Category> allCategories;
   private final Listener listener;
@@ -54,6 +56,7 @@ public final class CategorySearchDialog extends Dialog {
       Listener listener) {
     super(context);
     this.categoryDao = categoryDao;
+    this.dbWorker = ServicesProvider.get(context).dbWorker;
     this.transactionType = transactionType;
     this.allCategories = new ArrayList<>(allCategories);
     this.listener = listener;
@@ -143,17 +146,28 @@ public final class CategorySearchDialog extends Dialog {
       Toast.makeText(getContext(), R.string.capture_category_name_empty, Toast.LENGTH_SHORT).show();
       return;
     }
-    Category existing = categoryDao.findByNameIgnoreCase(query);
-    if (existing != null) {
-      Toast.makeText(getContext(), R.string.capture_category_already_exists, Toast.LENGTH_SHORT)
-          .show();
-      chooseCategory(existing, false);
-      return;
-    }
-    Category created =
-        categoryDao.insertForTransactionType(query, transactionType.name());
-    Toast.makeText(getContext(), R.string.capture_category_created, Toast.LENGTH_SHORT).show();
-    chooseCategory(created, true);
+    dbWorker.compute(
+        () -> {
+          Category existing = categoryDao.findByNameIgnoreCase(query);
+          if (existing != null) {
+            return new CategoryCreateResult(existing, false, true);
+          }
+          Category created = categoryDao.insertForTransactionType(query, transactionType.name());
+          return new CategoryCreateResult(created, true, false);
+        },
+        result -> {
+          if (!isShowing() || result == null || result.category == null) {
+            return;
+          }
+          if (result.alreadyExists) {
+            Toast.makeText(getContext(), R.string.capture_category_already_exists, Toast.LENGTH_SHORT)
+                .show();
+            chooseCategory(result.category, false);
+            return;
+          }
+          Toast.makeText(getContext(), R.string.capture_category_created, Toast.LENGTH_SHORT).show();
+          chooseCategory(result.category, result.created);
+        });
   }
 
   private void showAddNewDialog() {
@@ -179,22 +193,48 @@ public final class CategorySearchDialog extends Dialog {
                     .show();
                 return;
               }
-              Category existing = categoryDao.findByNameIgnoreCase(name);
-              if (existing != null) {
-                Toast.makeText(
-                        getContext(), R.string.capture_category_already_exists, Toast.LENGTH_SHORT)
-                    .show();
-                chooseCategory(existing, false);
-                return;
-              }
-              Category created =
-                  categoryDao.insertForTransactionType(name, transactionType.name());
-              Toast.makeText(getContext(), R.string.capture_category_created, Toast.LENGTH_SHORT)
-                  .show();
-              chooseCategory(created, true);
+              dbWorker.compute(
+                  () -> {
+                    Category existing = categoryDao.findByNameIgnoreCase(name);
+                    if (existing != null) {
+                      return new CategoryCreateResult(existing, false, true);
+                    }
+                    Category created =
+                        categoryDao.insertForTransactionType(name, transactionType.name());
+                    return new CategoryCreateResult(created, true, false);
+                  },
+                  result -> {
+                    if (!isShowing() || result == null || result.category == null) {
+                      return;
+                    }
+                    if (result.alreadyExists) {
+                      Toast.makeText(
+                              getContext(),
+                              R.string.capture_category_already_exists,
+                              Toast.LENGTH_SHORT)
+                          .show();
+                      chooseCategory(result.category, false);
+                      return;
+                    }
+                    Toast.makeText(getContext(), R.string.capture_category_created, Toast.LENGTH_SHORT)
+                        .show();
+                    chooseCategory(result.category, result.created);
+                  });
             })
         .setNegativeButton(android.R.string.cancel, null)
         .show();
+  }
+
+  private static final class CategoryCreateResult {
+    private final Category category;
+    private final boolean created;
+    private final boolean alreadyExists;
+
+    private CategoryCreateResult(Category category, boolean created, boolean alreadyExists) {
+      this.category = category;
+      this.created = created;
+      this.alreadyExists = alreadyExists;
+    }
   }
 
   private final class SearchListAdapter extends BaseAdapter {

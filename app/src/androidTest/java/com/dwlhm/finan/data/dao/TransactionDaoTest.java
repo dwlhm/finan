@@ -6,11 +6,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.dwlhm.finan.data.db.FinanDatabaseHelper;
+import com.dwlhm.finan.data.entity.Merchant;
+import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Transaction;
 
 import org.junit.After;
@@ -18,7 +21,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
 public class TransactionDaoTest {
@@ -27,6 +33,9 @@ public class TransactionDaoTest {
     private WalletDao walletDao;
     private CategoryDao categoryDao;
     private TransactionDao dao;
+    private TagDao tagDao;
+    private MerchantDao merchantDao;
+    private TransactionTagDao transactionTagDao;
 
     private long walletId;
     private long categoryId;
@@ -39,6 +48,9 @@ public class TransactionDaoTest {
         walletDao = new WalletDao(helper.getWritableDatabase());
         categoryDao = new CategoryDao(helper.getWritableDatabase());
         dao = new TransactionDao(helper.getWritableDatabase());
+        tagDao = new TagDao(helper.getWritableDatabase());
+        merchantDao = new MerchantDao(helper.getWritableDatabase());
+        transactionTagDao = new TransactionTagDao(helper.getWritableDatabase());
 
         walletId = walletDao.findDefault().getId();
         categoryId = categoryDao.findByName("Makanan").getId();
@@ -50,19 +62,22 @@ public class TransactionDaoTest {
     }
 
     @Test
-    public void insertAndFindById_roundTrip() {
+    public void insertAndFindById_roundTripWithMerchant() {
         long now = System.currentTimeMillis();
-        long id = dao.insert(
+        Merchant merchant = merchantDao.insertIfAbsent("Warung");
+        long id =
+            dao.insert(
                 25_000,
                 "EXPENSE",
                 walletId,
                 categoryId,
                 now,
                 "makan siang",
-                "food",
-                "Warung",
+                merchant.getId(),
                 now,
                 now);
+        Tag tag = tagDao.insertIfAbsent("food");
+        transactionTagDao.replaceAll(id, java.util.Collections.singletonList(tag.getId()));
         Transaction tx = dao.findById(id);
         assertNotNull(tx);
         assertEquals(25_000, tx.getAmountMinor());
@@ -70,16 +85,16 @@ public class TransactionDaoTest {
         assertEquals(walletId, tx.getWalletId());
         assertEquals(categoryId, tx.getCategoryId());
         assertEquals("makan siang", tx.getNote());
-        assertEquals("food", tx.getTag());
-        assertEquals("Warung", tx.getMerchant());
+        assertEquals(merchant.getId(), tx.getMerchantId().longValue());
+        assertEquals(1, transactionTagDao.findTagIdsByTransaction(id).size());
     }
 
     @Test
     public void update_changesFields() {
         long now = System.currentTimeMillis();
-        long id = dao.insert(10_000, "EXPENSE", walletId, categoryId, now, null, null, null, now, now);
+        long id = dao.insert(10_000, "EXPENSE", walletId, categoryId, now, null, null, now, now);
         long updatedAt = now + 1000;
-        dao.update(id, 12_000, "EXPENSE", walletId, categoryId, now, "updated", null, null, now, updatedAt);
+        dao.update(id, 12_000, "EXPENSE", walletId, categoryId, now, "updated", null, now, updatedAt);
         Transaction tx = dao.findById(id);
         assertEquals(12_000, tx.getAmountMinor());
         assertEquals("updated", tx.getNote());
@@ -89,7 +104,7 @@ public class TransactionDaoTest {
     @Test
     public void delete_removesRow() {
         long now = System.currentTimeMillis();
-        long id = dao.insert(5_000, "EXPENSE", walletId, categoryId, now, null, null, null, now, now);
+        long id = dao.insert(5_000, "EXPENSE", walletId, categoryId, now, null, null, now, now);
         assertTrue(dao.delete(id));
         assertNull(dao.findById(id));
     }
@@ -97,8 +112,8 @@ public class TransactionDaoTest {
     @Test
     public void findRecentByWallet_ordersNewestFirst() {
         long base = System.currentTimeMillis();
-        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, null, base, base);
-        dao.insert(2_000, "EXPENSE", walletId, categoryId, base + 1, null, null, null, base + 1, base + 1);
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, base, base);
+        dao.insert(2_000, "EXPENSE", walletId, categoryId, base + 1, null, null, base + 1, base + 1);
         List<Transaction> recent = dao.findRecentByWallet(walletId, 10);
         assertEquals(2, recent.size());
         assertEquals(2_000, recent.get(0).getAmountMinor());
@@ -111,14 +126,14 @@ public class TransactionDaoTest {
         long otherWalletId = walletDao.insert("Tabungan", "IDR", false, 0L, base);
         long otherCategoryId = categoryDao.insert("Bonus", "BOTH", 100, 0, null);
 
-        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, null, base, base);
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, base, base);
         dao.insert(
-                2_000, "INCOME", walletId, categoryId, base + 1, null, null, null, base + 1, base + 1);
+                2_000, "INCOME", walletId, categoryId, base + 1, null, null, base + 1, base + 1);
         dao.insert(
-                3_000, "EXPENSE", otherWalletId, categoryId, base + 2, null, null, null, base + 2, base + 2);
+                3_000, "EXPENSE", otherWalletId, categoryId, base + 2, null, null, base + 2, base + 2);
         dao.insert(
-                4_000, "EXPENSE", walletId, otherCategoryId, base + 3, null, null, null, base + 3, base + 3);
-        dao.insert(5_000, "EXPENSE", walletId, categoryId, base + 4, null, null, null, base + 4, base + 4);
+                4_000, "EXPENSE", walletId, otherCategoryId, base + 3, null, null, base + 3, base + 3);
+        dao.insert(5_000, "EXPENSE", walletId, categoryId, base + 4, null, null, base + 4, base + 4);
 
         List<Transaction> newestFirst =
                 dao.findHistory(walletId, categoryId, "EXPENSE", null, null, false);
@@ -136,11 +151,11 @@ public class TransactionDaoTest {
     @Test
     public void findHistory_filtersByOccurredAtRange() {
         long base = System.currentTimeMillis();
-        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, null, base, base);
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, base, base);
         dao.insert(
-                2_000, "EXPENSE", walletId, categoryId, base + 10, null, null, null, base + 10, base + 10);
+                2_000, "EXPENSE", walletId, categoryId, base + 10, null, null, base + 10, base + 10);
         dao.insert(
-                3_000, "EXPENSE", walletId, categoryId, base + 20, null, null, null, base + 20, base + 20);
+                3_000, "EXPENSE", walletId, categoryId, base + 20, null, null, base + 20, base + 20);
 
         List<Transaction> history =
                 dao.findHistory(null, null, null, base + 10, base + 20, true);
@@ -159,7 +174,6 @@ public class TransactionDaoTest {
                     walletId,
                     categoryId,
                     base + i,
-                    null,
                     null,
                     null,
                     base + i,
@@ -207,13 +221,45 @@ public class TransactionDaoTest {
     @Test
     public void findHistoryTotals_aggregatesFilteredRows() {
         long base = System.currentTimeMillis();
-        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, null, base, base);
-        dao.insert(2_000, "INCOME", walletId, categoryId, base + 1, null, null, null, base + 1, base + 1);
-        dao.insert(3_000, "EXPENSE", walletId, categoryId, base + 2, null, null, null, base + 2, base + 2);
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, base, base);
+        dao.insert(2_000, "INCOME", walletId, categoryId, base + 1, null, null, base + 1, base + 1);
+        dao.insert(3_000, "EXPENSE", walletId, categoryId, base + 2, null, null, base + 2, base + 2);
 
         TransactionDao.HistoryTotalsRow totals = dao.findHistoryTotals(null, null, null, null, null);
         assertEquals(3, totals.count);
         assertEquals(2_000, totals.incomeMinor);
         assertEquals(4_000, totals.expenseMinor);
+    }
+
+    @Test
+    public void forEachOrdered_visitsTransactionsInExportOrder() {
+        long base = System.currentTimeMillis();
+        dao.insert(1_000, "EXPENSE", walletId, categoryId, base, null, null, base, base);
+        dao.insert(2_000, "EXPENSE", walletId, categoryId, base + 1, null, null, base + 1, base + 1);
+
+        List<Long> ids = new ArrayList<>();
+        dao.forEachOrdered(transaction -> ids.add(transaction.getId()));
+
+        assertEquals(2, ids.size());
+        assertTrue(ids.get(0) > ids.get(1));
+    }
+
+    @Test
+    public void migration002_createsTransactionIndexes() {
+        Set<String> indexes = new HashSet<>();
+        try (Cursor cursor =
+            helper
+                .getWritableDatabase()
+                .rawQuery(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'transactions'",
+                    null)) {
+            while (cursor.moveToNext()) {
+                indexes.add(cursor.getString(0));
+            }
+        }
+
+        assertTrue(indexes.contains("idx_transactions_occurred_at_id"));
+        assertTrue(indexes.contains("idx_transactions_wallet_occurred"));
+        assertTrue(indexes.contains("idx_transactions_type_occurred"));
     }
 }

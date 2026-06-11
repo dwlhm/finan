@@ -3,6 +3,8 @@ package com.dwlhm.finan.ui.capture;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.MotionEvent;
 import android.view.View;
@@ -27,14 +29,19 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.data.prefs.DefaultsStore;
+import com.dwlhm.finan.data.prefs.TransactionFormDraft;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.CategorySearchDialog;
 import com.dwlhm.finan.ui.common.CollapsibleController;
+import com.dwlhm.finan.ui.common.EntityLookup;
+import com.dwlhm.finan.ui.common.MerchantSelectionController;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
+import com.dwlhm.finan.ui.common.TagSelectionController;
+import com.dwlhm.finan.ui.common.TransactionOccurredAtPicker;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
 import com.dwlhm.finan.ui.transaction.TransactionDetailDialog;
 import com.dwlhm.finan.ui.transaction.TransactionListAdapter;
@@ -43,12 +50,15 @@ import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class CaptureFragment extends ScreenFragment {
 
   private static final int RECENT_LIMIT = 8;
   private static final int QUICK_CATEGORY_SLOTS = 4;
+  private static final long UNDO_TIMEOUT_MS = 8_000L;
 
   private AppServices services;
   private TransactionService transactionService;
@@ -69,6 +79,15 @@ public final class CaptureFragment extends ScreenFragment {
   private Category selectedCategory;
   private TransactionType selectedType = TransactionType.EXPENSE;
   private TransactionListAdapter recentAdapter;
+  private TransactionOccurredAtPicker occurredAtPicker;
+  private CaptureFormValidation formValidation;
+  private TextView validationBanner;
+  private TagSelectionController tagSelection;
+  private MerchantSelectionController merchantSelection;
+  private View undoBar;
+  private final Handler undoHandler = new Handler(Looper.getMainLooper());
+  @Nullable private Runnable undoDismissRunnable;
+  @Nullable private PendingSaveUndo pendingUndo;
 
   private List<Long> amountShortcutList = new ArrayList<>();
   private List<Wallet> wallets = new ArrayList<>();
@@ -76,6 +95,8 @@ public final class CaptureFragment extends ScreenFragment {
   private List<Category> quickCategoryList = new ArrayList<>();
   private boolean suppressWalletSpinner;
   private boolean amountAutoFocusExpired;
+  private boolean captureDraftRestored;
+  private int refreshGeneration;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -103,19 +124,27 @@ public final class CaptureFragment extends ScreenFragment {
     noteInput = view.findViewById(R.id.capture_note);
     recentList = view.findViewById(R.id.capture_recent_list);
     recentEmpty = view.findViewById(R.id.capture_recent_empty);
+    TextView occurredDateView = view.findViewById(R.id.transaction_occurred_date);
+    TextView occurredTimeView = view.findViewById(R.id.transaction_occurred_time);
+    occurredAtPicker =
+        new TransactionOccurredAtPicker(
+            requireContext(), occurredDateView, occurredTimeView, System.currentTimeMillis());
+    validationBanner = view.findViewById(R.id.capture_validation_banner);
+    formValidation = new CaptureFormValidation(view, validationBanner);
+    formValidation.bindAmountClearListener();
 
     Button saveButton = view.findViewById(R.id.capture_save);
 
-    recentAdapter =
-        new TransactionListAdapter(requireContext(), services.categoryDao, services.walletDao);
+    recentAdapter = new TransactionListAdapter(requireContext());
     recentList.setAdapter(recentAdapter);
     recentList.setOnItemClickListener(
         (parent, itemView, position, id) ->
             new TransactionDetailDialog(
-                    requireContext(), services, recentAdapter.getItem(position), this::refreshRecent)
+                    requireContext(),
+                    services,
+                    recentAdapter.getItem(position),
+                    () -> refreshCaptureData(true))
                 .show());
-
-    resolveActiveWallet();
 
     typeGroup.setOnCheckedChangeListener(
         (group, checkedId) -> {
@@ -125,7 +154,8 @@ public final class CaptureFragment extends ScreenFragment {
                   ? TransactionType.INCOME
                   : TransactionType.EXPENSE;
           selectedCategory = null;
-          bindCategories();
+          formValidation.clear(CaptureFormValidation.Field.CATEGORY);
+          refreshCaptureData(false);
         });
 
     walletSpinner.setOnItemSelectedListener(
@@ -137,6 +167,7 @@ public final class CaptureFragment extends ScreenFragment {
             }
             expireAmountAutoFocus();
             activeWallet = wallets.get(position);
+            formValidation.clear(CaptureFormValidation.Field.WALLET);
           }
 
           @Override
@@ -161,53 +192,178 @@ public final class CaptureFragment extends ScreenFragment {
         R.id.capture_details_panel,
         R.id.capture_details_chevron);
 
+    tagSelection =
+        new TagSelectionController(
+            requireContext(),
+            services.tagDao,
+            services.dbWorker,
+            view.findViewById(R.id.transaction_tag_chips),
+            view.findViewById(R.id.transaction_tag_add));
+    merchantSelection =
+        new MerchantSelectionController(
+            requireContext(),
+            services.merchantDao,
+            services.dbWorker,
+            view.findViewById(R.id.transaction_merchant_pick),
+            view.findViewById(R.id.transaction_merchant_clear));
+
     saveButton.setOnClickListener(
         v -> {
           expireAmountAutoFocus();
           saveTransaction();
         });
+
+    undoBar = view.findViewById(R.id.capture_undo_bar);
+    Button undoActionButton = view.findViewById(R.id.capture_undo_action);
+    undoActionButton.setOnClickListener(
+        v -> {
+          expireAmountAutoFocus();
+          performUndo();
+        });
+
     installAmountAutoFocusExpiry(view);
 
-    bindWalletSpinner();
     bindAmountShortcuts();
-    bindCategories();
-    refreshRecent();
-
     requestAmountFocus();
   }
 
   @Override
   public void onResume() {
     super.onResume();
-    resolveActiveWallet();
-    bindWalletSpinner();
-    refreshRecent();
+    refreshCaptureData(true);
   }
 
-  private void resolveActiveWallet() {
+  @Override
+  public void onPause() {
+    persistCaptureDraft();
+    super.onPause();
+  }
+
+  @Override
+  public void onDestroyView() {
+    dismissUndoBar();
+    captureDraftRestored = false;
+    refreshGeneration++;
+    super.onDestroyView();
+  }
+
+  private void refreshCaptureData(boolean keepSelectedCategory) {
+    int generation = ++refreshGeneration;
+    TransactionType loadType = selectedType;
+    if (!captureDraftRestored) {
+      TransactionFormDraft pendingDraft = defaultsStore.getCaptureDraft();
+      if (pendingDraft != null) {
+        loadType = pendingDraft.getType();
+      }
+    }
+    final TransactionType typeForLoad = loadType;
+    Category retainedCategory = keepSelectedCategory ? selectedCategory : null;
+    services.dbWorker.compute(
+        () -> loadCaptureState(typeForLoad, retainedCategory),
+        state -> {
+          if (!isAdded() || generation != refreshGeneration || state == null) {
+            return;
+          }
+          wallets = state.wallets;
+          activeWallet = state.activeWallet;
+          allCategoriesForType = state.categoriesForType;
+          if (!keepSelectedCategory) {
+            selectedCategory = state.selectedCategory;
+          } else if (selectedCategory != null && !isCategoryInList(selectedCategory, allCategoriesForType)) {
+            selectedCategory = null;
+          }
+          recentAdapter.setEntityLookups(
+              state.categoriesById,
+              state.walletsById,
+              state.tagsById,
+              state.merchantsById);
+          recentAdapter.setTransactions(state.recentTransactions);
+          tryRestoreCaptureDraft();
+          bindWalletSpinner();
+          bindCategories();
+          boolean empty = state.recentTransactions.isEmpty();
+          recentEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
+          recentList.setVisibility(empty ? View.GONE : View.VISIBLE);
+        });
+  }
+
+  private CaptureState loadCaptureState(TransactionType type, @Nullable Category retainedCategory) {
+    List<Wallet> loadedWallets = services.walletDao.findAll();
+    Wallet resolvedWallet = resolveActiveWallet(loadedWallets);
+    List<Category> categoriesForType =
+        services.categoryDao.findByTypeFilterOrderByUsage(type.name());
+    List<Transaction> recent = transactionService.getRecent(RECENT_LIMIT);
+    Category selected =
+        retainedCategory != null && isCategoryInList(retainedCategory, categoriesForType)
+            ? retainedCategory
+            : null;
+    List<com.dwlhm.finan.data.entity.Tag> allTags = services.tagDao.findAllOrderByUsage();
+    List<com.dwlhm.finan.data.entity.Merchant> allMerchants =
+        services.merchantDao.findAllOrderByUsage();
+    return new CaptureState(
+        loadedWallets,
+        resolvedWallet,
+        categoriesForType,
+        selected,
+        recent,
+        categoryLookupForRecent(categoriesForType, recent),
+        EntityLookup.indexWallets(loadedWallets),
+        EntityLookup.tagLookupForTransactions(
+            allTags, recent, services.tagDao::findById),
+        EntityLookup.merchantLookupForTransactions(
+            allMerchants, recent, services.merchantDao::findById));
+  }
+
+  private Map<Long, Category> categoryLookupForRecent(
+      List<Category> categoriesForType, List<Transaction> recent) {
+    Map<Long, Category> lookup = new HashMap<>(EntityLookup.indexCategories(categoriesForType));
+    for (Transaction transaction : recent) {
+      long categoryId = transaction.getCategoryId();
+      if (lookup.containsKey(categoryId)) {
+        continue;
+      }
+      Category category = services.categoryDao.findById(categoryId);
+      if (category != null) {
+        lookup.put(categoryId, category);
+      }
+    }
+    return lookup;
+  }
+
+  private Wallet resolveActiveWallet(List<Wallet> loadedWallets) {
     Long lastWalletId = defaultsStore.getLastWalletId();
     if (lastWalletId != null) {
-      Wallet last = services.walletDao.findById(lastWalletId);
-      if (last != null) {
-        activeWallet = last;
-        return;
+      for (Wallet wallet : loadedWallets) {
+        if (wallet.getId() == lastWalletId) {
+          return wallet;
+        }
       }
     }
     if (defaultsStore.hasDefaultWalletId()) {
-      Wallet configured = services.walletDao.findById(defaultsStore.getDefaultWalletId());
-      if (configured != null) {
-        activeWallet = configured;
-        return;
+      long defaultId = defaultsStore.getDefaultWalletId();
+      for (Wallet wallet : loadedWallets) {
+        if (wallet.getId() == defaultId) {
+          return wallet;
+        }
       }
     }
-    activeWallet = services.walletDao.findDefault();
-    if (activeWallet != null && !defaultsStore.hasDefaultWalletId()) {
-      defaultsStore.setDefaultWalletId(activeWallet.getId());
+    Wallet defaultWallet = services.walletDao.findDefault();
+    if (defaultWallet != null && !defaultsStore.hasDefaultWalletId()) {
+      defaultsStore.setDefaultWalletId(defaultWallet.getId());
     }
+    return defaultWallet;
+  }
+
+  private static boolean isCategoryInList(Category category, List<Category> categories) {
+    for (Category option : categories) {
+      if (option.getId() == category.getId()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void bindWalletSpinner() {
-    wallets = services.walletDao.findAll();
     if (wallets.isEmpty()) {
       walletSpinner.setEnabled(false);
       return;
@@ -239,9 +395,6 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void bindCategories() {
-    allCategoriesForType =
-        services.categoryDao.findByTypeFilterOrderByUsage(selectedType.name());
-
     quickCategoryList = new ArrayList<>();
     int quickCount = Math.min(QUICK_CATEGORY_SLOTS, allCategoriesForType.size());
     for (int i = 0; i < quickCount; i++) {
@@ -315,6 +468,7 @@ public final class CaptureFragment extends ScreenFragment {
           v -> {
             expireAmountAutoFocus();
             selectedCategory = category;
+            formValidation.clear(CaptureFormValidation.Field.CATEGORY);
             updateCategoryMoreButtonLabel();
             bindQuickCategoryChips();
           });
@@ -350,8 +504,9 @@ public final class CaptureFragment extends ScreenFragment {
             allCategoriesForType,
             (category, created) -> {
               selectedCategory = category;
+              formValidation.clear(CaptureFormValidation.Field.CATEGORY);
               if (created) {
-                bindCategories();
+                refreshCaptureData(true);
               } else {
                 updateCategoryMoreButtonLabel();
                 bindQuickCategoryChips();
@@ -379,21 +534,11 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void saveTransaction() {
-    long amountMinor;
-    try {
-      amountMinor = MoneyParser.parse(amountInput.getText().toString());
-    } catch (IllegalArgumentException e) {
-      Toast.makeText(requireContext(), R.string.capture_error_amount, Toast.LENGTH_SHORT).show();
+    ValidatedCaptureInput input = validateCaptureInput();
+    if (input == null) {
       return;
     }
-    if (selectedCategory == null) {
-      Toast.makeText(requireContext(), R.string.capture_error_category, Toast.LENGTH_SHORT).show();
-      return;
-    }
-    if (activeWallet == null) {
-      Toast.makeText(requireContext(), R.string.capture_wallet_unknown, Toast.LENGTH_SHORT).show();
-      return;
-    }
+    long amountMinor = input.amountMinor;
 
     Transaction transaction =
         new Transaction(
@@ -402,30 +547,270 @@ public final class CaptureFragment extends ScreenFragment {
             selectedType,
             activeWallet.getId(),
             selectedCategory.getId(),
-            0L,
+            occurredAtPicker.getOccurredAtMillis(),
             null);
     String note = noteInput.getText().toString().trim();
     if (!TextUtils.isEmpty(note)) {
       transaction.setNote(note);
     }
+    transaction.setMerchantId(merchantSelection.getMerchantId());
+    transaction.setTagIds(tagSelection.getSelectedTagIds());
+    final String savedNote = TextUtils.isEmpty(note) ? null : note;
+    final Long savedMerchantId = merchantSelection.getMerchantId();
+    final List<Long> savedTagIds = tagSelection.getSelectedTagIds();
 
-    try {
-      transactionService.save(transaction);
-    } catch (IllegalArgumentException e) {
-      Toast.makeText(requireContext(), R.string.capture_error_save, Toast.LENGTH_SHORT).show();
+    Wallet walletToRemember = activeWallet;
+    services.dbWorker.compute(
+        () -> {
+          try {
+            return transactionService.save(transaction);
+          } catch (IllegalArgumentException e) {
+            return 0L;
+          }
+        },
+        savedId -> {
+          if (!isAdded()) {
+            return;
+          }
+          if (savedId == null || savedId <= 0L) {
+            Toast.makeText(requireContext(), R.string.capture_error_save, Toast.LENGTH_SHORT)
+                .show();
+            return;
+          }
+          defaultsStore.setLastWalletId(walletToRemember.getId());
+          defaultsStore.clearCaptureDraft();
+          dismissUndoBar();
+          pendingUndo =
+              snapshotPendingSaveUndo(
+                  savedId, amountMinor, savedNote, savedMerchantId, savedTagIds);
+          formValidation.clearAll();
+          validationBanner.setVisibility(View.GONE);
+          amountInput.setText("");
+          noteInput.setText("");
+          tagSelection.clear();
+          merchantSelection.clear();
+          occurredAtPicker.resetToNow();
+          selectedCategory = null;
+          updateCategoryMoreButtonLabel();
+          styleCategoryMoreButton(false);
+          showUndoBar();
+          refreshCaptureData(false);
+          requestAmountFocus();
+        });
+  }
+
+  private void showUndoBar() {
+    if (undoBar == null) {
       return;
     }
+    undoBar.setVisibility(View.VISIBLE);
+    if (undoDismissRunnable != null) {
+      undoHandler.removeCallbacks(undoDismissRunnable);
+    }
+    undoDismissRunnable = this::dismissUndoBar;
+    undoHandler.postDelayed(undoDismissRunnable, UNDO_TIMEOUT_MS);
+  }
 
-    defaultsStore.setLastWalletId(activeWallet.getId());
-    Toast.makeText(requireContext(), R.string.capture_saved, Toast.LENGTH_SHORT).show();
-    amountInput.setText("");
-    noteInput.setText("");
-    selectedCategory = null;
-    resolveActiveWallet();
+  private void dismissUndoBar() {
+    if (undoDismissRunnable != null) {
+      undoHandler.removeCallbacks(undoDismissRunnable);
+      undoDismissRunnable = null;
+    }
+    pendingUndo = null;
+    if (undoBar != null) {
+      undoBar.setVisibility(View.GONE);
+    }
+  }
+
+  private void performUndo() {
+    PendingSaveUndo draft = pendingUndo;
+    if (draft == null) {
+      return;
+    }
+    services.dbWorker.compute(
+        () -> {
+          if (services.transactionGateway.findById(draft.transactionId) == null) {
+            return Boolean.FALSE;
+          }
+          transactionService.delete(draft.transactionId);
+          return Boolean.TRUE;
+        },
+        deleted -> {
+          if (!isAdded()) {
+            return;
+          }
+          dismissUndoBar();
+          if (!Boolean.TRUE.equals(deleted)) {
+            Toast.makeText(requireContext(), R.string.capture_undo_failed, Toast.LENGTH_SHORT)
+                .show();
+            return;
+          }
+          restoreDraft(draft);
+          persistCaptureDraft();
+          Toast.makeText(requireContext(), R.string.capture_undo_done, Toast.LENGTH_SHORT).show();
+          refreshCaptureData(true);
+          requestAmountFocus();
+        });
+  }
+
+  private PendingSaveUndo snapshotPendingSaveUndo(
+      long transactionId,
+      long amountMinor,
+      @Nullable String note,
+      @Nullable Long merchantId,
+      @NonNull List<Long> tagIds) {
+    return new PendingSaveUndo(
+        transactionId,
+        amountMinor,
+        selectedType,
+        activeWallet.getId(),
+        selectedCategory.getId(),
+        occurredAtPicker.getOccurredAtMillis(),
+        note,
+        merchantId,
+        tagIds);
+  }
+
+  private void restoreDraft(@NonNull PendingSaveUndo draft) {
+    applyFormDraft(
+        TransactionFormDraft.fromPendingSave(
+            draft.amountMinor,
+            draft.type,
+            draft.walletId,
+            draft.categoryId,
+            draft.occurredAtMillis,
+            draft.note,
+            draft.merchantId,
+            draft.tagIds));
     bindWalletSpinner();
     bindCategories();
-    refreshRecent();
-    requestAmountFocus();
+  }
+
+  private void tryRestoreCaptureDraft() {
+    if (captureDraftRestored || amountInput == null) {
+      return;
+    }
+    captureDraftRestored = true;
+    TransactionFormDraft draft = defaultsStore.getCaptureDraft();
+    if (draft == null) {
+      return;
+    }
+    applyFormDraft(draft);
+  }
+
+  private void applyFormDraft(@NonNull TransactionFormDraft draft) {
+    selectedType = draft.getType();
+    typeGroup.check(
+        selectedType == TransactionType.INCOME
+            ? R.id.capture_type_income
+            : R.id.capture_type_expense);
+    if (draft.getAmountMinor() > 0L) {
+      setAmountInput(draft.getAmountMinor());
+    }
+    noteInput.setText(draft.getNote() != null ? draft.getNote() : "");
+    merchantSelection.setMerchantId(draft.getMerchantId());
+    tagSelection.setSelectedTagIds(draft.getTagIds());
+    occurredAtPicker.setOccurredAtMillis(draft.getOccurredAtMillis());
+
+    Long walletId = draft.getWalletId();
+    if (walletId != null) {
+      for (Wallet wallet : wallets) {
+        if (wallet.getId() == walletId) {
+          activeWallet = wallet;
+          break;
+        }
+      }
+    }
+
+    Long categoryId = draft.getCategoryId();
+    if (categoryId != null) {
+      Category category = services.categoryDao.findById(categoryId);
+      if (category != null && selectedType.name().equals(category.getTypeFilter())) {
+        selectedCategory = category;
+      } else {
+        selectedCategory = null;
+      }
+    }
+
+    formValidation.clearAll();
+    validationBanner.setVisibility(View.GONE);
+    updateCategoryMoreButtonLabel();
+  }
+
+  private void persistCaptureDraft() {
+    if (amountInput == null) {
+      return;
+    }
+    TransactionFormDraft draft = buildCaptureDraft();
+    if (draft.hasContent()) {
+      defaultsStore.setCaptureDraft(draft);
+    } else {
+      defaultsStore.clearCaptureDraft();
+    }
+  }
+
+  @NonNull
+  private TransactionFormDraft buildCaptureDraft() {
+    TransactionFormDraft draft = new TransactionFormDraft();
+    draft.setType(selectedType);
+    draft.setOccurredAtMillis(occurredAtPicker.getOccurredAtMillis());
+    if (activeWallet != null) {
+      draft.setWalletId(activeWallet.getId());
+    }
+    if (selectedCategory != null) {
+      draft.setCategoryId(selectedCategory.getId());
+    }
+    String note = noteInput.getText().toString().trim();
+    if (!TextUtils.isEmpty(note)) {
+      draft.setNote(note);
+    }
+    draft.setMerchantId(merchantSelection.getMerchantId());
+    draft.setTagIds(tagSelection.getSelectedTagIds());
+    String amountText = amountInput.getText().toString().trim();
+    if (!amountText.isEmpty()) {
+      try {
+        long amountMinor = MoneyParser.parse(amountText);
+        if (amountMinor > 0L) {
+          draft.setAmountMinor(amountMinor);
+        }
+      } catch (IllegalArgumentException ignored) {
+        // Keep partial draft without amount when input is not yet parseable.
+      }
+    }
+    return draft;
+  }
+
+  private static final class PendingSaveUndo {
+    private final long transactionId;
+    private final long amountMinor;
+    private final TransactionType type;
+    private final long walletId;
+    private final long categoryId;
+    private final long occurredAtMillis;
+    @Nullable private final String note;
+    @Nullable private final Long merchantId;
+    @NonNull private final List<Long> tagIds;
+
+    private PendingSaveUndo(
+        long transactionId,
+        long amountMinor,
+        TransactionType type,
+        long walletId,
+        long categoryId,
+        long occurredAtMillis,
+        @Nullable String note,
+        @Nullable Long merchantId,
+        @NonNull List<Long> tagIds) {
+      this.transactionId = transactionId;
+      this.amountMinor = amountMinor;
+      this.type = type;
+      this.walletId = walletId;
+      this.categoryId = categoryId;
+      this.occurredAtMillis = occurredAtMillis;
+      this.note = note;
+      this.merchantId = merchantId;
+      this.tagIds = tagIds;
+    }
   }
 
   private void installAmountAutoFocusExpiry(@NonNull View root) {
@@ -474,11 +859,85 @@ public final class CaptureFragment extends ScreenFragment {
     }
   }
 
-  private void refreshRecent() {
-    List<Transaction> recent = transactionService.getRecent(RECENT_LIMIT);
-    recentAdapter.setTransactions(recent);
-    boolean empty = recent.isEmpty();
-    recentEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
-    recentList.setVisibility(empty ? View.GONE : View.VISIBLE);
+  @Nullable
+  private ValidatedCaptureInput validateCaptureInput() {
+    formValidation.clearAll();
+    boolean valid = true;
+    long amountMinor = 0L;
+
+    String amountText = amountInput.getText().toString().trim();
+    if (amountText.isEmpty()) {
+      formValidation.showError(requireContext(), CaptureFormValidation.Field.AMOUNT, R.string.capture_error_amount_empty);
+      valid = false;
+    } else {
+      try {
+        amountMinor = MoneyParser.parse(amountText);
+        if (amountMinor <= 0L) {
+          formValidation.showError(
+              requireContext(), CaptureFormValidation.Field.AMOUNT, R.string.capture_error_amount_positive);
+          valid = false;
+        }
+      } catch (IllegalArgumentException e) {
+        formValidation.showError(requireContext(), CaptureFormValidation.Field.AMOUNT, R.string.capture_error_amount);
+        valid = false;
+      }
+    }
+
+    if (activeWallet == null) {
+      formValidation.showError(requireContext(), CaptureFormValidation.Field.WALLET, R.string.capture_error_wallet);
+      valid = false;
+    }
+
+    if (selectedCategory == null) {
+      formValidation.showError(requireContext(), CaptureFormValidation.Field.CATEGORY, R.string.capture_error_category);
+      valid = false;
+    }
+
+    if (!valid) {
+      formValidation.scrollToFirstError();
+      return null;
+    }
+    return new ValidatedCaptureInput(amountMinor);
+  }
+
+  private static final class ValidatedCaptureInput {
+    private final long amountMinor;
+
+    private ValidatedCaptureInput(long amountMinor) {
+      this.amountMinor = amountMinor;
+    }
+  }
+
+  private static final class CaptureState {
+    private final List<Wallet> wallets;
+    private final Wallet activeWallet;
+    private final List<Category> categoriesForType;
+    private final Category selectedCategory;
+    private final List<Transaction> recentTransactions;
+    private final Map<Long, Category> categoriesById;
+    private final Map<Long, Wallet> walletsById;
+    private final Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById;
+    private final Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById;
+
+    private CaptureState(
+        List<Wallet> wallets,
+        Wallet activeWallet,
+        List<Category> categoriesForType,
+        Category selectedCategory,
+        List<Transaction> recentTransactions,
+        Map<Long, Category> categoriesById,
+        Map<Long, Wallet> walletsById,
+        Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById,
+        Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById) {
+      this.wallets = wallets;
+      this.activeWallet = activeWallet;
+      this.categoriesForType = categoriesForType;
+      this.selectedCategory = selectedCategory;
+      this.recentTransactions = recentTransactions;
+      this.categoriesById = categoriesById;
+      this.walletsById = walletsById;
+      this.tagsById = tagsById;
+      this.merchantsById = merchantsById;
+    }
   }
 }

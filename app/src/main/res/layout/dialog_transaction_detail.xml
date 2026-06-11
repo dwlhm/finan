@@ -94,6 +94,34 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/transaction_merchant_label" />
+
+        <TextView
+            android:id="@+id/transaction_detail_merchant"
+            style="@style/Finan.Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            style="@style/Finan.Text.SectionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/transaction_tags_label" />
+
+        <TextView
+            android:id="@+id/transaction_detail_tags"
+            style="@style/Finan.Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -174,6 +202,12 @@
             android:layout_marginTop="8dp"
             android:text="@string/transaction_category_pick" />
 
+        <include
+            layout="@layout/include_transaction_occurred_at"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp" />
+
         <TextView
             style="@style/Finan.Text.SectionLabel"
             android:layout_width="match_parent"
@@ -194,6 +228,11 @@
             android:padding="12dp"
             android:textColor="@color/finan_text_primary"
             android:textColorHint="@color/finan_text_hint" />
+
+        <include
+            layout="@layout/include_transaction_tags_merchant_fields"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
     </LinearLayout>
 
     <LinearLayout

@@ -27,6 +27,7 @@ public final class CategoryListFragment extends ScreenFragment {
   public static final String TAG = "category_list";
 
   private AppServices services;
+  private int reloadGeneration;
   private CategoryAdapter adapter;
   private ListView listView;
   private TextView emptyView;
@@ -50,7 +51,6 @@ public final class CategoryListFragment extends ScreenFragment {
     headerView.setOnBackClickListener(v -> goBack());
     adapter = new CategoryAdapter(requireContext());
     listView.setAdapter(adapter);
-    reload();
   }
 
   @Override
@@ -59,11 +59,25 @@ public final class CategoryListFragment extends ScreenFragment {
     reload();
   }
 
+  @Override
+  public void onDestroyView() {
+    reloadGeneration++;
+    super.onDestroyView();
+  }
+
   private void reload() {
-    adapter.setCategories(services.categoryDao.findAllOrdered());
-    boolean empty = adapter.getCount() == 0;
-    emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
-    listView.setVisibility(empty ? View.GONE : View.VISIBLE);
+    int generation = ++reloadGeneration;
+    services.dbWorker.compute(
+        () -> services.categoryDao.findAllOrdered(),
+        categories -> {
+          if (!isAdded() || generation != reloadGeneration || categories == null) {
+            return;
+          }
+          adapter.setCategories(categories);
+          boolean empty = categories.isEmpty();
+          emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
+          listView.setVisibility(empty ? View.GONE : View.VISIBLE);
+        });
   }
 
   private void goBack() {

@@ -6,6 +6,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -14,19 +16,21 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.dwlhm.finan.R;
-import com.dwlhm.finan.domain.model.Transaction;
+import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public final class SettingsFragment extends ScreenFragment {
 
   private ActivityResultLauncher<Intent> exportLauncher;
+  private Button exportButton;
+  private ProgressBar exportProgress;
+  private TextView exportStatus;
+  private boolean exportInProgress;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -45,13 +49,7 @@ public final class SettingsFragment extends ScreenFragment {
                     .show();
                 return;
               }
-              if (writeCsvExport(uri)) {
-                Toast.makeText(requireContext(), R.string.settings_export_success, Toast.LENGTH_SHORT)
-                    .show();
-              } else {
-                Toast.makeText(requireContext(), R.string.settings_export_failed, Toast.LENGTH_SHORT)
-                    .show();
-              }
+              writeCsvExportAsync(uri);
             });
   }
 
@@ -62,7 +60,9 @@ public final class SettingsFragment extends ScreenFragment {
 
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
-    Button exportButton = view.findViewById(R.id.settings_export);
+    exportButton = view.findViewById(R.id.settings_export);
+    exportProgress = view.findViewById(R.id.settings_export_progress);
+    exportStatus = view.findViewById(R.id.settings_export_status);
     Button walletsButton = view.findViewById(R.id.settings_wallets);
     Button categoriesButton = view.findViewById(R.id.settings_categories);
 
@@ -72,6 +72,9 @@ public final class SettingsFragment extends ScreenFragment {
   }
 
   private void launchExportPicker() {
+    if (exportInProgress) {
+      return;
+    }
     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
     intent.addCategory(Intent.CATEGORY_OPENABLE);
     intent.setType("text/csv");
@@ -91,19 +94,44 @@ public final class SettingsFragment extends ScreenFragment {
     }
   }
 
-  private boolean writeCsvExport(Uri destination) {
-    List<Transaction> transactions =
-        ServicesProvider.get(requireContext()).transactionGateway.findAll();
-    String csv = ServicesProvider.get(requireContext()).exportService.toCsv(transactions);
-    try (OutputStream out = requireContext().getContentResolver().openOutputStream(destination)) {
-      if (out == null) {
-        return false;
-      }
-      out.write(csv.getBytes(StandardCharsets.UTF_8));
-      out.flush();
-      return true;
-    } catch (IOException e) {
-      return false;
+  private void setExportInProgress(boolean inProgress) {
+    exportInProgress = inProgress;
+    if (exportButton == null) {
+      return;
     }
+    exportButton.setEnabled(!inProgress);
+    exportProgress.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+    exportStatus.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+  }
+
+  private void writeCsvExportAsync(Uri destination) {
+    AppServices services = ServicesProvider.get(requireContext());
+    android.content.ContentResolver resolver = requireContext().getContentResolver();
+    setExportInProgress(true);
+    services.dbWorker.compute(
+        () -> {
+          try (OutputStream out = resolver.openOutputStream(destination)) {
+            if (out == null) {
+              return Boolean.FALSE;
+            }
+            services.exportService.exportTo(out, services.transactionGateway);
+            return Boolean.TRUE;
+          } catch (IOException e) {
+            return Boolean.FALSE;
+          }
+        },
+        success -> {
+          if (!isAdded()) {
+            return;
+          }
+          setExportInProgress(false);
+          if (Boolean.TRUE.equals(success)) {
+            Toast.makeText(requireContext(), R.string.settings_export_success, Toast.LENGTH_SHORT)
+                .show();
+          } else {
+            Toast.makeText(requireContext(), R.string.settings_export_failed, Toast.LENGTH_SHORT)
+                .show();
+          }
+        });
   }
 }

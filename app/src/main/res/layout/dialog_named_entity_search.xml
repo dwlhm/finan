@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/named_entity_search_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/Finan.Text.Title" />
+
+    <EditText
+        android:id="@+id/named_entity_search_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_card"
+        android:imeOptions="actionSearch"
+        android:importantForAutofill="no"
+        android:inputType="textCapWords"
+        android:padding="12dp" />
+
+    <ListView
+        android:id="@+id/named_entity_search_list"
+        android:layout_width="match_parent"
+        android:layout_height="280dp"
+        android:layout_marginTop="8dp"
+        android:divider="@color/finan_divider"
+        android:dividerHeight="1dp" />
+</LinearLayout>

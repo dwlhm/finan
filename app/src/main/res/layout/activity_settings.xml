@@ -26,6 +26,27 @@
             android:layout_height="wrap_content"
             android:text="@string/settings_export" />
 
+        <ProgressBar
+            android:id="@+id/settings_export_progress"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/settings_export_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_horizontal"
+            android:text="@string/settings_export_in_progress"
+            android:textColor="@color/finan_text_secondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

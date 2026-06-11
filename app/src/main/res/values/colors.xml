@@ -13,6 +13,8 @@
     <color name="finan_chip_selected">#2D6A6A</color>
     <color name="finan_chip_text">#1A2830</color>
     <color name="finan_chip_text_selected">#FFFFFF</color>
+    <color name="finan_error">#C45C4A</color>
+    <color name="finan_error_bg">#FFF1EE</color>
     <color name="finan_expense">#C45C4A</color>
     <color name="finan_income">#3D8B6E</color>
     <color name="finan_expense_bg">#FFF1EE</color>

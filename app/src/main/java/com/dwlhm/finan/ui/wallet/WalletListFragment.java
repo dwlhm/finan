@@ -44,6 +44,7 @@ public final class WalletListFragment extends ScreenFragment {
   public static final String TAG = "wallet_list";
 
   private AppServices services;
+  private int reloadGeneration;
   private WalletAdapter adapter;
   private ListView listView;
   private TextView emptyView;
@@ -76,7 +77,6 @@ public final class WalletListFragment extends ScreenFragment {
     headerView.setOnActionClickListener(v -> showAddWalletDialog());
     adapter = new WalletAdapter(requireContext());
     listView.setAdapter(adapter);
-    reload();
   }
 
   @Override
@@ -85,14 +85,27 @@ public final class WalletListFragment extends ScreenFragment {
     reload();
   }
 
+  @Override
+  public void onDestroyView() {
+    reloadGeneration++;
+    super.onDestroyView();
+  }
+
   private void reload() {
-    List<Wallet> wallets = services.walletDao.findAll();
-    adapter.setWallets(wallets);
-    bindSummary(wallets);
-    boolean empty = wallets.isEmpty();
-    summaryView.setVisibility(empty ? View.GONE : View.VISIBLE);
-    emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
-    listView.setVisibility(empty ? View.GONE : View.VISIBLE);
+    int generation = ++reloadGeneration;
+    services.dbWorker.compute(
+        () -> services.walletDao.findAll(),
+        wallets -> {
+          if (!isAdded() || generation != reloadGeneration || wallets == null) {
+            return;
+          }
+          adapter.setWallets(wallets);
+          bindSummary(wallets);
+          boolean empty = wallets.isEmpty();
+          summaryView.setVisibility(empty ? View.GONE : View.VISIBLE);
+          emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
+          listView.setVisibility(empty ? View.GONE : View.VISIBLE);
+        });
   }
 
   private void bindSummary(List<Wallet> wallets) {
@@ -136,19 +149,18 @@ public final class WalletListFragment extends ScreenFragment {
     MoneyInputFormatter.attach(balanceInput, true);
     CheckBox defaultInput = content.findViewById(R.id.wallet_default_input);
     DialogActionsView actionsView = content.findViewById(R.id.wallet_actions);
-    boolean firstWallet = services.walletDao.findAll().isEmpty();
-
-    defaultInput.setChecked(firstWallet);
-    defaultInput.setEnabled(!firstWallet);
-
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
     dialog.setContentView(content);
     actionsView.setOnCancelClickListener(v -> dialog.dismiss());
-    actionsView.setOnPrimaryClickListener(
-        v -> {
-          if (createWallet(nameInput, balanceInput, defaultInput)) {
-            dialog.dismiss();
+    actionsView.setOnPrimaryClickListener(v -> submitCreateWallet(dialog, nameInput, balanceInput, defaultInput));
+    services.dbWorker.compute(
+        () -> services.walletDao.findAll().isEmpty(),
+        firstWallet -> {
+          if (!dialog.isShowing() || firstWallet == null) {
+            return;
           }
+          defaultInput.setChecked(firstWallet);
+          defaultInput.setEnabled(!firstWallet);
         });
     dialog.show();
     Window window = dialog.getWindow();
@@ -179,11 +191,7 @@ public final class WalletListFragment extends ScreenFragment {
     dialog.setContentView(content);
     actionsView.setOnCancelClickListener(v -> dialog.dismiss());
     actionsView.setOnPrimaryClickListener(
-        v -> {
-          if (updateWallet(wallet.getId(), nameInput, defaultInput)) {
-            dialog.dismiss();
-          }
-        });
+        v -> submitUpdateWallet(dialog, wallet.getId(), nameInput, defaultInput));
     dialog.show();
     Window window = dialog.getWindow();
     if (window != null) {
@@ -194,14 +202,12 @@ public final class WalletListFragment extends ScreenFragment {
     nameInput.requestFocus();
   }
 
-  private boolean createWallet(
-      EditText nameInput,
-      EditText balanceInput,
-      CheckBox defaultInput) {
+  private void submitCreateWallet(
+      Dialog dialog, EditText nameInput, EditText balanceInput, CheckBox defaultInput) {
     String name = nameInput.getText().toString().trim();
     if (name.isEmpty()) {
       nameInput.setError(getString(R.string.wallet_error_name));
-      return false;
+      return;
     }
 
     long initialBalanceMinor = 0L;
@@ -211,52 +217,71 @@ public final class WalletListFragment extends ScreenFragment {
         initialBalanceMinor = MoneyParser.parse(balanceText);
       } catch (IllegalArgumentException e) {
         balanceInput.setError(getString(R.string.wallet_error_balance));
-        return false;
+        return;
       }
     }
 
     boolean makeDefault = defaultInput.isChecked();
-    long walletId =
-        services.walletDao.insert(
-            name,
-            MoneyFormatter.DEFAULT_CURRENCY_CODE,
-            makeDefault,
-            initialBalanceMinor,
-            System.currentTimeMillis());
-    if (walletId <= 0) {
-      Toast.makeText(requireContext(), R.string.wallet_error_create, Toast.LENGTH_SHORT).show();
-      return false;
-    }
-
-    if (makeDefault) {
-      services.walletDao.clearDefaultWalletsExcept(walletId);
-      services.defaultsStore.setDefaultWalletId(walletId);
-    }
-    Toast.makeText(requireContext(), R.string.wallet_created, Toast.LENGTH_SHORT).show();
-    reload();
-    return true;
+    long parsedBalance = initialBalanceMinor;
+    services.dbWorker.compute(
+        () -> {
+          long walletId =
+              services.walletDao.insert(
+                  name,
+                  MoneyFormatter.DEFAULT_CURRENCY_CODE,
+                  makeDefault,
+                  parsedBalance,
+                  System.currentTimeMillis());
+          if (walletId <= 0L) {
+            return Boolean.FALSE;
+          }
+          if (makeDefault) {
+            services.walletDao.clearDefaultWalletsExcept(walletId);
+            services.defaultsStore.setDefaultWalletId(walletId);
+          }
+          return Boolean.TRUE;
+        },
+        created -> {
+          if (!isAdded() || !dialog.isShowing()) {
+            return;
+          }
+          if (!Boolean.TRUE.equals(created)) {
+            Toast.makeText(requireContext(), R.string.wallet_error_create, Toast.LENGTH_SHORT)
+                .show();
+            return;
+          }
+          Toast.makeText(requireContext(), R.string.wallet_created, Toast.LENGTH_SHORT).show();
+          dialog.dismiss();
+          reload();
+        });
   }
 
-  private boolean updateWallet(
-      long walletId,
-      EditText nameInput,
-      CheckBox defaultInput) {
+  private void submitUpdateWallet(
+      Dialog dialog, long walletId, EditText nameInput, CheckBox defaultInput) {
     String name = nameInput.getText().toString().trim();
     if (name.isEmpty()) {
       nameInput.setError(getString(R.string.wallet_error_name));
-      return false;
+      return;
     }
     boolean makeDefault = defaultInput.isChecked();
-    if (!services.walletDao.updateNameAndDefault(walletId, name, makeDefault)) {
-      Toast.makeText(requireContext(), R.string.wallet_error_update, Toast.LENGTH_SHORT).show();
-      return false;
-    }
-    if (makeDefault) {
-      services.defaultsStore.setDefaultWalletId(walletId);
-    }
-    Toast.makeText(requireContext(), R.string.wallet_updated, Toast.LENGTH_SHORT).show();
-    reload();
-    return true;
+    services.dbWorker.compute(
+        () -> services.walletDao.updateNameAndDefault(walletId, name, makeDefault),
+        updated -> {
+          if (!isAdded() || !dialog.isShowing()) {
+            return;
+          }
+          if (!Boolean.TRUE.equals(updated)) {
+            Toast.makeText(requireContext(), R.string.wallet_error_update, Toast.LENGTH_SHORT)
+                .show();
+            return;
+          }
+          if (makeDefault) {
+            services.defaultsStore.setDefaultWalletId(walletId);
+          }
+          Toast.makeText(requireContext(), R.string.wallet_updated, Toast.LENGTH_SHORT).show();
+          dialog.dismiss();
+          reload();
+        });
   }
 
   private final class WalletAdapter extends BaseAdapter {
