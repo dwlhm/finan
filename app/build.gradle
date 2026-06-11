@@ -1,5 +1,5 @@
 plugins {
-    id "com.android.application"
+    alias libs.plugins.android.application
 }
 
 // Kotlin 1.8+ ships jdk7/jdk8 extensions inside kotlin-stdlib; older transitive
@@ -10,43 +10,53 @@ configurations.configureEach {
 }
 
 android {
-    namespace "com.dwlhm.finan"
-    compileSdk 35
+    namespace = "com.dwlhm.finan"
+    compileSdk = 37
 
     defaultConfig {
-        applicationId "com.dwlhm.finan"
-        minSdk 30
-        targetSdk 35
-        versionCode 1
-        versionName "1.0.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        applicationId = "com.dwlhm.finan"
+        minSdk = 30
+        //noinspection OldTargetApi
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
+
+    lint {
+        // API 36+ changes edge-to-edge and back behavior. Keep the production
+        // target at 35 until those flows are tested on a current device.
+        disable += "OldTargetApi"
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.addAll(["-Xlint:deprecation", "-Xlint:unchecked"])
 }
 
 dependencies {
-    implementation "androidx.appcompat:appcompat:1.7.0"
-    implementation "androidx.activity:activity:1.9.3"
-    implementation "androidx.fragment:fragment:1.5.4"
-    implementation "androidx.recyclerview:recyclerview:1.3.2"
-    implementation 'androidx.recyclerview:recyclerview:1.4.0'
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.activity
+    implementation libs.androidx.fragment
+    implementation libs.androidx.recyclerview
 
-    testImplementation "junit:junit:4.13.2"
+    testImplementation libs.junit
 
-    androidTestImplementation "androidx.test:core:1.6.1"
-    androidTestImplementation "androidx.test.ext:junit:1.2.1"
-    androidTestImplementation "androidx.test:runner:1.6.2"
-    androidTestImplementation "androidx.test:rules:1.6.1"
+    androidTestImplementation libs.androidx.core
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.androidx.runner
+    androidTestImplementation libs.androidx.rules
 }

@@ -113,9 +113,10 @@ public final class WalletListFragment extends ScreenFragment {
     Wallet defaultWallet = null;
     for (Wallet wallet : wallets) {
       String currencyCode = MoneyFormatter.normalizeCurrencyCode(wallet.getCurrencyCode());
-      Long current = totalsByCurrency.get(currencyCode);
-      totalsByCurrency.put(
-          currencyCode, (current == null ? 0L : current) + wallet.getCachedBalanceMinor());
+      totalsByCurrency.compute(
+          currencyCode,
+          (ignored, current) ->
+              (current == null ? 0L : current) + wallet.getCachedBalanceMinor());
       if (wallet.isDefault()) {
         defaultWallet = wallet;
       }
@@ -128,7 +129,8 @@ public final class WalletListFragment extends ScreenFragment {
             : R.color.finan_primary;
     totalBalanceView.setTextColor(
         ContextCompat.getColor(requireContext(), balanceColor));
-    walletCountView.setText(getString(R.string.wallet_count_format, wallets.size()));
+    walletCountView.setText(
+        getResources().getQuantityString(R.plurals.wallet_count, wallets.size(), wallets.size()));
     String defaultWalletName =
         defaultWallet == null ? getString(R.string.wallet_default_none) : defaultWallet.getName();
     defaultWalletView.setText(getString(R.string.wallet_default_format, defaultWalletName));
@@ -140,17 +142,15 @@ public final class WalletListFragment extends ScreenFragment {
 
   private void showAddWalletDialog() {
     Dialog dialog = new Dialog(requireContext());
-    View content =
-        LayoutInflater.from(requireContext()).inflate(R.layout.dialog_wallet_input, null, false);
-    LabeledEditTextView nameField = content.findViewById(R.id.wallet_name_field);
-    LabeledEditTextView balanceField = content.findViewById(R.id.wallet_balance_field);
+    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+    dialog.setContentView(R.layout.dialog_wallet_input);
+    LabeledEditTextView nameField = dialog.findViewById(R.id.wallet_name_field);
+    LabeledEditTextView balanceField = dialog.findViewById(R.id.wallet_balance_field);
     EditText nameInput = nameField.getEditText();
     EditText balanceInput = balanceField.getEditText();
     MoneyInputFormatter.attach(balanceInput, true);
-    CheckBox defaultInput = content.findViewById(R.id.wallet_default_input);
-    DialogActionsView actionsView = content.findViewById(R.id.wallet_actions);
-    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    dialog.setContentView(content);
+    CheckBox defaultInput = dialog.findViewById(R.id.wallet_default_input);
+    DialogActionsView actionsView = dialog.findViewById(R.id.wallet_actions);
     actionsView.setOnCancelClickListener(v -> dialog.dismiss());
     actionsView.setOnPrimaryClickListener(v -> submitCreateWallet(dialog, nameInput, balanceInput, defaultInput));
     services.dbWorker.compute(
@@ -174,12 +174,12 @@ public final class WalletListFragment extends ScreenFragment {
 
   private void showEditWalletDialog(Wallet wallet) {
     Dialog dialog = new Dialog(requireContext());
-    View content =
-        LayoutInflater.from(requireContext()).inflate(R.layout.dialog_wallet_name_input, null, false);
-    LabeledEditTextView nameField = content.findViewById(R.id.wallet_name_field);
+    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+    dialog.setContentView(R.layout.dialog_wallet_name_input);
+    LabeledEditTextView nameField = dialog.findViewById(R.id.wallet_name_field);
     EditText nameInput = nameField.getEditText();
-    CheckBox defaultInput = content.findViewById(R.id.wallet_default_input);
-    DialogActionsView actionsView = content.findViewById(R.id.wallet_actions);
+    CheckBox defaultInput = dialog.findViewById(R.id.wallet_default_input);
+    DialogActionsView actionsView = dialog.findViewById(R.id.wallet_actions);
 
     nameInput.setText(wallet.getName());
     nameInput.setSelection(nameInput.getText().length());
@@ -187,8 +187,6 @@ public final class WalletListFragment extends ScreenFragment {
     defaultInput.setEnabled(!wallet.isDefault());
     defaultInput.setAlpha(wallet.isDefault() ? 0.72f : 1f);
 
-    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    dialog.setContentView(content);
     actionsView.setOnCancelClickListener(v -> dialog.dismiss());
     actionsView.setOnPrimaryClickListener(
         v -> submitUpdateWallet(dialog, wallet.getId(), nameInput, defaultInput));

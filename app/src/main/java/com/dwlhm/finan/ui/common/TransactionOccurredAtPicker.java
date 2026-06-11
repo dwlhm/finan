@@ -19,7 +19,7 @@ import java.util.Locale;
 
 public final class TransactionOccurredAtPicker {
 
-  private static final Locale LOCALE = new Locale("id", "ID");
+  private static final Locale LOCALE = Locale.forLanguageTag("id-ID");
   private static final DateTimeFormatter DATE_FORMAT =
       DateTimeFormatter.ofPattern("d MMM yyyy", LOCALE);
   private static final DateTimeFormatter TIME_FORMAT =

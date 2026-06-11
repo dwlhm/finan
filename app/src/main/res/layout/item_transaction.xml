@@ -6,6 +6,7 @@
     android:foreground="?attr/selectableItemBackground"
     android:gravity="center_vertical"
     android:minHeight="76dp"
+    android:baselineAligned="false"
     android:orientation="horizontal"
     android:padding="12dp">
 

@@ -115,7 +115,7 @@ public final class HistoryFragment extends ScreenFragment {
     adapter = new TransactionRecyclerAdapter(requireContext());
     adapter.setOnTransactionClickListener(
         (transaction, position) -> openTransactionDetail(position));
-    historyList.setup(adapter, this::loadHistoryPage, services.dbWorker::compute);
+    historyList.setup(adapter, this::loadHistoryPage, services.dbWorker);
     normalizeDateRange();
     updateDateRangeView();
   }
@@ -385,7 +385,8 @@ public final class HistoryFragment extends ScreenFragment {
 
   private void renderSummary(HistoryTotals totals) {
     int count = totals.getCount();
-    countView.setText(getString(R.string.history_count_format, count));
+    countView.setText(
+        getResources().getQuantityString(R.plurals.history_count, count, count));
     totalTransactionsView.setText(String.valueOf(count));
     incomeTotalView.setText(MoneyFormatter.format(totals.getIncomeMinor()));
     expenseTotalView.setText(MoneyFormatter.format(totals.getExpenseMinor()));

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/finan_background"
     android:orientation="vertical">
 
     <ScrollView
@@ -16,13 +16,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+            android:orientation="vertical"
+            android:padding="16dp">
 
                 <LinearLayout
                     android:id="@+id/capture_amount_section"
@@ -57,6 +52,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:hint="@string/capture_amount_placeholder"
+                        android:importantForAutofill="no"
                         android:inputType="numberDecimal"
                         android:textAppearance="@style/Finan.Text.Amount" />
 
@@ -92,7 +88,7 @@
                             android:padding="5dp"
                             android:scaleType="center"
                             android:src="@drawable/ic_edit"
-                            android:tint="@color/finan_text_primary" />
+                            app:tint="@color/finan_text_primary" />
                     </LinearLayout>
 
                     <TextView
@@ -305,6 +301,7 @@
                         android:id="@+id/capture_details_chevron"
                         style="@style/Finan.Icon.ControlIndicator"
                         android:layout_marginStart="8dp"
+                        android:contentDescription="@null"
                         android:src="@drawable/ic_expand_more" />
                 </LinearLayout>
 
@@ -322,6 +319,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="@string/capture_note_hint"
+                        android:importantForAutofill="no"
                         android:inputType="textCapSentences" />
 
                     <include
@@ -357,14 +355,12 @@
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
-                <ListView
+                <LinearLayout
                     android:id="@+id/capture_recent_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:divider="@android:color/transparent"
-                    android:dividerHeight="8dp"
-                    android:nestedScrollingEnabled="true" />
+                    android:orientation="vertical" />
 
                 <TextView
                     android:id="@+id/capture_recent_empty"
@@ -375,7 +371,6 @@
                     android:text="@string/capture_recent_empty"
                     android:textColor="@color/finan_text_hint"
                     android:visibility="gone" />
-            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

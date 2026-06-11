@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.capture;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -16,7 +17,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -66,13 +66,12 @@ public final class CaptureFragment extends ScreenFragment {
 
   private EditText amountInput;
   private LinearLayout amountShortcuts;
-  private ImageButton amountShortcutsEditButton;
   private LinearLayout quickCategories;
   private Button categoryMoreButton;
   private Spinner walletSpinner;
   private RadioGroup typeGroup;
   private EditText noteInput;
-  private ListView recentList;
+  private LinearLayout recentList;
   private TextView recentEmpty;
 
   private Wallet activeWallet;
@@ -116,7 +115,8 @@ public final class CaptureFragment extends ScreenFragment {
     amountInput = view.findViewById(R.id.capture_amount);
     MoneyInputFormatter.attach(amountInput, true);
     amountShortcuts = view.findViewById(R.id.capture_amount_shortcuts);
-    amountShortcutsEditButton = view.findViewById(R.id.capture_amount_shortcuts_edit);
+    ImageButton amountShortcutsEditButton =
+        view.findViewById(R.id.capture_amount_shortcuts_edit);
     quickCategories = view.findViewById(R.id.capture_quick_categories);
     categoryMoreButton = view.findViewById(R.id.capture_category_more);
     walletSpinner = view.findViewById(R.id.capture_wallet_spinner);
@@ -136,15 +136,6 @@ public final class CaptureFragment extends ScreenFragment {
     Button saveButton = view.findViewById(R.id.capture_save);
 
     recentAdapter = new TransactionListAdapter(requireContext());
-    recentList.setAdapter(recentAdapter);
-    recentList.setOnItemClickListener(
-        (parent, itemView, position, id) ->
-            new TransactionDetailDialog(
-                    requireContext(),
-                    services,
-                    recentAdapter.getItem(position),
-                    () -> refreshCaptureData(true))
-                .show());
 
     typeGroup.setOnCheckedChangeListener(
         (group, checkedId) -> {
@@ -278,6 +269,7 @@ public final class CaptureFragment extends ScreenFragment {
               state.tagsById,
               state.merchantsById);
           recentAdapter.setTransactions(state.recentTransactions);
+          renderRecentTransactions();
           tryRestoreCaptureDraft();
           bindWalletSpinner();
           bindCategories();
@@ -361,6 +353,30 @@ public final class CaptureFragment extends ScreenFragment {
       }
     }
     return false;
+  }
+
+  private void renderRecentTransactions() {
+    recentList.removeAllViews();
+    for (int position = 0; position < recentAdapter.getCount(); position++) {
+      Transaction transaction = recentAdapter.getItem(position);
+      View itemView = recentAdapter.getView(position, null, recentList);
+      LinearLayout.LayoutParams params =
+          new LinearLayout.LayoutParams(
+              LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+      if (position > 0) {
+        params.topMargin = UiComponentStyles.dp(requireContext(), 8);
+      }
+      itemView.setLayoutParams(params);
+      itemView.setOnClickListener(
+          v ->
+              new TransactionDetailDialog(
+                      requireContext(),
+                      services,
+                      transaction,
+                      () -> refreshCaptureData(true))
+                  .show());
+      recentList.addView(itemView);
+    }
   }
 
   private void bindWalletSpinner() {
@@ -817,6 +833,7 @@ public final class CaptureFragment extends ScreenFragment {
     bindAmountAutoFocusExpiryOnTouchTree(root);
   }
 
+  @SuppressLint("ClickableViewAccessibility")
   private void bindAmountAutoFocusExpiryOnTouchTree(View view) {
     if (view == null || view == amountInput) {
       return;
@@ -828,10 +845,9 @@ public final class CaptureFragment extends ScreenFragment {
           }
           return false;
         });
-    if (!(view instanceof ViewGroup)) {
+    if (!(view instanceof ViewGroup group)) {
       return;
     }
-    ViewGroup group = (ViewGroup) view;
     for (int i = 0; i < group.getChildCount(); i++) {
       bindAmountAutoFocusExpiryOnTouchTree(group.getChildAt(i));
     }

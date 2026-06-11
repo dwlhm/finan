@@ -6,7 +6,6 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -19,7 +18,6 @@ public final class ScreenHeaderView extends LinearLayout {
 
   private final ImageButton backButton;
   private final ImageButton actionButton;
-  private final TextView titleView;
 
   public ScreenHeaderView(Context context) {
     this(context, null);
@@ -35,12 +33,13 @@ public final class ScreenHeaderView extends LinearLayout {
     CharSequence actionDescription = null;
     int actionIcon = 0;
     if (attrs != null) {
-      TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.ScreenHeaderView);
-      titleText = typedArray.getText(R.styleable.ScreenHeaderView_titleText);
-      actionIcon = typedArray.getResourceId(R.styleable.ScreenHeaderView_actionIcon, 0);
-      actionDescription =
-          typedArray.getText(R.styleable.ScreenHeaderView_actionContentDescription);
-      typedArray.recycle();
+      try (TypedArray typedArray =
+          context.obtainStyledAttributes(attrs, R.styleable.ScreenHeaderView)) {
+        titleText = typedArray.getText(R.styleable.ScreenHeaderView_titleText);
+        actionIcon = typedArray.getResourceId(R.styleable.ScreenHeaderView_actionIcon, 0);
+        actionDescription =
+            typedArray.getText(R.styleable.ScreenHeaderView_actionContentDescription);
+      }
     }
 
     backButton = createIconButton(context);
@@ -48,10 +47,10 @@ public final class ScreenHeaderView extends LinearLayout {
     backButton.setImageResource(R.drawable.ic_back);
     addView(backButton);
 
-    titleView = new TextView(context);
+    TextView titleView = new TextView(context);
     titleView.setSingleLine(true);
     titleView.setEllipsize(TextUtils.TruncateAt.END);
-    titleView.setTextAppearance(context, R.style.Finan_Text_Title);
+    titleView.setTextAppearance(R.style.Finan_Text_Title);
     titleView.setText(titleText);
     LayoutParams titleParams = new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
     addView(titleView, titleParams);

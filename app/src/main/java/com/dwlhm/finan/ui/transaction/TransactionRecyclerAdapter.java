@@ -7,7 +7,6 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -54,7 +53,7 @@ public final class TransactionRecyclerAdapter
   private Map<Long, Tag> tagsById = Collections.emptyMap();
   private Map<Long, Merchant> merchantsById = Collections.emptyMap();
   private final SimpleDateFormat dateFormat =
-      new SimpleDateFormat("d MMM yyyy, HH:mm", new Locale("id", "ID"));
+      new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID"));
   private OnTransactionClickListener clickListener;
 
   public interface OnTransactionClickListener {
@@ -67,11 +66,6 @@ public final class TransactionRecyclerAdapter
   }
 
   public void setEntityLookups(
-      Map<Long, Category> categoriesById, Map<Long, Wallet> walletsById) {
-    setEntityLookups(categoriesById, walletsById, Collections.emptyMap(), Collections.emptyMap());
-  }
-
-  public void setEntityLookups(
       Map<Long, Category> categoriesById,
       Map<Long, Wallet> walletsById,
       Map<Long, Tag> tagsById,
@@ -80,7 +74,7 @@ public final class TransactionRecyclerAdapter
     this.walletsById = walletsById != null ? walletsById : Collections.emptyMap();
     this.tagsById = tagsById != null ? tagsById : Collections.emptyMap();
     this.merchantsById = merchantsById != null ? merchantsById : Collections.emptyMap();
-    notifyDataSetChanged();
+    notifyItemRangeChanged(0, getContentItemCount());
   }
 
   public void setOnTransactionClickListener(OnTransactionClickListener clickListener) {
@@ -125,10 +119,10 @@ public final class TransactionRecyclerAdapter
     String formatted = MoneyFormatter.format(transaction.getAmountMinor());
     int typeColor;
     if (transaction.getType() == TransactionType.INCOME) {
-      holder.amount.setText("+" + formatted);
+      holder.amount.setText(context.getString(R.string.transaction_income_amount_format, formatted));
       typeColor = ContextCompat.getColor(context, R.color.finan_income);
     } else {
-      holder.amount.setText("-" + formatted);
+      holder.amount.setText(context.getString(R.string.transaction_expense_amount_format, formatted));
       typeColor = ContextCompat.getColor(context, R.color.finan_expense);
     }
     holder.amount.setTextColor(typeColor);
@@ -156,19 +150,16 @@ public final class TransactionRecyclerAdapter
   private void setIndicatorColor(View indicator, int color) {
     GradientDrawable background = new GradientDrawable();
     background.setColor(color);
-    background.setCornerRadius(dp(2));
+    background.setCornerRadius(
+        2f * context.getResources().getDisplayMetrics().density);
     indicator.setBackground(background);
   }
 
   private int colorFor(int[] palette, long id, String name) {
-    int hash = (int) (id ^ (id >>> 32));
+    int hash = Long.hashCode(id);
     if (!TextUtils.isEmpty(name)) {
       hash = (31 * hash) + name.hashCode();
     }
     return palette[Math.floorMod(hash, palette.length)];
-  }
-
-  private int dp(int value) {
-    return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);
   }
 }

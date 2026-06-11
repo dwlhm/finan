@@ -29,14 +29,15 @@ public final class DialogActionsView extends LinearLayout {
     CharSequence primaryText = null;
     CharSequence secondaryText = context.getString(android.R.string.cancel);
     if (attrs != null) {
-      TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.DialogActionsView);
-      primaryText = typedArray.getText(R.styleable.DialogActionsView_primaryText);
-      CharSequence configuredSecondaryText =
-          typedArray.getText(R.styleable.DialogActionsView_secondaryText);
-      if (configuredSecondaryText != null) {
-        secondaryText = configuredSecondaryText;
+      try (TypedArray typedArray =
+          context.obtainStyledAttributes(attrs, R.styleable.DialogActionsView)) {
+        primaryText = typedArray.getText(R.styleable.DialogActionsView_primaryText);
+        CharSequence configuredSecondaryText =
+            typedArray.getText(R.styleable.DialogActionsView_secondaryText);
+        if (configuredSecondaryText != null) {
+          secondaryText = configuredSecondaryText;
+        }
       }
-      typedArray.recycle();
     }
 
     cancelButton = new Button(context, null, 0, R.style.Finan_Button_Nav);

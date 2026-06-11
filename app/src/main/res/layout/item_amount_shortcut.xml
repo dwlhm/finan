@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
@@ -26,7 +27,7 @@
         android:padding="5dp"
         android:scaleType="center"
         android:src="@drawable/ic_arrow_up"
-        android:tint="@color/finan_primary" />
+        app:tint="@color/finan_primary" />
 
     <ImageButton
         android:id="@+id/amount_shortcut_move_down"
@@ -37,7 +38,7 @@
         android:padding="5dp"
         android:scaleType="center"
         android:src="@drawable/ic_arrow_down"
-        android:tint="@color/finan_primary" />
+        app:tint="@color/finan_primary" />
 
     <ImageButton
         android:id="@+id/amount_shortcut_delete"
@@ -48,5 +49,5 @@
         android:padding="5dp"
         android:scaleType="center"
         android:src="@drawable/ic_delete"
-        android:tint="@color/finan_expense" />
+        app:tint="@color/finan_expense" />
 </LinearLayout>

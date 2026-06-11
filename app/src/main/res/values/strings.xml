@@ -29,7 +29,6 @@
     <string name="capture_category_created">Kategori dibuat</string>
     <string name="capture_category_name_empty">Nama kategori tidak boleh kosong</string>
     <string name="capture_category_already_exists">Kategori sudah ada, dipilih otomatis</string>
-    <string name="capture_wallet_unknown">Dompet tidak tersedia</string>
     <string name="capture_category_label">Kategori</string>
     <string name="capture_save">Simpan</string>
     <string name="capture_recent_label">Terakhir</string>
@@ -59,7 +58,6 @@
     <string name="capture_tag_already_exists">Tag sudah ada, dipilih otomatis</string>
     <string name="capture_type_expense">Pengeluaran</string>
     <string name="capture_type_income">Pemasukan</string>
-    <string name="capture_saved">Transaksi tersimpan</string>
     <string name="capture_saved_undo_message">Transaksi tersimpan</string>
     <string name="capture_undo_action">Batalkan</string>
     <string name="capture_undo_failed">Tidak bisa membatalkan simpanan</string>
@@ -80,7 +78,9 @@
     <string name="history_title">Riwayat</string>
     <string name="history_empty">Belum ada transaksi</string>
     <string name="history_empty_hint">Transaksi yang kamu catat akan muncul di sini.</string>
-    <string name="history_count_format">%1$d transaksi ditampilkan</string>
+    <plurals name="history_count">
+        <item quantity="other">%1$d transaksi ditampilkan</item>
+    </plurals>
     <string name="history_transactions_label">Transaksi</string>
     <string name="history_income_label">Masuk</string>
     <string name="history_expense_label">Keluar</string>
@@ -127,7 +127,6 @@
     <string name="transaction_error_update">Gagal memperbarui transaksi</string>
 
     <string name="summary_title">Ringkasan</string>
-    <string name="summary_period_format">%1$s %2$d</string>
     <string name="summary_date_picker_title">Pilih rentang tanggal</string>
     <string name="summary_range_start_label">Mulai</string>
     <string name="summary_range_end_label">Selesai</string>
@@ -145,22 +144,18 @@
     <string name="summary_net_flow_label">Arus kas periode</string>
     <string name="summary_income_label">Pemasukan</string>
     <string name="summary_expense_label">Pengeluaran</string>
-    <string name="summary_month_expense_format">Pengeluaran %1$s: %2$s</string>
-    <string name="summary_month_income_format">Pemasukan bulan ini: %1$s</string>
     <string name="summary_today_heading">Total periode</string>
-    <string name="summary_today_expense_format">Pengeluaran hari ini: %1$s</string>
-    <string name="summary_today_income_format">Pemasukan hari ini: %1$s</string>
     <string name="summary_categories_heading">Kategori terbesar (periode)</string>
-    <string name="summary_category_line_format">%1$s — %2$s</string>
     <string name="summary_wallets_heading">Saldo dompet</string>
-    <string name="summary_wallet_line_format">%1$s: %2$s</string>
     <string name="summary_no_expense">Belum ada pengeluaran pada periode ini</string>
 
     <string name="wallet_title">Dompet</string>
     <string name="wallet_add">Tambah dompet</string>
     <string name="wallet_empty">Belum ada dompet</string>
     <string name="wallet_total_balance_label">Saldo total</string>
-    <string name="wallet_count_format">%1$d dompet</string>
+    <plurals name="wallet_count">
+        <item quantity="other">%1$d dompet</item>
+    </plurals>
     <string name="wallet_default_format">Default: %1$s</string>
     <string name="wallet_default_none">Belum dipilih</string>
     <string name="wallet_default_badge">Default</string>
@@ -196,6 +191,9 @@
     <string name="settings_manage_categories">Kelola kategori</string>
     <string name="settings_export_filename">finan_export.csv</string>
 
-    <string name="common_currency_prefix">Rp</string>
     <string name="common_back">Kembali</string>
+    <string name="common_search_hint">Cari…</string>
+    <string name="tag_remove_suffix">  ×</string>
+    <string name="transaction_income_amount_format">+%1$s</string>
+    <string name="transaction_expense_amount_format">-%1$s</string>
 </resources>

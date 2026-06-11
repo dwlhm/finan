@@ -1,5 +1,6 @@
 package com.dwlhm.finan.util.ui;
 
+import android.annotation.SuppressLint;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -7,6 +8,7 @@ public final class ViewPressAnimator {
 
   private ViewPressAnimator() {}
 
+  @SuppressLint("ClickableViewAccessibility")
   public static void bindScale(View view) {
     view.setOnTouchListener(
         (pressedView, event) -> {

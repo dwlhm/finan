@@ -28,11 +28,17 @@ public abstract class InfiniteScrollRecyclerAdapter<T, VH extends RecyclerView.V
   }
 
   public void replaceItems(List<T> items) {
+    int previousSize = this.items.size();
     this.items.clear();
     if (items != null) {
       this.items.addAll(items);
     }
-    notifyDataSetChanged();
+    if (previousSize > 0) {
+      notifyItemRangeRemoved(0, previousSize);
+    }
+    if (!this.items.isEmpty()) {
+      notifyItemRangeInserted(0, this.items.size());
+    }
   }
 
   public void appendItems(List<T> items) {

@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
+import java.util.Objects;
 
 @RunWith(AndroidJUnit4.class)
 public class Migration003Test {
@@ -53,9 +54,9 @@ public class Migration003Test {
     assertTableExists("tags");
     assertTableExists("merchants");
     assertTableExists("transaction_tags");
-    assertNoColumn("transactions", "tag");
-    assertNoColumn("transactions", "merchant");
-    assertHasColumn("transactions", "merchant_id");
+    assertTransactionHasNoColumn("tag");
+    assertTransactionHasNoColumn("merchant");
+    assertTransactionHasMerchantIdColumn();
   }
 
   @Test
@@ -65,15 +66,31 @@ public class Migration003Test {
 
     SQLiteDatabase v2Db = context.openOrCreateDatabase(FinanDatabaseHelper.DATABASE_NAME, 0, null);
     MigrationRunner.migrate(
-        v2Db, 0, 2, new Migration001Initial(), new Migration002TransactionIndexes());
+        v2Db,
+        0,
+        2,
+        new Migration[] {new Migration001Initial(), new Migration002TransactionIndexes()});
     WalletDao walletDao = new WalletDao(v2Db);
     CategoryDao categoryDao = new CategoryDao(v2Db);
-    TransactionDao transactionDao = new TransactionDao(v2Db);
-    long walletId = walletDao.findDefault().getId();
-    long categoryId = categoryDao.findByName("Makanan").getId();
+    long walletId = Objects.requireNonNull(walletDao.findDefault()).getId();
+    long categoryId = Objects.requireNonNull(categoryDao.findByName("Makanan")).getId();
     long now = System.currentTimeMillis();
-    transactionDao.insert(
-        25_000, "EXPENSE", walletId, categoryId, now, "note", "liburan,pacar", "Warung", now, now);
+    v2Db.execSQL(
+        "INSERT INTO transactions "
+            + "(amount_minor, type, wallet_id, category_id, occurred_at, note, tag, merchant, "
+            + "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        new Object[] {
+          25_000L,
+          "EXPENSE",
+          walletId,
+          categoryId,
+          now,
+          "note",
+          "liburan,pacar",
+          "Warung",
+          now,
+          now
+        });
     v2Db.setVersion(2);
     v2Db.close();
 
@@ -112,8 +129,8 @@ public class Migration003Test {
     }
   }
 
-  private void assertNoColumn(String table, String column) {
-    try (Cursor cursor = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
+  private void assertTransactionHasNoColumn(String column) {
+    try (Cursor cursor = db.rawQuery("PRAGMA table_info(transactions)", null)) {
       while (cursor.moveToNext()) {
         if (column.equals(cursor.getString(cursor.getColumnIndexOrThrow("name")))) {
           throw new AssertionError("Column should not exist: " + column);
@@ -122,11 +139,11 @@ public class Migration003Test {
     }
   }
 
-  private void assertHasColumn(String table, String column) {
+  private void assertTransactionHasMerchantIdColumn() {
     boolean found = false;
-    try (Cursor cursor = db.rawQuery("PRAGMA table_info(" + table + ")", null)) {
+    try (Cursor cursor = db.rawQuery("PRAGMA table_info(transactions)", null)) {
       while (cursor.moveToNext()) {
-        if (column.equals(cursor.getString(cursor.getColumnIndexOrThrow("name")))) {
+        if ("merchant_id".equals(cursor.getString(cursor.getColumnIndexOrThrow("name")))) {
           found = true;
           break;
         }

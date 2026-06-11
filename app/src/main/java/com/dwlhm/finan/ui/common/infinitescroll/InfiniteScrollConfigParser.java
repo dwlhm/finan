@@ -22,17 +22,15 @@ public final class InfiniteScrollConfigParser {
     }
     int pageSize = InfiniteScrollConfig.DEFAULT_PAGE_SIZE;
     int threshold = InfiniteScrollConfig.DEFAULT_LOAD_MORE_THRESHOLD;
-    int spacingPx = 0;
-    TypedArray styled = context.obtainStyledAttributes(attrs, R.styleable.InfiniteScrollListView);
-    try {
+    int spacingPx;
+    try (TypedArray styled =
+        context.obtainStyledAttributes(attrs, R.styleable.InfiniteScrollListView)) {
       pageSize = styled.getInt(R.styleable.InfiniteScrollListView_infiniteScrollPageSize, pageSize);
       threshold =
           styled.getInt(R.styleable.InfiniteScrollListView_infiniteScrollLoadThreshold, threshold);
       spacingPx =
           styled.getDimensionPixelSize(
               R.styleable.InfiniteScrollListView_infiniteScrollItemSpacing, 0);
-    } finally {
-      styled.recycle();
     }
     return new InfiniteScrollConfig(pageSize, threshold, spacingPx);
   }

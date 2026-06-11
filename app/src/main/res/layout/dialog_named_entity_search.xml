@@ -17,6 +17,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:background="@drawable/bg_card"
+        android:hint="@string/common_search_hint"
         android:imeOptions="actionSearch"
         android:importantForAutofill="no"
         android:inputType="textCapWords"

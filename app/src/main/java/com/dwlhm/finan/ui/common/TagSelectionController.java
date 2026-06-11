@@ -1,6 +1,7 @@
 package com.dwlhm.finan.ui.common;
 
 import android.content.Context;
+import android.text.SpannableStringBuilder;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -24,7 +25,6 @@ public final class TagSelectionController {
   private final TagDao tagDao;
   private final DbWorker dbWorker;
   private final LinearLayout chipContainer;
-  private final Button addButton;
 
   private final Map<Long, Tag> selectedById = new LinkedHashMap<>();
 
@@ -38,16 +38,7 @@ public final class TagSelectionController {
     this.tagDao = tagDao;
     this.dbWorker = dbWorker;
     this.chipContainer = chipContainer;
-    this.addButton = addButton;
     addButton.setOnClickListener(v -> openSearchDialog());
-  }
-
-  public void setSelectedTags(@NonNull List<Tag> tags) {
-    selectedById.clear();
-    for (Tag tag : tags) {
-      selectedById.put(tag.getId(), tag);
-    }
-    renderChips();
   }
 
   public void setSelectedTagIds(@NonNull List<Long> tagIds) {
@@ -79,7 +70,7 @@ public final class TagSelectionController {
     NamedEntitySearchDialog<Tag> dialog =
         new NamedEntitySearchDialog<>(
             context,
-            new NamedEntitySearchDialog.EntityAccess<Tag>() {
+            new NamedEntitySearchDialog.EntityAccess<>() {
               @Override
               public List<Tag> loadAll() {
                 return tagDao.findAllOrderByUsage();
@@ -127,7 +118,9 @@ public final class TagSelectionController {
     chipContainer.removeAllViews();
     for (Tag tag : selectedById.values()) {
       Button chip = new Button(context, null, android.R.attr.borderlessButtonStyle);
-      chip.setText(tag.getName() + "  ×");
+      chip.setText(
+          new SpannableStringBuilder(tag.getName())
+              .append(context.getText(R.string.tag_remove_suffix)));
       UiComponentStyles.prepareChip(chip);
       chip.setMinHeight(UiComponentStyles.dp(context, 32));
       chip.setTextSize(12f);

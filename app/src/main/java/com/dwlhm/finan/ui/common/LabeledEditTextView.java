@@ -29,16 +29,17 @@ public final class LabeledEditTextView extends LinearLayout {
     CharSequence fieldHint = null;
     int inputType = InputType.TYPE_CLASS_TEXT;
     if (attrs != null) {
-      TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.LabeledEditTextView);
-      labelText = typedArray.getText(R.styleable.LabeledEditTextView_labelText);
-      fieldHint = typedArray.getText(R.styleable.LabeledEditTextView_fieldHint);
-      inputType =
-          typedArray.getInt(R.styleable.LabeledEditTextView_android_inputType, inputType);
-      typedArray.recycle();
+      try (TypedArray typedArray =
+          context.obtainStyledAttributes(attrs, R.styleable.LabeledEditTextView)) {
+        labelText = typedArray.getText(R.styleable.LabeledEditTextView_labelText);
+        fieldHint = typedArray.getText(R.styleable.LabeledEditTextView_fieldHint);
+        inputType =
+            typedArray.getInt(R.styleable.LabeledEditTextView_android_inputType, inputType);
+      }
     }
 
     TextView labelView = new TextView(context);
-    labelView.setTextAppearance(context, R.style.Finan_Text_SectionLabel);
+    labelView.setTextAppearance(R.style.Finan_Text_SectionLabel);
     labelView.setText(labelText);
     addView(labelView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 

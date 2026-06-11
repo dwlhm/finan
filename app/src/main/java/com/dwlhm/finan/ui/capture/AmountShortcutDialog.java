@@ -64,7 +64,6 @@ public final class AmountShortcutDialog extends Dialog {
     if (getWindow() != null) {
       getWindow()
           .setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
-      getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
     LabeledEditTextView amountField = findViewById(R.id.amount_shortcut_field);

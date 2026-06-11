@@ -56,16 +56,11 @@ public class TransactionListAdapter extends BaseAdapter {
   private Map<Long, Merchant> merchantsById = Collections.emptyMap();
   private final List<Transaction> items = new ArrayList<>();
   private final SimpleDateFormat dateFormat =
-      new SimpleDateFormat("d MMM yyyy, HH:mm", new Locale("id", "ID"));
+      new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID"));
 
   public TransactionListAdapter(Context context) {
     this.context = context;
     this.inflater = LayoutInflater.from(context);
-  }
-
-  public void setEntityLookups(
-      Map<Long, Category> categoriesById, Map<Long, Wallet> walletsById) {
-    setEntityLookups(categoriesById, walletsById, Collections.emptyMap(), Collections.emptyMap());
   }
 
   public void setEntityLookups(
@@ -145,10 +140,10 @@ public class TransactionListAdapter extends BaseAdapter {
     String formatted = MoneyFormatter.format(transaction.getAmountMinor());
     int typeColor;
     if (transaction.getType() == TransactionType.INCOME) {
-      holder.amount.setText("+" + formatted);
+      holder.amount.setText(context.getString(R.string.transaction_income_amount_format, formatted));
       typeColor = ContextCompat.getColor(context, R.color.finan_income);
     } else {
-      holder.amount.setText("-" + formatted);
+      holder.amount.setText(context.getString(R.string.transaction_expense_amount_format, formatted));
       typeColor = ContextCompat.getColor(context, R.color.finan_expense);
     }
     holder.amount.setTextColor(typeColor);
@@ -171,20 +166,17 @@ public class TransactionListAdapter extends BaseAdapter {
   private void setIndicatorColor(View indicator, int color) {
     GradientDrawable background = new GradientDrawable();
     background.setColor(color);
-    background.setCornerRadius(dp(2));
+    background.setCornerRadius(
+        2f * context.getResources().getDisplayMetrics().density);
     indicator.setBackground(background);
   }
 
   private int colorFor(int[] palette, long id, String name) {
-    int hash = (int) (id ^ (id >>> 32));
+    int hash = Long.hashCode(id);
     if (!TextUtils.isEmpty(name)) {
       hash = (31 * hash) + name.hashCode();
     }
     return palette[Math.floorMod(hash, palette.length)];
-  }
-
-  private int dp(int value) {
-    return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);
   }
 
   private static class ViewHolder {

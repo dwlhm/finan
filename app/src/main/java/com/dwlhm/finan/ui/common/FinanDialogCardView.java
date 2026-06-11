@@ -2,6 +2,7 @@ package com.dwlhm.finan.ui.common;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -24,14 +25,15 @@ public final class FinanDialogCardView extends LinearLayout {
 
     CharSequence titleText = null;
     if (attrs != null) {
-      TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.FinanDialogCardView);
-      titleText = typedArray.getText(R.styleable.FinanDialogCardView_titleText);
-      typedArray.recycle();
+      try (TypedArray typedArray =
+          context.obtainStyledAttributes(attrs, R.styleable.FinanDialogCardView)) {
+        titleText = typedArray.getText(R.styleable.FinanDialogCardView_titleText);
+      }
     }
 
-    if (titleText != null && titleText.length() > 0) {
+    if (!TextUtils.isEmpty(titleText)) {
       TextView titleView = new TextView(context);
-      titleView.setTextAppearance(context, R.style.Finan_Text_Title);
+      titleView.setTextAppearance(R.style.Finan_Text_Title);
       titleView.setText(titleText);
       addView(titleView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
     }

@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.dwlhm.finan.R;
 
-final class TransactionItemViewHolder extends RecyclerView.ViewHolder {
+public final class TransactionItemViewHolder extends RecyclerView.ViewHolder {
 
   final View categoryIndicator;
   final View walletIndicator;

@@ -57,7 +57,7 @@ public final class TransactionDetailDialog extends Dialog {
   private final long transactionId;
   private final Listener listener;
   private final SimpleDateFormat dateFormat =
-      new SimpleDateFormat("d MMM yyyy, HH:mm", new Locale("id", "ID"));
+      new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID"));
 
   private Transaction transaction;
   private boolean editing;
@@ -123,7 +123,6 @@ public final class TransactionDetailDialog extends Dialog {
       window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
       window.setLayout(
           WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
-      window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
   }
 
@@ -231,7 +230,13 @@ public final class TransactionDetailDialog extends Dialog {
     editPanel.setVisibility(android.view.View.GONE);
     boolean income = transaction.getType() == TransactionType.INCOME;
 
-    amountView.setText((income ? "+" : "-") + MoneyFormatter.format(transaction.getAmountMinor()));
+    amountView.setText(
+        getContext()
+            .getString(
+                income
+                    ? R.string.transaction_income_amount_format
+                    : R.string.transaction_expense_amount_format,
+                MoneyFormatter.format(transaction.getAmountMinor())));
     amountView.setTextColor(
         ContextCompat.getColor(getContext(), income ? R.color.finan_income : R.color.finan_expense));
     typeView.setText(income ? R.string.capture_type_income : R.string.capture_type_expense);
@@ -350,7 +355,7 @@ public final class TransactionDetailDialog extends Dialog {
             return;
           }
           allCategoriesForType = categories;
-          if (selectedCategory != null && !isCategoryAvailable(selectedCategory)) {
+          if (selectedCategory != null && isCategoryUnavailable(selectedCategory)) {
             selectedCategory = null;
           }
           updateCategoryButton();
@@ -407,13 +412,13 @@ public final class TransactionDetailDialog extends Dialog {
         });
   }
 
-  private boolean isCategoryAvailable(Category category) {
+  private boolean isCategoryUnavailable(Category category) {
     for (Category option : allCategoriesForType) {
       if (option.getId() == category.getId()) {
-        return true;
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   private void updateCategoryButton() {
@@ -568,7 +573,7 @@ public final class TransactionDetailDialog extends Dialog {
     bindWalletSpinner();
     updateCategoryButton();
     if (selectedType != transaction.getType()
-        || (selectedCategory != null && !isCategoryAvailable(selectedCategory))) {
+        || (selectedCategory != null && isCategoryUnavailable(selectedCategory))) {
       loadCategoriesForEdit();
     }
   }
