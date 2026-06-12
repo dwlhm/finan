@@ -5,6 +5,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.dwlhm.finan.data.entity.Transaction;
+import com.dwlhm.finan.domain.model.HistoryQuery;
+import com.dwlhm.finan.domain.model.HistorySearch;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +36,8 @@ public final class TransactionDao {
     values.put("wallet_id", walletId);
     values.put("category_id", categoryId);
     values.put("occurred_at", occurredAt);
-    putNullable(values, "note", note);
-    putNullableLong(values, "merchant_id", merchantId);
+    putNote(values, note);
+    putMerchantId(values, merchantId);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.insert("transactions", null, values);
@@ -58,8 +60,8 @@ public final class TransactionDao {
     values.put("wallet_id", walletId);
     values.put("category_id", categoryId);
     values.put("occurred_at", occurredAt);
-    putNullable(values, "note", note);
-    putNullableLong(values, "merchant_id", merchantId);
+    putNote(values, note);
+    putMerchantId(values, merchantId);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.update("transactions", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
@@ -127,17 +129,10 @@ public final class TransactionDao {
     return transactions;
   }
 
-  public List<Transaction> findHistory(
-      Long walletId,
-      Long categoryId,
-      String type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis,
-      boolean oldestFirst) {
+  public List<Transaction> findHistory(HistoryQuery query) {
     List<Transaction> transactions = new ArrayList<>();
     List<String> args = new ArrayList<>();
-    String selection =
-        historySelection(walletId, categoryId, type, startInclusiveMillis, endExclusiveMillis, args);
+    String selection = historySelection(query, args);
     try (Cursor c =
         db.query(
             "transactions",
@@ -146,7 +141,7 @@ public final class TransactionDao {
             args.isEmpty() ? null : args.toArray(new String[0]),
             null,
             null,
-            oldestFirst ? "occurred_at ASC, id ASC" : "occurred_at DESC, id DESC")) {
+            orderBy(query))) {
       while (c.moveToNext()) {
         transactions.add(map(c));
       }
@@ -155,28 +150,14 @@ public final class TransactionDao {
   }
 
   public List<Transaction> findHistoryPage(
-      Long walletId,
-      Long categoryId,
-      String type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis,
-      boolean oldestFirst,
+      HistoryQuery query,
       Long cursorOccurredAt,
       Long cursorId,
       int limit) {
     List<Transaction> transactions = new ArrayList<>();
     List<String> args = new ArrayList<>();
     String selection =
-        historyPageSelection(
-            walletId,
-            categoryId,
-            type,
-            startInclusiveMillis,
-            endExclusiveMillis,
-            oldestFirst,
-            cursorOccurredAt,
-            cursorId,
-            args);
+        historyPageSelection(query, cursorOccurredAt, cursorId, args);
     try (Cursor c =
         db.query(
             "transactions",
@@ -185,7 +166,7 @@ public final class TransactionDao {
             args.isEmpty() ? null : args.toArray(new String[0]),
             null,
             null,
-            oldestFirst ? "occurred_at ASC, id ASC" : "occurred_at DESC, id DESC",
+            orderBy(query),
             String.valueOf(limit))) {
       while (c.moveToNext()) {
         transactions.add(map(c));
@@ -194,15 +175,9 @@ public final class TransactionDao {
     return transactions;
   }
 
-  public HistoryTotalsRow findHistoryTotals(
-      Long walletId,
-      Long categoryId,
-      String type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis) {
+  public HistoryTotalsRow findHistoryTotals(HistoryQuery query) {
     List<String> args = new ArrayList<>();
-    String selection =
-        historySelection(walletId, categoryId, type, startInclusiveMillis, endExclusiveMillis, args);
+    String selection = historySelection(query, args);
     String[] selectionArgs = args.isEmpty() ? null : args.toArray(new String[0]);
     int count = 0;
     long incomeMinor = 0L;
@@ -269,71 +244,64 @@ public final class TransactionDao {
     return transactions;
   }
 
-  private static void putNullable(ContentValues values, String key, String value) {
-    if (value == null) {
-      values.putNull(key);
+  private static void putNote(ContentValues values, String note) {
+    if (note == null) {
+      values.putNull("note");
     } else {
-      values.put(key, value);
+      values.put("note", note);
     }
   }
 
-  private static void putNullableLong(ContentValues values, String key, Long value) {
-    if (value == null) {
-      values.putNull(key);
+  private static void putMerchantId(ContentValues values, Long merchantId) {
+    if (merchantId == null) {
+      values.putNull("merchant_id");
     } else {
-      values.put(key, value);
+      values.put("merchant_id", merchantId);
     }
   }
 
-  private static String historySelection(
-      Long walletId,
-      Long categoryId,
-      String type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis,
-      List<String> args) {
+  private static String historySelection(HistoryQuery query, List<String> args) {
     StringBuilder selection = new StringBuilder();
-    appendHistoryFilter(selection, args, "wallet_id = ?", walletId);
-    appendHistoryFilter(selection, args, "category_id = ?", categoryId);
-    appendHistoryFilter(selection, args, "type = ?", type);
-    appendHistoryFilter(selection, args, "occurred_at >= ?", startInclusiveMillis);
-    appendHistoryFilter(selection, args, "occurred_at < ?", endExclusiveMillis);
-    return selection.length() == 0 ? null : selection.toString();
+    appendFilter(selection, args, "wallet_id = ?", query.walletId());
+    appendFilter(selection, args, "category_id = ?", query.categoryId());
+    appendFilter(selection, args, "type = ?", query.type() == null ? null : query.type().name());
+    appendFilter(selection, args, "occurred_at >= ?", query.startInclusiveMillis());
+    appendFilter(selection, args, "occurred_at < ?", query.endExclusiveMillis());
+    appendSearch(selection, args, query.search());
+    return hasContent(selection) ? selection.toString() : null;
   }
 
-  private static void appendHistoryFilter(
+  private static void appendFilter(
       StringBuilder selection, List<String> args, String clause, Object value) {
     if (value == null) {
       return;
     }
-    if (selection.length() > 0) {
-      selection.append(" AND ");
-    }
-    selection.append(clause);
+    appendCondition(selection, clause);
     args.add(String.valueOf(value));
   }
 
+  private static void appendCondition(StringBuilder selection, String clause) {
+    if (hasContent(selection)) {
+      selection.append(" AND ");
+    }
+    selection.append(clause);
+  }
+
   private static String historyPageSelection(
-      Long walletId,
-      Long categoryId,
-      String type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis,
-      boolean oldestFirst,
+      HistoryQuery query,
       Long cursorOccurredAt,
       Long cursorId,
       List<String> args) {
     StringBuilder selection = new StringBuilder();
-    String base =
-        historySelection(walletId, categoryId, type, startInclusiveMillis, endExclusiveMillis, args);
+    String base = historySelection(query, args);
     if (base != null) {
       selection.append(base);
     }
     if (cursorOccurredAt != null && cursorId != null) {
-      if (selection.length() > 0) {
+      if (hasContent(selection)) {
         selection.append(" AND ");
       }
-      if (oldestFirst) {
+      if (query.oldestFirst()) {
         selection.append("(occurred_at > ? OR (occurred_at = ? AND id > ?))");
       } else {
         selection.append("(occurred_at < ? OR (occurred_at = ? AND id < ?))");
@@ -342,7 +310,83 @@ public final class TransactionDao {
       args.add(String.valueOf(cursorOccurredAt));
       args.add(String.valueOf(cursorId));
     }
-    return selection.length() == 0 ? null : selection.toString();
+    return hasContent(selection) ? selection.toString() : null;
+  }
+
+  private static void appendSearch(
+      StringBuilder selection, List<String> args, HistorySearch search) {
+    if (search == null || search.isEmpty()) {
+      return;
+    }
+    StringBuilder clauses = new StringBuilder("note LIKE ? ESCAPE '\\' COLLATE NOCASE");
+    args.add("%" + escapeLike(search.text()) + "%");
+    if (search.amountMinor() != null) {
+      appendSearchOr(clauses);
+      clauses.append("amount_minor = ?");
+      args.add(String.valueOf(search.amountMinor()));
+    }
+    appendInSearchClause(clauses, "wallet_id", search.walletIds());
+    appendInSearchClause(clauses, "category_id", search.categoryIds());
+    appendInSearchClause(clauses, "merchant_id", search.merchantIds());
+    if (!search.tagIds().isEmpty()) {
+      String tagIds = idLiterals(search.tagIds());
+      if (tagIds.isEmpty()) {
+        appendCondition(selection, "(" + clauses + ")");
+        return;
+      }
+      appendSearchOr(clauses);
+      clauses
+          .append("EXISTS (SELECT 1 FROM transaction_tags tt WHERE tt.transaction_id = ")
+          .append("transactions.id AND tt.tag_id IN (")
+          .append(tagIds)
+          .append("))");
+    }
+    appendCondition(selection, "(" + clauses + ")");
+  }
+
+  private static void appendInSearchClause(
+      StringBuilder clauses, String column, List<Long> ids) {
+    if (ids.isEmpty()) {
+      return;
+    }
+    String literals = idLiterals(ids);
+    if (literals.isEmpty()) {
+      return;
+    }
+    appendSearchOr(clauses);
+    clauses.append(column).append(" IN (").append(literals).append(")");
+  }
+
+  private static void appendSearchOr(StringBuilder clauses) {
+    if (hasContent(clauses)) {
+      clauses.append(" OR ");
+    }
+  }
+
+  private static String idLiterals(List<Long> ids) {
+    StringBuilder values = new StringBuilder();
+    for (Long id : ids) {
+      if (id == null || id <= 0L) {
+        continue;
+      }
+      if (hasContent(values)) {
+        values.append(',');
+      }
+      values.append(id);
+    }
+    return values.toString();
+  }
+
+  private static boolean hasContent(StringBuilder value) {
+    return value.length() != 0;
+  }
+
+  private static String escapeLike(String value) {
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+  }
+
+  private static String orderBy(HistoryQuery query) {
+    return query.oldestFirst() ? "occurred_at ASC, id ASC" : "occurred_at DESC, id DESC";
   }
 
   public static final class HistoryTotalsRow {

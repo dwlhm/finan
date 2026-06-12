@@ -22,11 +22,11 @@ import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 
 import com.dwlhm.finan.R;
+import com.dwlhm.finan.util.search.FuzzySearch;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 public final class NamedEntitySearchDialog<T> extends Dialog {
@@ -67,6 +67,7 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
   private final int alreadyExistsRes;
 
   private final List<T> allEntities = new ArrayList<>();
+  private final FuzzySearch.Index<T> searchIndex;
   private EditText searchInput;
   private SearchListAdapter listAdapter;
 
@@ -100,6 +101,7 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
     this.alreadyExistsRes = alreadyExistsRes;
     this.excludeIds = excludeIds == null ? new HashSet<>() : new HashSet<>(excludeIds);
     allEntities.addAll(access.loadAll());
+    searchIndex = FuzzySearch.index(allEntities, access::nameOf);
   }
 
   @Override
@@ -146,7 +148,7 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
     InputMethodManager imm =
         (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
     if (imm != null) {
-      imm.showSoftInput(searchInput, InputMethodManager.SHOW_IMPLICIT);
+      imm.showSoftInput(searchInput, 0);
     }
   }
 
@@ -155,15 +157,14 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
   }
 
   private List<T> filteredEntities() {
-    String query = currentQuery().toLowerCase(Locale.ROOT);
+    String query = currentQuery();
+    List<T> matches = query.isEmpty() ? allEntities : searchIndex.matching(query);
     List<T> filtered = new ArrayList<>();
-    for (T entity : allEntities) {
+    for (T entity : matches) {
       if (excludeIds.contains(access.idOf(entity))) {
         continue;
       }
-      if (query.isEmpty() || access.nameOf(entity).toLowerCase(Locale.ROOT).contains(query)) {
-        filtered.add(entity);
-      }
+      filtered.add(entity);
     }
     return filtered;
   }

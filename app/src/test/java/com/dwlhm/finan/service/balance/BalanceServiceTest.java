@@ -2,6 +2,7 @@ package com.dwlhm.finan.service.balance;
 
 import com.dwlhm.finan.data.dao.TransactionGateway;
 import com.dwlhm.finan.data.dao.WalletBalanceDao;
+import com.dwlhm.finan.domain.model.HistoryQuery;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import org.junit.Before;
@@ -31,33 +32,33 @@ public class BalanceServiceTest {
     @Test
     public void apply_expense_decreases_cached_balance() {
         walletBalanceDao.setCachedBalance(1L, 100_000L);
-        balanceService.applyTransaction(expense(1L, 25_000L));
+        balanceService.applyTransaction(expense(25_000L));
         assertEquals(75_000L, walletBalanceDao.getCachedBalance(1L));
     }
 
     @Test
     public void apply_income_increases_cached_balance() {
         walletBalanceDao.setCachedBalance(1L, 50_000L);
-        balanceService.applyTransaction(income(1L, 30_000L));
+        balanceService.applyTransaction(income(30_000L));
         assertEquals(80_000L, walletBalanceDao.getCachedBalance(1L));
     }
 
     @Test
     public void recalculate_from_transactions() {
-        transactionDao.add(expense(1L, 10_000L));
-        transactionDao.add(income(1L, 50_000L));
-        transactionDao.add(expense(1L, 5_000L));
+        transactionDao.add(expense(10_000L));
+        transactionDao.add(income(50_000L));
+        transactionDao.add(expense(5_000L));
         long balance = balanceService.recalculate(1L);
         assertEquals(35_000L, balance);
         assertEquals(35_000L, walletBalanceDao.getCachedBalance(1L));
     }
 
-    private static Transaction expense(long walletId, long amount) {
-        return new Transaction(0L, amount, TransactionType.EXPENSE, walletId, 1L, 1L, null);
+    private static Transaction expense(long amount) {
+        return new Transaction(0L, amount, TransactionType.EXPENSE, 1L, 1L, 1L, null);
     }
 
-    private static Transaction income(long walletId, long amount) {
-        return new Transaction(0L, amount, TransactionType.INCOME, walletId, 1L, 1L, null);
+    private static Transaction income(long amount) {
+        return new Transaction(0L, amount, TransactionType.INCOME, 1L, 1L, 1L, null);
     }
 
     private static final class FakeTransactionDao implements TransactionGateway {
@@ -97,27 +98,10 @@ public class BalanceServiceTest {
         }
 
         @Override
-        public List<Transaction> findHistory(
-                Long walletId,
-                Long categoryId,
-                TransactionType type,
-                Long startInclusiveMillis,
-                Long endExclusiveMillis,
-                boolean oldestFirst
-        ) {
-            return new ArrayList<>(transactions);
-        }
-
-        @Override
         public com.dwlhm.finan.domain.model.PageResult<
-                        Transaction, com.dwlhm.finan.domain.model.HistoryPageCursor>
+                Transaction, com.dwlhm.finan.domain.model.HistoryPageCursor>
                 findHistoryPage(
-                Long walletId,
-                Long categoryId,
-                TransactionType type,
-                Long startInclusiveMillis,
-                Long endExclusiveMillis,
-                boolean oldestFirst,
+                HistoryQuery query,
                 com.dwlhm.finan.domain.model.HistoryPageCursor cursor,
                 int limit) {
             return new com.dwlhm.finan.domain.model.PageResult<>(
@@ -125,12 +109,7 @@ public class BalanceServiceTest {
         }
 
         @Override
-        public com.dwlhm.finan.domain.model.HistoryTotals findHistoryTotals(
-                Long walletId,
-                Long categoryId,
-                TransactionType type,
-                Long startInclusiveMillis,
-                Long endExclusiveMillis) {
+        public com.dwlhm.finan.domain.model.HistoryTotals findHistoryTotals(HistoryQuery query) {
             return new com.dwlhm.finan.domain.model.HistoryTotals(transactions.size(), 0L, 0L);
         }
 
@@ -163,7 +142,8 @@ public class BalanceServiceTest {
 
         @Override
         public long getCachedBalance(long walletId) {
-            return balances.getOrDefault(walletId, 0L);
+            Long balance = balances.get(walletId);
+            return balance == null ? 0L : balance;
         }
 
         @Override

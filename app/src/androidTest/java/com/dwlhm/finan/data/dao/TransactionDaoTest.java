@@ -1,7 +1,6 @@
 package com.dwlhm.finan.data.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -15,6 +14,9 @@ import com.dwlhm.finan.data.db.FinanDatabaseHelper;
 import com.dwlhm.finan.data.entity.Merchant;
 import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Transaction;
+import com.dwlhm.finan.domain.model.HistoryQuery;
+import com.dwlhm.finan.domain.model.HistorySearch;
+import com.dwlhm.finan.domain.model.TransactionType;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,6 +26,7 @@ import org.junit.runner.RunWith;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @RunWith(AndroidJUnit4.class)
@@ -52,8 +55,8 @@ public class TransactionDaoTest {
         merchantDao = new MerchantDao(helper.getWritableDatabase());
         transactionTagDao = new TransactionTagDao(helper.getWritableDatabase());
 
-        walletId = walletDao.findDefault().getId();
-        categoryId = categoryDao.findByName("Makanan").getId();
+        walletId = Objects.requireNonNull(walletDao.findDefault()).getId();
+        categoryId = Objects.requireNonNull(categoryDao.findByName("Makanan")).getId();
     }
 
     @After
@@ -78,8 +81,7 @@ public class TransactionDaoTest {
                 now);
         Tag tag = tagDao.insertIfAbsent("food");
         transactionTagDao.replaceAll(id, java.util.Collections.singletonList(tag.getId()));
-        Transaction tx = dao.findById(id);
-        assertNotNull(tx);
+        Transaction tx = Objects.requireNonNull(dao.findById(id));
         assertEquals(25_000, tx.getAmountMinor());
         assertEquals("EXPENSE", tx.getType());
         assertEquals(walletId, tx.getWalletId());
@@ -95,7 +97,7 @@ public class TransactionDaoTest {
         long id = dao.insert(10_000, "EXPENSE", walletId, categoryId, now, null, null, now, now);
         long updatedAt = now + 1000;
         dao.update(id, 12_000, "EXPENSE", walletId, categoryId, now, "updated", null, now, updatedAt);
-        Transaction tx = dao.findById(id);
+        Transaction tx = Objects.requireNonNull(dao.findById(id));
         assertEquals(12_000, tx.getAmountMinor());
         assertEquals("updated", tx.getNote());
         assertEquals(updatedAt, tx.getUpdatedAt());
@@ -136,13 +138,13 @@ public class TransactionDaoTest {
         dao.insert(5_000, "EXPENSE", walletId, categoryId, base + 4, null, null, base + 4, base + 4);
 
         List<Transaction> newestFirst =
-                dao.findHistory(walletId, categoryId, "EXPENSE", null, null, false);
+                dao.findHistory(query(walletId, categoryId, TransactionType.EXPENSE, null, null, false));
         assertEquals(2, newestFirst.size());
         assertEquals(5_000, newestFirst.get(0).getAmountMinor());
         assertEquals(1_000, newestFirst.get(1).getAmountMinor());
 
         List<Transaction> oldestFirst =
-                dao.findHistory(walletId, categoryId, "EXPENSE", null, null, true);
+                dao.findHistory(query(walletId, categoryId, TransactionType.EXPENSE, null, null, true));
         assertEquals(2, oldestFirst.size());
         assertEquals(1_000, oldestFirst.get(0).getAmountMinor());
         assertEquals(5_000, oldestFirst.get(1).getAmountMinor());
@@ -158,7 +160,7 @@ public class TransactionDaoTest {
                 3_000, "EXPENSE", walletId, categoryId, base + 20, null, null, base + 20, base + 20);
 
         List<Transaction> history =
-                dao.findHistory(null, null, null, base + 10, base + 20, true);
+                dao.findHistory(query(null, null, null, base + 10, base + 20, true));
 
         assertEquals(1, history.size());
         assertEquals(2_000, history.get(0).getAmountMinor());
@@ -181,7 +183,7 @@ public class TransactionDaoTest {
         }
 
         List<Transaction> firstPage =
-                dao.findHistoryPage(null, null, null, null, null, false, null, null, 2);
+                dao.findHistoryPage(query(null, null, null, null, null, false), null, null, 2);
         assertEquals(2, firstPage.size());
         assertEquals(5_000, firstPage.get(0).getAmountMinor());
         assertEquals(4_000, firstPage.get(1).getAmountMinor());
@@ -189,12 +191,7 @@ public class TransactionDaoTest {
         Transaction last = firstPage.get(1);
         List<Transaction> secondPage =
                 dao.findHistoryPage(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        false,
+                        query(null, null, null, null, null, false),
                         last.getOccurredAt(),
                         last.getId(),
                         2);
@@ -205,12 +202,7 @@ public class TransactionDaoTest {
         Transaction lastSecond = secondPage.get(1);
         List<Transaction> thirdPage =
                 dao.findHistoryPage(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        false,
+                        query(null, null, null, null, null, false),
                         lastSecond.getOccurredAt(),
                         lastSecond.getId(),
                         2);
@@ -225,10 +217,111 @@ public class TransactionDaoTest {
         dao.insert(2_000, "INCOME", walletId, categoryId, base + 1, null, null, base + 1, base + 1);
         dao.insert(3_000, "EXPENSE", walletId, categoryId, base + 2, null, null, base + 2, base + 2);
 
-        TransactionDao.HistoryTotalsRow totals = dao.findHistoryTotals(null, null, null, null, null);
+        TransactionDao.HistoryTotalsRow totals =
+                dao.findHistoryTotals(query(null, null, null, null, null, false));
         assertEquals(3, totals.count);
         assertEquals(2_000, totals.incomeMinor);
         assertEquals(4_000, totals.expenseMinor);
+    }
+
+    @Test
+    public void historySearch_matchesResolvedEntityIdsAndKeepsTotalsAccurate() {
+        long base = System.currentTimeMillis();
+        Merchant starbucks = merchantDao.insertIfAbsent("Starbucks");
+        Merchant warung = merchantDao.insertIfAbsent("Warung");
+        long matchingId =
+                dao.insert(
+                        25_000,
+                        "EXPENSE",
+                        walletId,
+                        categoryId,
+                        base,
+                        "kopi pagi",
+                        starbucks.getId(),
+                        base,
+                        base);
+        Tag coffee = tagDao.insertIfAbsent("Coffee");
+        transactionTagDao.replaceAll(
+                matchingId, java.util.Collections.singletonList(coffee.getId()));
+        dao.insert(
+                10_000,
+                "EXPENSE",
+                walletId,
+                categoryId,
+                base + 1,
+                "sarapan",
+                warung.getId(),
+                base + 1,
+                base + 1);
+
+        HistorySearch search =
+                new HistorySearch(
+                        "starbuks",
+                        null,
+                        null,
+                        null,
+                        java.util.Collections.singletonList(starbucks.getId()),
+                        null);
+        HistoryQuery query = new HistoryQuery(null, null, null, null, null, false, search);
+        HistorySearch tagSearch =
+                new HistorySearch(
+                        "cofee",
+                        null,
+                        null,
+                        null,
+                        null,
+                        java.util.Collections.singletonList(coffee.getId()));
+
+        List<Transaction> result = dao.findHistory(query);
+        TransactionDao.HistoryTotalsRow totals = dao.findHistoryTotals(query);
+
+        assertEquals(1, result.size());
+        assertEquals(matchingId, result.get(0).getId());
+        assertEquals(1, totals.count);
+        assertEquals(25_000, totals.expenseMinor);
+        assertEquals(
+                matchingId,
+                dao.findHistory(
+                                new HistoryQuery(
+                                        null, null, null, null, null, false, tagSearch))
+                        .get(0)
+                        .getId());
+    }
+
+    @Test
+    public void historySearch_matchesNoteAndExactAmount() {
+        long base = System.currentTimeMillis();
+        dao.insert(
+                25_000, "EXPENSE", walletId, categoryId, base, "Makan Siang", null, base, base);
+        dao.insert(
+                15_000,
+                "EXPENSE",
+                walletId,
+                categoryId,
+                base + 1,
+                "Camilan",
+                null,
+                base + 1,
+                base + 1);
+
+        HistorySearch noteSearch =
+                new HistorySearch("makan", null, null, null, null, null);
+        HistorySearch amountSearch =
+                new HistorySearch("Rp 15.000", 15_000L, null, null, null, null);
+
+        assertEquals(
+                1,
+                dao.findHistory(
+                                new HistoryQuery(
+                                        null, null, null, null, null, false, noteSearch))
+                        .size());
+        assertEquals(
+                15_000,
+                dao.findHistory(
+                                new HistoryQuery(
+                                        null, null, null, null, null, false, amountSearch))
+                        .get(0)
+                        .getAmountMinor());
     }
 
     @Test
@@ -261,5 +354,22 @@ public class TransactionDaoTest {
         assertTrue(indexes.contains("idx_transactions_occurred_at_id"));
         assertTrue(indexes.contains("idx_transactions_wallet_occurred"));
         assertTrue(indexes.contains("idx_transactions_type_occurred"));
+    }
+
+    private static HistoryQuery query(
+            Long walletId,
+            Long categoryId,
+            TransactionType type,
+            Long startInclusiveMillis,
+            Long endExclusiveMillis,
+            boolean oldestFirst) {
+        return new HistoryQuery(
+                walletId,
+                categoryId,
+                type,
+                startInclusiveMillis,
+                endExclusiveMillis,
+                oldestFirst,
+                HistorySearch.empty());
     }
 }

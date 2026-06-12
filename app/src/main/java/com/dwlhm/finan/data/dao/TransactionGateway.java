@@ -1,10 +1,10 @@
 package com.dwlhm.finan.data.dao;
 
 import com.dwlhm.finan.domain.model.HistoryPageCursor;
+import com.dwlhm.finan.domain.model.HistoryQuery;
 import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.HistoryTotals;
 import com.dwlhm.finan.domain.model.Transaction;
-import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -23,33 +23,13 @@ public interface TransactionGateway {
 
     List<Transaction> findRecent(int limit);
 
-    List<Transaction> findHistory(
-            Long walletId,
-            Long categoryId,
-            TransactionType type,
-            Long startInclusiveMillis,
-            Long endExclusiveMillis,
-            boolean oldestFirst
-    );
-
     PageResult<Transaction, HistoryPageCursor> findHistoryPage(
-            Long walletId,
-            Long categoryId,
-            TransactionType type,
-            Long startInclusiveMillis,
-            Long endExclusiveMillis,
-            boolean oldestFirst,
+            HistoryQuery query,
             HistoryPageCursor cursor,
             int limit
     );
 
-    HistoryTotals findHistoryTotals(
-            Long walletId,
-            Long categoryId,
-            TransactionType type,
-            Long startInclusiveMillis,
-            Long endExclusiveMillis
-    );
+    HistoryTotals findHistoryTotals(HistoryQuery query);
 
     List<Transaction> findByWalletId(long walletId);
 

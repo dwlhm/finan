@@ -23,11 +23,10 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.dao.CategoryDao;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.TransactionType;
-import com.dwlhm.finan.ui.common.ServicesProvider;
+import com.dwlhm.finan.util.search.FuzzySearch;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public final class CategorySearchDialog extends Dialog {
 
@@ -43,6 +42,7 @@ public final class CategorySearchDialog extends Dialog {
   private final DbWorker dbWorker;
   private final TransactionType transactionType;
   private final List<Category> allCategories;
+  private final FuzzySearch.Index<Category> searchIndex;
   private final Listener listener;
 
   private EditText searchInput;
@@ -59,6 +59,7 @@ public final class CategorySearchDialog extends Dialog {
     this.dbWorker = ServicesProvider.get(context).dbWorker;
     this.transactionType = transactionType;
     this.allCategories = new ArrayList<>(allCategories);
+    searchIndex = FuzzySearch.index(this.allCategories, Category::getName);
     this.listener = listener;
   }
 
@@ -103,7 +104,7 @@ public final class CategorySearchDialog extends Dialog {
     InputMethodManager imm =
         (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
     if (imm != null) {
-      imm.showSoftInput(searchInput, InputMethodManager.SHOW_IMPLICIT);
+      imm.showSoftInput(searchInput, 0);
     }
   }
 
@@ -112,15 +113,8 @@ public final class CategorySearchDialog extends Dialog {
   }
 
   private List<Category> filteredCategories() {
-    String query = currentQuery().toLowerCase(Locale.ROOT);
-    List<Category> filtered = new ArrayList<>();
-    for (Category category : allCategories) {
-      if (query.isEmpty()
-          || category.getName().toLowerCase(Locale.ROOT).contains(query)) {
-        filtered.add(category);
-      }
-    }
-    return filtered;
+    String query = currentQuery();
+    return query.isEmpty() ? allCategories : searchIndex.matching(query);
   }
 
   private boolean hasExactMatch(String query) {

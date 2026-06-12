@@ -2,6 +2,7 @@ package com.dwlhm.finan.data.dao;
 
 import com.dwlhm.finan.data.entity.Transaction;
 import com.dwlhm.finan.domain.model.HistoryPageCursor;
+import com.dwlhm.finan.domain.model.HistoryQuery;
 import com.dwlhm.finan.domain.model.HistoryTotals;
 import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.TransactionType;
@@ -83,59 +84,23 @@ public final class SqliteTransactionDao implements TransactionGateway {
   }
 
   @Override
-  public List<com.dwlhm.finan.domain.model.Transaction> findHistory(
-      Long walletId,
-      Long categoryId,
-      TransactionType type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis,
-      boolean oldestFirst) {
-    String typeName = type == null ? null : type.name();
-    return toDomainList(
-        table.findHistory(
-            walletId, categoryId, typeName, startInclusiveMillis, endExclusiveMillis, oldestFirst));
-  }
-
-  @Override
   public PageResult<com.dwlhm.finan.domain.model.Transaction, HistoryPageCursor> findHistoryPage(
-      Long walletId,
-      Long categoryId,
-      TransactionType type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis,
-      boolean oldestFirst,
+      HistoryQuery query,
       HistoryPageCursor cursor,
       int limit) {
-    String typeName = type == null ? null : type.name();
     Long cursorOccurredAt = cursor == null ? null : cursor.occurredAt();
     Long cursorId = cursor == null ? null : cursor.id();
     List<com.dwlhm.finan.domain.model.Transaction> items =
         toDomainList(
             table.findHistoryPage(
-                walletId,
-                categoryId,
-                typeName,
-                startInclusiveMillis,
-                endExclusiveMillis,
-                oldestFirst,
-                cursorOccurredAt,
-                cursorId,
-                limit + 1));
+                query, cursorOccurredAt, cursorId, limit + 1));
     return PageResult.fromLimitPlusOne(
         items, limit, t -> new HistoryPageCursor(t.getOccurredAt(), t.getId()));
   }
 
   @Override
-  public HistoryTotals findHistoryTotals(
-      Long walletId,
-      Long categoryId,
-      TransactionType type,
-      Long startInclusiveMillis,
-      Long endExclusiveMillis) {
-    String typeName = type == null ? null : type.name();
-    TransactionDao.HistoryTotalsRow row =
-        table.findHistoryTotals(
-            walletId, categoryId, typeName, startInclusiveMillis, endExclusiveMillis);
+  public HistoryTotals findHistoryTotals(HistoryQuery query) {
+    TransactionDao.HistoryTotalsRow row = table.findHistoryTotals(query);
     return new HistoryTotals(row.count, row.incomeMinor, row.expenseMinor);
   }
 

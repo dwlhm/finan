@@ -2,6 +2,7 @@ package com.dwlhm.finan.service.export;
 
 import com.dwlhm.finan.data.dao.TransactionGateway;
 import com.dwlhm.finan.domain.model.HistoryPageCursor;
+import com.dwlhm.finan.domain.model.HistoryQuery;
 import com.dwlhm.finan.domain.model.HistoryTotals;
 import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.Transaction;
@@ -10,8 +11,6 @@ import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -23,14 +22,14 @@ public class ExportServiceTest {
 
     @Test
     public void csv_includes_format_version_header() {
-        List<Transaction> transactions = Arrays.asList(sampleTransaction());
+        List<Transaction> transactions = List.of(sampleTransaction());
         String csv = exportService.toCsv(transactions);
         assertTrue(csv.startsWith("FINAN_CSV_VERSION,2"));
     }
 
     @Test
     public void csv_includes_column_headers() {
-        String csv = exportService.toCsv(Arrays.asList());
+        String csv = exportService.toCsv(List.of());
         assertTrue(
             csv.contains(
                 "id,amount_minor,type,wallet_id,category_id,occurred_at,note,merchant_id,tag_ids"));
@@ -39,14 +38,14 @@ public class ExportServiceTest {
     @Test
     public void csv_includes_transaction_row() {
         Transaction t = sampleTransaction();
-        String csv = exportService.toCsv(Arrays.asList(t));
+        String csv = exportService.toCsv(List.of(t));
         assertTrue(csv.contains("42,25000,EXPENSE,1,2,1700000000000,lunch,7,10;11"));
     }
 
     @Test
     public void csv_escapes_note_with_comma() {
         Transaction t = new Transaction(1L, 1000L, TransactionType.INCOME, 1L, 1L, 1L, "a,b");
-        String csv = exportService.toCsv(Arrays.asList(t));
+        String csv = exportService.toCsv(List.of(t));
         assertTrue(csv.contains("\"a,b\""));
     }
 
@@ -55,7 +54,7 @@ public class ExportServiceTest {
         Transaction t = sampleTransaction();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         exportService.exportTo(out, singleTransactionGateway(t));
-        String csv = out.toString(StandardCharsets.UTF_8.name());
+        String csv = out.toString(StandardCharsets.UTF_8);
         assertTrue(csv.startsWith("FINAN_CSV_VERSION,2"));
         assertTrue(csv.contains("42,25000,EXPENSE,1,2,1700000000000,lunch,7,10;11"));
     }
@@ -65,7 +64,7 @@ public class ExportServiceTest {
             new Transaction(
                 42L, 25_000L, TransactionType.EXPENSE, 1L, 2L, 1_700_000_000_000L, "lunch");
         transaction.setMerchantId(7L);
-        transaction.setTagIds(Arrays.asList(10L, 11L));
+        transaction.setTagIds(List.of(10L, 11L));
         return transaction;
     }
 
@@ -94,46 +93,23 @@ public class ExportServiceTest {
 
             @Override
             public List<Transaction> findRecent(int limit) {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public List<Transaction> findHistory(
-                Long walletId,
-                Long categoryId,
-                TransactionType type,
-                Long startInclusiveMillis,
-                Long endExclusiveMillis,
-                boolean oldestFirst) {
-                return Collections.emptyList();
+                return List.of();
             }
 
             @Override
             public PageResult<Transaction, HistoryPageCursor> findHistoryPage(
-                Long walletId,
-                Long categoryId,
-                TransactionType type,
-                Long startInclusiveMillis,
-                Long endExclusiveMillis,
-                boolean oldestFirst,
-                HistoryPageCursor cursor,
-                int limit) {
-                return new PageResult<>(Collections.emptyList(), false, null);
+                HistoryQuery query, HistoryPageCursor cursor, int limit) {
+                return new PageResult<>(List.of(), false, null);
             }
 
             @Override
-            public HistoryTotals findHistoryTotals(
-                Long walletId,
-                Long categoryId,
-                TransactionType type,
-                Long startInclusiveMillis,
-                Long endExclusiveMillis) {
+            public HistoryTotals findHistoryTotals(HistoryQuery query) {
                 return new HistoryTotals(0, 0L, 0L);
             }
 
             @Override
             public List<Transaction> findByWalletId(long walletId) {
-                return Collections.emptyList();
+                return List.of();
             }
 
             @Override
@@ -143,7 +119,7 @@ public class ExportServiceTest {
 
             @Override
             public List<Transaction> findAll() {
-                return Collections.singletonList(transaction);
+                return List.of(transaction);
             }
         };
     }

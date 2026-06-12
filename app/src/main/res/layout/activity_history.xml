@@ -25,6 +25,47 @@
         android:textSize="13sp" />
 
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_control_surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/history_search_input"
+            style="@style/Finan.EditText.Transparent"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/ic_search"
+            android:drawablePadding="8dp"
+            android:hint="@string/history_search_hint"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp"
+            android:textColor="@color/finan_text_primary"
+            android:textColorHint="@color/finan_text_hint"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/history_search_clear"
+            android:layout_width="44dp"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/history_search_clear"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:padding="12dp"
+            android:src="@drawable/ic_close"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/history_controls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -202,6 +243,7 @@
         android:visibility="gone">
 
         <TextView
+            android:id="@+id/history_empty_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -211,6 +253,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/history_empty_hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"

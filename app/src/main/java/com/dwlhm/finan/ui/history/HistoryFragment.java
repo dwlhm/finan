@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -21,11 +22,15 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.HistoryPageCursor;
+import com.dwlhm.finan.domain.model.HistoryQuery;
+import com.dwlhm.finan.domain.model.HistorySearch;
 import com.dwlhm.finan.domain.model.HistoryTotals;
 import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.service.transaction.TransactionSearchResolver;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.DebouncedTextWatcher;
 import com.dwlhm.finan.ui.common.EntityLookup;
 import com.dwlhm.finan.ui.common.FilterDialog;
 import com.dwlhm.finan.ui.common.ScreenFragment;
@@ -55,6 +60,8 @@ public final class HistoryFragment extends ScreenFragment {
   private static final String CATEGORY_FILTER_STATE_KEY = "history_category_filter";
   private static final String TYPE_FILTER_STATE_KEY = "history_type_filter";
   private static final String SORT_STATE_KEY = "history_sort";
+  private static final String SEARCH_STATE_KEY = "history_search";
+  private static final long SEARCH_DEBOUNCE_MS = 300L;
   private static final long FILTER_NONE_ID = -1L;
   private static final long TYPE_EXPENSE_ID = 1L;
   private static final long TYPE_INCOME_ID = 2L;
@@ -64,19 +71,27 @@ public final class HistoryFragment extends ScreenFragment {
   private InfiniteScrollListView historyList;
   private TransactionRecyclerAdapter adapter;
   private View emptyView;
-  private View summaryView;
   private ImageButton filterButton;
+  private ImageButton searchClearButton;
+  private EditText searchInput;
   private TextView dateRangeView;
   private TextView countView;
   private TextView totalTransactionsView;
   private TextView incomeTotalView;
   private TextView expenseTotalView;
+  private TextView emptyTitleView;
+  private TextView emptyHintView;
   private LocalDate selectedStartDate;
   private LocalDate selectedEndDate;
   private Long selectedWalletId;
   private Long selectedCategoryId;
   private Long selectedTypeId;
   private Long selectedSortId;
+  private String searchQuery = "";
+  private HistoryQuery activeQuery =
+      new HistoryQuery(null, null, null, null, null, false, HistorySearch.empty());
+  private DebouncedTextWatcher searchWatcher;
+  private volatile HistorySources historySources;
   private int reloadGeneration;
   private Map<Long, Category> categoriesById = Map.of();
   private Map<Long, Wallet> walletsById = Map.of();
@@ -101,28 +116,61 @@ public final class HistoryFragment extends ScreenFragment {
     selectedCategoryId = restoreFilterId(savedInstanceState, CATEGORY_FILTER_STATE_KEY);
     selectedTypeId = restoreFilterId(savedInstanceState, TYPE_FILTER_STATE_KEY);
     selectedSortId = restoreFilterId(savedInstanceState, SORT_STATE_KEY);
+    searchQuery =
+        savedInstanceState == null ? "" : savedInstanceState.getString(SEARCH_STATE_KEY, "");
     historyList = view.findViewById(R.id.history_list);
     emptyView = view.findViewById(R.id.history_empty);
-    summaryView = view.findViewById(R.id.history_summary);
     filterButton = view.findViewById(R.id.history_filter_button);
+    searchInput = view.findViewById(R.id.history_search_input);
+    searchClearButton = view.findViewById(R.id.history_search_clear);
     dateRangeView = view.findViewById(R.id.history_date_range);
     countView = view.findViewById(R.id.history_count);
     totalTransactionsView = view.findViewById(R.id.history_total_transactions);
     incomeTotalView = view.findViewById(R.id.history_income_total);
     expenseTotalView = view.findViewById(R.id.history_expense_total);
+    emptyTitleView = view.findViewById(R.id.history_empty_title);
+    emptyHintView = view.findViewById(R.id.history_empty_hint);
     filterButton.setOnClickListener(v -> showHistoryFilterDialog());
     dateRangeView.setOnClickListener(v -> showDateRangeDialog());
+    searchInput.setText(searchQuery);
+    searchInput.setSelection(searchInput.length());
+    searchWatcher =
+        new DebouncedTextWatcher(
+            SEARCH_DEBOUNCE_MS,
+            value -> {
+              String normalized = value.trim();
+              if (!normalized.equals(searchQuery)) {
+                searchQuery = normalized;
+                updateSearchControls();
+                reload(false);
+              }
+            });
+    searchInput.addTextChangedListener(searchWatcher);
+    searchClearButton.setOnClickListener(
+        v -> {
+          searchInput.setText("");
+          searchWatcher.cancel();
+          if (!searchQuery.isEmpty()) {
+            searchQuery = "";
+            updateSearchControls();
+            reload(false);
+          }
+        });
     adapter = new TransactionRecyclerAdapter(requireContext());
     adapter.setOnTransactionClickListener(
         (transaction, position) -> openTransactionDetail(position));
     historyList.setup(adapter, this::loadHistoryPage, services.dbWorker);
     normalizeDateRange();
     updateDateRangeView();
+    updateSearchControls();
   }
 
   @Override
   public void onDestroyView() {
     reloadGeneration++;
+    if (searchWatcher != null) {
+      searchWatcher.cancel();
+    }
     super.onDestroyView();
   }
 
@@ -144,6 +192,9 @@ public final class HistoryFragment extends ScreenFragment {
         TYPE_FILTER_STATE_KEY, selectedTypeId == null ? FILTER_NONE_ID : selectedTypeId);
     outState.putLong(
         SORT_STATE_KEY, selectedSortId == null ? FILTER_NONE_ID : selectedSortId);
+    outState.putString(
+        SEARCH_STATE_KEY,
+        searchInput == null ? searchQuery : searchInput.getText().toString().trim());
     super.onSaveInstanceState(outState);
   }
 
@@ -151,10 +202,14 @@ public final class HistoryFragment extends ScreenFragment {
   public void onResume() {
     super.onResume();
     updateDateRangeView();
-    reload();
+    reload(true);
   }
 
   private void reload() {
+    reload(false);
+  }
+
+  private void reload(boolean refreshSources) {
     normalizeDateRange();
     int generation = ++reloadGeneration;
     Long requestWalletId = selectedWalletId;
@@ -163,40 +218,61 @@ public final class HistoryFragment extends ScreenFragment {
     Long requestSortId = selectedSortId;
     Long startMillis = selectedStartMillis();
     Long endExclusiveMillis = selectedEndExclusiveMillis();
+    String requestSearchQuery = searchQuery;
+    HistorySources requestSources = refreshSources ? null : historySources;
 
     services.dbWorker.compute(
         () -> {
-          List<Wallet> wallets = services.walletDao.findAll();
-          List<Category> categories = services.categoryDao.findAllOrdered();
-          Map<Long, Wallet> walletMap = EntityLookup.indexWallets(wallets);
-          Map<Long, Category> categoryMap = EntityLookup.indexCategories(categories);
-          Map<Long, com.dwlhm.finan.data.entity.Tag> tagMap =
-              EntityLookup.indexTags(services.tagDao.findAllOrderByUsage());
-          Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantMap =
-              EntityLookup.indexMerchants(services.merchantDao.findAllOrderByUsage());
-          Long walletId = validWalletIdOrNull(requestWalletId, walletMap);
-          Long categoryId = validCategoryIdOrNull(requestCategoryId, categoryMap);
+          HistorySources sources = requestSources;
+          if (sources == null && !refreshSources) {
+            sources = historySources;
+          }
+          if (sources == null) {
+            sources = loadHistorySources();
+            historySources = sources;
+          }
+          Long walletId = validWalletIdOrNull(requestWalletId, sources.walletsById);
+          Long categoryId = validCategoryIdOrNull(requestCategoryId, sources.categoriesById);
           Long typeId = validTypeIdOrNull(requestTypeId);
           Long sortId = validSortIdOrNull(requestSortId);
           TransactionType type = transactionTypeFor(typeId);
-          HistoryTotals totals =
-              services.transactionGateway.findHistoryTotals(
-                  walletId, categoryId, type, startMillis, endExclusiveMillis);
+          HistorySearch search = sources.searchResolver.resolve(requestSearchQuery);
+          HistoryQuery query =
+              new HistoryQuery(
+                  walletId,
+                  categoryId,
+                  type,
+                  startMillis,
+                  endExclusiveMillis,
+                  Objects.equals(sortId, SORT_OLDEST_ID),
+                  search);
+          HistoryTotals totals = services.transactionGateway.findHistoryTotals(query);
           return new HistoryReloadData(
-              walletMap, categoryMap, tagMap, merchantMap, walletId, categoryId, typeId, sortId, totals);
+              sources,
+              walletId,
+              categoryId,
+              typeId,
+              sortId,
+              query,
+              totals);
         },
         data -> {
           if (!isAdded() || generation != reloadGeneration || data == null) {
             return;
           }
-          walletsById = data.walletsById;
-          categoriesById = data.categoriesById;
+          historySources = data.sources;
+          walletsById = data.sources.walletsById;
+          categoriesById = data.sources.categoriesById;
           selectedWalletId = data.walletId;
           selectedCategoryId = data.categoryId;
           selectedTypeId = data.typeId;
           selectedSortId = data.sortId;
+          activeQuery = data.query;
           adapter.setEntityLookups(
-              categoriesById, walletsById, data.tagsById, data.merchantsById);
+              categoriesById,
+              walletsById,
+              data.sources.tagsById,
+              data.sources.merchantsById);
           renderSummary(data.totals);
           historyList.reload();
           updateEmptyState(data.totals.getCount() == 0);
@@ -204,24 +280,39 @@ public final class HistoryFragment extends ScreenFragment {
         });
   }
 
+  private HistorySources loadHistorySources() {
+    List<Wallet> wallets = services.walletDao.findAll();
+    List<Category> categories = services.categoryDao.findAllOrdered();
+    List<com.dwlhm.finan.data.entity.Tag> tags = services.tagDao.findAllOrderByUsage();
+    List<com.dwlhm.finan.data.entity.Merchant> merchants =
+        services.merchantDao.findAllOrderByUsage();
+    return new HistorySources(
+        EntityLookup.indexWallets(wallets),
+        EntityLookup.indexCategories(categories),
+        EntityLookup.indexTags(tags),
+        EntityLookup.indexMerchants(merchants),
+        new TransactionSearchResolver(wallets, categories, merchants, tags));
+  }
+
   private PageResult<Transaction, HistoryPageCursor> loadHistoryPage(
       @Nullable HistoryPageCursor cursor) {
     return services.transactionGateway.findHistoryPage(
-        selectedWalletId,
-        selectedCategoryId,
-        selectedTransactionType(),
-        selectedStartMillis(),
-        selectedEndExclusiveMillis(),
-        Objects.equals(selectedSortId, SORT_OLDEST_ID),
-        cursor,
-        historyList.getPageSize());
+        activeQuery, cursor, historyList.getPageSize());
   }
 
   private void updateEmptyState(boolean empty) {
+    boolean searching = !activeQuery.search().isEmpty();
+    emptyTitleView.setText(searching ? R.string.history_search_empty : R.string.history_empty);
+    emptyHintView.setText(
+        searching ? R.string.history_search_empty_hint : R.string.history_empty_hint);
     emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
-    summaryView.setVisibility(empty ? View.GONE : View.VISIBLE);
-    countView.setVisibility(empty ? View.GONE : View.VISIBLE);
     historyList.setVisibility(empty ? View.GONE : View.VISIBLE);
+  }
+
+  private void updateSearchControls() {
+    if (searchClearButton != null) {
+      searchClearButton.setVisibility(searchQuery.isEmpty() ? View.GONE : View.VISIBLE);
+    }
   }
 
   private void openTransactionDetail(int position) {
@@ -229,7 +320,7 @@ public final class HistoryFragment extends ScreenFragment {
             requireContext(),
             services,
             adapter.getTransactionAt(position),
-            this::reload)
+            () -> reload(true))
         .show();
   }
 
@@ -636,10 +727,6 @@ public final class HistoryFragment extends ScreenFragment {
     return sortId == null || sortId == SORT_OLDEST_ID ? sortId : null;
   }
 
-  private TransactionType selectedTransactionType() {
-    return transactionTypeFor(selectedTypeId);
-  }
-
   private static TransactionType transactionTypeFor(Long typeId) {
     if (typeId == null) {
       return null;
@@ -705,35 +792,50 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private static final class HistoryReloadData {
-    private final Map<Long, Wallet> walletsById;
-    private final Map<Long, Category> categoriesById;
-    private final Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById;
-    private final Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById;
+    private final HistorySources sources;
     private final Long walletId;
     private final Long categoryId;
     private final Long typeId;
     private final Long sortId;
+    private final HistoryQuery query;
     private final HistoryTotals totals;
 
     private HistoryReloadData(
-        Map<Long, Wallet> walletsById,
-        Map<Long, Category> categoriesById,
-        Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById,
-        Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById,
+        HistorySources sources,
         Long walletId,
         Long categoryId,
         Long typeId,
         Long sortId,
+        HistoryQuery query,
         HistoryTotals totals) {
-      this.walletsById = walletsById;
-      this.categoriesById = categoriesById;
-      this.tagsById = tagsById;
-      this.merchantsById = merchantsById;
+      this.sources = sources;
       this.walletId = walletId;
       this.categoryId = categoryId;
       this.typeId = typeId;
       this.sortId = sortId;
+      this.query = query;
       this.totals = totals;
+    }
+  }
+
+  private static final class HistorySources {
+    private final Map<Long, Wallet> walletsById;
+    private final Map<Long, Category> categoriesById;
+    private final Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById;
+    private final Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById;
+    private final TransactionSearchResolver searchResolver;
+
+    private HistorySources(
+        Map<Long, Wallet> walletsById,
+        Map<Long, Category> categoriesById,
+        Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById,
+        Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById,
+        TransactionSearchResolver searchResolver) {
+      this.walletsById = walletsById;
+      this.categoriesById = categoriesById;
+      this.tagsById = tagsById;
+      this.merchantsById = merchantsById;
+      this.searchResolver = searchResolver;
     }
   }
 

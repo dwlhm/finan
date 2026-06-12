@@ -78,6 +78,10 @@
     <string name="history_title">Riwayat</string>
     <string name="history_empty">Belum ada transaksi</string>
     <string name="history_empty_hint">Transaksi yang kamu catat akan muncul di sini.</string>
+    <string name="history_search_hint">Cari transaksi…</string>
+    <string name="history_search_clear">Hapus pencarian</string>
+    <string name="history_search_empty">Transaksi tidak ditemukan</string>
+    <string name="history_search_empty_hint">Coba kata lain atau ubah filter yang aktif.</string>
     <plurals name="history_count">
         <item quantity="other">%1$d transaksi ditampilkan</item>
     </plurals>
