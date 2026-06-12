@@ -147,7 +147,7 @@ public final class AmountShortcutDialog extends Dialog {
     InputMethodManager imm =
         (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
     if (imm != null) {
-      imm.showSoftInput(amountInput, InputMethodManager.SHOW_IMPLICIT);
+      imm.showSoftInput(amountInput, 0);
     }
   }
 
