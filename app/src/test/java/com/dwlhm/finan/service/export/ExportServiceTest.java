@@ -24,7 +24,7 @@ public class ExportServiceTest {
     public void csv_includes_format_version_header() {
         List<Transaction> transactions = List.of(sampleTransaction());
         String csv = exportService.toCsv(transactions);
-        assertTrue(csv.startsWith("FINAN_CSV_VERSION,2"));
+        assertTrue(csv.startsWith("FINAN_CSV_VERSION,3"));
     }
 
     @Test
@@ -32,7 +32,7 @@ public class ExportServiceTest {
         String csv = exportService.toCsv(List.of());
         assertTrue(
             csv.contains(
-                "id,amount_minor,type,wallet_id,category_id,occurred_at,note,merchant_id,tag_ids"));
+                "id,amount_minor,type,wallet_id,category_id,occurred_at,note,merchant_id,tag_ids,transfer_id"));
     }
 
     @Test
@@ -55,7 +55,7 @@ public class ExportServiceTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         exportService.exportTo(out, singleTransactionGateway(t));
         String csv = out.toString(StandardCharsets.UTF_8);
-        assertTrue(csv.startsWith("FINAN_CSV_VERSION,2"));
+        assertTrue(csv.startsWith("FINAN_CSV_VERSION,3"));
         assertTrue(csv.contains("42,25000,EXPENSE,1,2,1700000000000,lunch,7,10;11"));
     }
 
@@ -87,11 +87,6 @@ public class ExportServiceTest {
             }
 
             @Override
-            public Transaction findLast() {
-                return null;
-            }
-
-            @Override
             public List<Transaction> findRecent(int limit) {
                 return List.of();
             }
@@ -109,6 +104,11 @@ public class ExportServiceTest {
 
             @Override
             public List<Transaction> findByWalletId(long walletId) {
+                return List.of();
+            }
+
+            @Override
+            public List<Transaction> findByTransferId(long transferId) {
                 return List.of();
             }
 

@@ -11,12 +11,10 @@ import android.database.sqlite.SQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.dwlhm.finan.data.dao.CategoryDao;
 import com.dwlhm.finan.data.dao.MerchantDao;
 import com.dwlhm.finan.data.dao.TagDao;
 import com.dwlhm.finan.data.dao.TransactionDao;
 import com.dwlhm.finan.data.dao.TransactionTagDao;
-import com.dwlhm.finan.data.dao.WalletDao;
 import com.dwlhm.finan.data.db.FinanDatabaseHelper;
 import com.dwlhm.finan.data.entity.Merchant;
 import com.dwlhm.finan.data.entity.Tag;
@@ -28,7 +26,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
-import java.util.Objects;
 
 @RunWith(AndroidJUnit4.class)
 public class Migration003Test {
@@ -70,10 +67,8 @@ public class Migration003Test {
         0,
         2,
         new Migration[] {new Migration001Initial(), new Migration002TransactionIndexes()});
-    WalletDao walletDao = new WalletDao(v2Db);
-    CategoryDao categoryDao = new CategoryDao(v2Db);
-    long walletId = Objects.requireNonNull(walletDao.findDefault()).getId();
-    long categoryId = Objects.requireNonNull(categoryDao.findByName("Makanan")).getId();
+    long walletId = scalar(v2Db, "SELECT id FROM wallets WHERE is_default = 1 LIMIT 1");
+    long categoryId = scalar(v2Db, "SELECT id FROM categories WHERE name = 'Makanan' LIMIT 1");
     long now = System.currentTimeMillis();
     v2Db.execSQL(
         "INSERT INTO transactions "
@@ -150,5 +145,12 @@ public class Migration003Test {
       }
     }
     assertTrue(found);
+  }
+
+  private static long scalar(SQLiteDatabase db, String sql) {
+    try (Cursor cursor = db.rawQuery(sql, null)) {
+      assertTrue(cursor.moveToFirst());
+      return cursor.getLong(0);
+    }
   }
 }

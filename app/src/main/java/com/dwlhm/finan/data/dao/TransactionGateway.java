@@ -19,8 +19,6 @@ public interface TransactionGateway {
 
     Transaction findById(long transactionId);
 
-    Transaction findLast();
-
     List<Transaction> findRecent(int limit);
 
     PageResult<Transaction, HistoryPageCursor> findHistoryPage(
@@ -32,6 +30,8 @@ public interface TransactionGateway {
     HistoryTotals findHistoryTotals(HistoryQuery query);
 
     List<Transaction> findByWalletId(long walletId);
+
+    List<Transaction> findByTransferId(long transferId);
 
     void forEachTransaction(Consumer<Transaction> consumer);
 

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.dwlhm.finan.ui.common.FinanDialogCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:titleText="@string/wallet_transfer_dialog_title">
+
+    <TextView
+        style="@style/Finan.Text.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/wallet_transfer_source_label" />
+
+    <Spinner
+        android:id="@+id/wallet_transfer_source"
+        style="@style/Finan.Control.Surface"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        style="@style/Finan.Text.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="@string/wallet_transfer_destination_label" />
+
+    <Spinner
+        android:id="@+id/wallet_transfer_destination"
+        style="@style/Finan.Control.Surface"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
+
+    <com.dwlhm.finan.ui.common.LabeledEditTextView
+        android:id="@+id/wallet_transfer_amount_field"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:inputType="numberDecimal"
+        app:fieldHint="@string/capture_amount_placeholder"
+        app:labelText="@string/transaction_amount_label" />
+
+    <include
+        layout="@layout/include_transaction_occurred_at"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp" />
+
+    <TextView
+        style="@style/Finan.Text.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="@string/transaction_note_label" />
+
+    <EditText
+        android:id="@+id/wallet_transfer_note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_control_surface"
+        android:hint="@string/capture_note_hint"
+        android:importantForAutofill="no"
+        android:inputType="textCapSentences|textMultiLine"
+        android:minHeight="64dp"
+        android:padding="12dp"
+        android:textColor="@color/finan_text_primary"
+        android:textColorHint="@color/finan_text_hint" />
+
+    <com.dwlhm.finan.ui.common.DialogActionsView
+        android:id="@+id/wallet_transfer_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        app:primaryText="@string/wallet_transfer_save" />
+</com.dwlhm.finan.ui.common.FinanDialogCardView>

@@ -31,7 +31,10 @@ public class BalanceService {
             Transaction t = transactions.get(i);
             deltas[i] = BalanceRules.deltaFor(t.getType(), t.getAmountMinor());
         }
-        long balance = BalanceRules.sumDeltas(deltas);
+        long balance =
+                BalanceRules.apply(
+                        walletBalanceDao.getOpeningBalance(walletId),
+                        BalanceRules.sumDeltas(deltas));
         walletBalanceDao.setCachedBalance(walletId, balance);
         return balance;
     }

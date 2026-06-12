@@ -18,6 +18,15 @@ public final class SqliteWalletBalanceDao implements WalletBalanceDao {
   }
 
   @Override
+  public long getOpeningBalance(long walletId) {
+    com.dwlhm.finan.data.entity.Wallet wallet = table.findById(walletId);
+    if (wallet == null) {
+      throw new IllegalArgumentException("Wallet not found");
+    }
+    return wallet.getOpeningBalanceMinor();
+  }
+
+  @Override
   public void setCachedBalance(long walletId, long balanceMinor) {
     com.dwlhm.finan.data.entity.Wallet wallet = table.findById(walletId);
     if (wallet == null) {
@@ -28,6 +37,7 @@ public final class SqliteWalletBalanceDao implements WalletBalanceDao {
         wallet.getName(),
         wallet.getCurrencyCode(),
         wallet.isDefault(),
+        wallet.getOpeningBalanceMinor(),
         balanceMinor,
         wallet.getCreatedAt());
   }

@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @RunWith(AndroidJUnit4.class)
 public class TransactionTagDaoTest {
@@ -43,7 +44,21 @@ public class TransactionTagDaoTest {
   public void replaceAll_storesMultipleTagsPerTransaction() {
     long tagA = tagDao.insert("liburan", 0, null);
     long tagB = tagDao.insert("pacar", 0, null);
-    long transactionId = 42L;
+    WalletDao walletDao = new WalletDao(helper.getWritableDatabase());
+    CategoryDao categoryDao = new CategoryDao(helper.getWritableDatabase());
+    long now = System.currentTimeMillis();
+    long transactionId =
+        new TransactionDao(helper.getWritableDatabase())
+            .insert(
+                1_000L,
+                "EXPENSE",
+                Objects.requireNonNull(walletDao.findDefault()).getId(),
+                Objects.requireNonNull(categoryDao.findByName("Makanan")).getId(),
+                now,
+                null,
+                null,
+                now,
+                now);
 
     dao.replaceAll(transactionId, Arrays.asList(tagA, tagB, tagA));
 

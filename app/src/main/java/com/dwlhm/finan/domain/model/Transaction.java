@@ -14,6 +14,7 @@ public class Transaction {
     private long occurredAt;
     private String note;
     private Long merchantId;
+    private Long transferId;
     private List<Long> tagIds = Collections.emptyList();
 
     public Transaction(
@@ -96,6 +97,14 @@ public class Transaction {
 
     public void setMerchantId(Long merchantId) {
         this.merchantId = merchantId;
+    }
+
+    public Long getTransferId() {
+        return transferId;
+    }
+
+    public void setTransferId(Long transferId) {
+        this.transferId = transferId;
     }
 
     public List<Long> getTagIds() {

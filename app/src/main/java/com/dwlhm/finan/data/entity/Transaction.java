@@ -10,6 +10,7 @@ public final class Transaction {
   private final long occurredAt;
   private final String note;
   private final Long merchantId;
+  private final Long transferId;
   private final long createdAt;
   private final long updatedAt;
 
@@ -22,6 +23,7 @@ public final class Transaction {
       long occurredAt,
       String note,
       Long merchantId,
+      Long transferId,
       long createdAt,
       long updatedAt) {
     this.id = id;
@@ -32,6 +34,7 @@ public final class Transaction {
     this.occurredAt = occurredAt;
     this.note = note;
     this.merchantId = merchantId;
+    this.transferId = transferId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -66,6 +69,10 @@ public final class Transaction {
 
   public Long getMerchantId() {
     return merchantId;
+  }
+
+  public Long getTransferId() {
+    return transferId;
   }
 
   public long getCreatedAt() {

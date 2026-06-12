@@ -67,4 +67,22 @@ public class ValidationRulesTest {
         t.setOccurredAt(0L);
         assertFalse(ValidationRules.isValid(t).isValid());
     }
+
+    @Test
+    public void system_transaction_does_not_require_category() {
+        Transaction t = validExpense();
+        t.setType(TransactionType.ADJUSTMENT_INCREASE);
+        t.setCategoryId(0L);
+        assertTrue(ValidationRules.isValid(t).isValid());
+    }
+
+    @Test
+    public void transfer_requires_transfer_id() {
+        Transaction t = validExpense();
+        t.setType(TransactionType.TRANSFER_OUT);
+        t.setCategoryId(0L);
+        assertFalse(ValidationRules.isValid(t).isValid());
+        t.setTransferId(1L);
+        assertTrue(ValidationRules.isValid(t).isValid());
+    }
 }

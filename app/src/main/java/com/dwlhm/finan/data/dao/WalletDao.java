@@ -18,12 +18,13 @@ public final class WalletDao {
   }
 
   public long insert(
-      String name, String currencyCode, boolean isDefault, long cachedBalanceMinor, long createdAt) {
+      String name, String currencyCode, boolean isDefault, long openingBalanceMinor, long createdAt) {
     ContentValues values = new ContentValues();
     values.put("name", name);
     values.put("currency_code", currencyCode);
     values.put("is_default", isDefault ? 1 : 0);
-    values.put("cached_balance_minor", cachedBalanceMinor);
+    values.put("opening_balance_minor", openingBalanceMinor);
+    values.put("cached_balance_minor", openingBalanceMinor);
     values.put("created_at", createdAt);
     return db.insert("wallets", null, values);
   }
@@ -33,12 +34,14 @@ public final class WalletDao {
       String name,
       String currencyCode,
       boolean isDefault,
+      long openingBalanceMinor,
       long cachedBalanceMinor,
       long createdAt) {
     ContentValues values = new ContentValues();
     values.put("name", name);
     values.put("currency_code", currencyCode);
     values.put("is_default", isDefault ? 1 : 0);
+    values.put("opening_balance_minor", openingBalanceMinor);
     values.put("cached_balance_minor", cachedBalanceMinor);
     values.put("created_at", createdAt);
     return db.update("wallets", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
@@ -48,12 +51,6 @@ public final class WalletDao {
     ContentValues values = new ContentValues();
     values.put("is_default", 0);
     db.update("wallets", values, "id <> ?", new String[]{String.valueOf(walletId)});
-  }
-
-  public boolean updateName(long id, String name) {
-    ContentValues values = new ContentValues();
-    values.put("name", name);
-    return db.update("wallets", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
   }
 
   public boolean updateNameAndDefault(long id, String name, boolean makeDefault) {
@@ -141,6 +138,7 @@ public final class WalletDao {
         c.getString(c.getColumnIndexOrThrow("name")),
         c.getString(c.getColumnIndexOrThrow("currency_code")),
         c.getInt(c.getColumnIndexOrThrow("is_default")) == 1,
+        c.getLong(c.getColumnIndexOrThrow("opening_balance_minor")),
         c.getLong(c.getColumnIndexOrThrow("cached_balance_minor")),
         c.getLong(c.getColumnIndexOrThrow("created_at")));
   }

@@ -114,7 +114,8 @@ public final class SettingsFragment extends ScreenFragment {
             if (out == null) {
               return Boolean.FALSE;
             }
-            services.exportService.exportTo(out, services.transactionGateway);
+            services.exportService.exportTo(
+                out, services.walletDao.findAll(), services.transactionGateway);
             return Boolean.TRUE;
           } catch (IOException e) {
             return Boolean.FALSE;

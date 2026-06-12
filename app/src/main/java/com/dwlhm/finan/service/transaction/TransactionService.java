@@ -1,5 +1,7 @@
 package com.dwlhm.finan.service.transaction;
 
+import android.database.sqlite.SQLiteDatabase;
+
 import com.dwlhm.finan.data.dao.TransactionGateway;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.rule.ValidationRules;
@@ -16,6 +18,7 @@ import java.util.List;
 public class TransactionService {
 
     private final TransactionGateway transactionDao;
+    private final SQLiteDatabase db;
     private final BalanceService balanceService;
     private final CategoryUsageService categoryUsageService;
     private final TagUsageService tagUsageService;
@@ -23,6 +26,7 @@ public class TransactionService {
     private final TimeProvider timeProvider;
 
     public TransactionService(
+            SQLiteDatabase db,
             TransactionGateway transactionDao,
             BalanceService balanceService,
             CategoryUsageService categoryUsageService,
@@ -30,6 +34,7 @@ public class TransactionService {
             MerchantUsageService merchantUsageService,
             TimeProvider timeProvider
     ) {
+        this.db = db;
         this.transactionDao = transactionDao;
         this.balanceService = balanceService;
         this.categoryUsageService = categoryUsageService;
@@ -40,20 +45,30 @@ public class TransactionService {
 
     public long save(Transaction transaction) {
         prepareForWrite(transaction);
+        requireRegularTransaction(transaction);
         ValidationResult validation = ValidationRules.isValid(transaction);
         if (!validation.isValid()) {
             throw new IllegalArgumentException(validation.getMessage());
         }
-        long id = transactionDao.insert(transaction);
-        transaction.setId(id);
-        balanceService.applyTransaction(transaction);
-        categoryUsageService.bumpUsage(transaction.getCategoryId());
-        tagUsageService.bumpUsageForTags(transaction.getTagIds());
-        Long merchantId = transaction.getMerchantId();
-        if (merchantId != null) {
-            merchantUsageService.bumpUsage(merchantId);
+        db.beginTransaction();
+        try {
+            long id = transactionDao.insert(transaction);
+            if (id <= 0L) {
+                throw new IllegalStateException("Failed to save transaction");
+            }
+            transaction.setId(id);
+            balanceService.applyTransaction(transaction);
+            categoryUsageService.bumpUsage(transaction.getCategoryId());
+            tagUsageService.bumpUsageForTags(transaction.getTagIds());
+            Long merchantId = transaction.getMerchantId();
+            if (merchantId != null) {
+                merchantUsageService.bumpUsage(merchantId);
+            }
+            db.setTransactionSuccessful();
+            return id;
+        } finally {
+            db.endTransaction();
         }
-        return id;
     }
 
     public void edit(Transaction transaction) {
@@ -64,21 +79,29 @@ public class TransactionService {
         if (existing == null) {
             throw new IllegalArgumentException("Transaction not found");
         }
+        requireRegularTransaction(existing);
         prepareForWrite(transaction);
+        requireRegularTransaction(transaction);
         ValidationResult validation = ValidationRules.isValid(transaction);
         if (!validation.isValid()) {
             throw new IllegalArgumentException(validation.getMessage());
         }
-        transactionDao.update(transaction);
-        balanceService.recalculate(transaction.getWalletId());
-        if (existing.getWalletId() != transaction.getWalletId()) {
-            balanceService.recalculate(existing.getWalletId());
-        }
-        categoryUsageService.bumpUsage(transaction.getCategoryId());
-        tagUsageService.bumpUsageForTags(transaction.getTagIds());
-        Long merchantId = transaction.getMerchantId();
-        if (merchantId != null) {
-            merchantUsageService.bumpUsage(merchantId);
+        db.beginTransaction();
+        try {
+            transactionDao.update(transaction);
+            balanceService.recalculate(transaction.getWalletId());
+            if (existing.getWalletId() != transaction.getWalletId()) {
+                balanceService.recalculate(existing.getWalletId());
+            }
+            categoryUsageService.bumpUsage(transaction.getCategoryId());
+            tagUsageService.bumpUsageForTags(transaction.getTagIds());
+            Long merchantId = transaction.getMerchantId();
+            if (merchantId != null) {
+                merchantUsageService.bumpUsage(merchantId);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
         }
     }
 
@@ -87,20 +110,15 @@ public class TransactionService {
         if (existing == null) {
             return;
         }
-        transactionDao.delete(transactionId);
-        balanceService.recalculate(existing.getWalletId());
-    }
-
-    /** Deletes the most recent transaction by occurred_at. Capture undo uses {@link #delete(long)} with a known id. */
-    public boolean undoLast() {
-        Transaction last = transactionDao.findLast();
-        if (last == null) {
-            return false;
+        requireRegularTransaction(existing);
+        db.beginTransaction();
+        try {
+            transactionDao.delete(transactionId);
+            balanceService.recalculate(existing.getWalletId());
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
         }
-        long walletId = last.getWalletId();
-        transactionDao.delete(last.getId());
-        balanceService.recalculate(walletId);
-        return true;
     }
 
     public List<Transaction> getRecent(int limit) {
@@ -109,5 +127,11 @@ public class TransactionService {
 
     private void prepareForWrite(Transaction transaction) {
         transaction.setOccurredAt(OccurredAtHelper.resolve(transaction.getOccurredAt(), timeProvider));
+    }
+
+    private static void requireRegularTransaction(Transaction transaction) {
+        if (transaction.getType() == null || !transaction.getType().isRegular()) {
+            throw new IllegalArgumentException("System transactions require their dedicated service");
+        }
     }
 }

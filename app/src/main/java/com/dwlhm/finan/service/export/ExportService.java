@@ -1,6 +1,7 @@
 package com.dwlhm.finan.service.export;
 
 import com.dwlhm.finan.data.dao.TransactionGateway;
+import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.Transaction;
 
 import java.io.BufferedOutputStream;
@@ -12,18 +13,30 @@ import java.util.List;
 
 public class ExportService {
 
-  public static final int CSV_FORMAT_VERSION = 2;
+  public static final int CSV_FORMAT_VERSION = 3;
   private static final String VERSION_HEADER = "FINAN_CSV_VERSION," + CSV_FORMAT_VERSION;
-  private static final String COLUMN_HEADER =
-      "id,amount_minor,type,wallet_id,category_id,occurred_at,note,merchant_id,tag_ids";
+  private static final String WALLET_SECTION = "WALLETS";
+  private static final String WALLET_HEADER =
+      "id,name,currency_code,is_default,opening_balance_minor";
+  private static final String TRANSACTION_SECTION = "TRANSACTIONS";
+  private static final String TRANSACTION_HEADER =
+      "id,amount_minor,type,wallet_id,category_id,occurred_at,note,merchant_id,tag_ids,transfer_id";
 
   public void exportTo(OutputStream out, TransactionGateway transactionGateway) throws IOException {
+    exportTo(out, List.of(), transactionGateway);
+  }
+
+  public void exportTo(
+      OutputStream out, List<Wallet> wallets, TransactionGateway transactionGateway)
+      throws IOException {
     BufferedOutputStream buffered =
         out instanceof BufferedOutputStream
             ? (BufferedOutputStream) out
             : new BufferedOutputStream(out);
     writeLine(buffered, VERSION_HEADER);
-    writeLine(buffered, COLUMN_HEADER);
+    writeWallets(buffered, wallets);
+    writeLine(buffered, TRANSACTION_SECTION);
+    writeLine(buffered, TRANSACTION_HEADER);
     try {
       transactionGateway.forEachTransaction(
           transaction -> {
@@ -34,7 +47,11 @@ public class ExportService {
             }
           });
     } catch (UncheckedIOException e) {
-      throw (IOException) e.getCause();
+      IOException cause = e.getCause();
+      if (cause != null) {
+        throw cause;
+      }
+      throw e;
     }
     buffered.flush();
   }
@@ -42,11 +59,39 @@ public class ExportService {
   public String toCsv(List<Transaction> transactions) {
     StringBuilder csv = new StringBuilder();
     csv.append(VERSION_HEADER).append('\n');
-    csv.append(COLUMN_HEADER).append('\n');
+    appendWallets(csv, List.of());
+    csv.append(TRANSACTION_SECTION).append('\n');
+    csv.append(TRANSACTION_HEADER).append('\n');
     for (Transaction transaction : transactions) {
       appendTransactionRow(csv, transaction);
     }
     return csv.toString();
+  }
+
+  private static void writeWallets(OutputStream out, List<Wallet> wallets) throws IOException {
+    writeLine(out, WALLET_SECTION);
+    writeLine(out, WALLET_HEADER);
+    for (Wallet wallet : wallets) {
+      StringBuilder row = new StringBuilder();
+      appendWalletRow(row, wallet);
+      out.write(row.toString().getBytes(StandardCharsets.UTF_8));
+    }
+  }
+
+  private static void appendWallets(StringBuilder csv, List<Wallet> wallets) {
+    csv.append(WALLET_SECTION).append('\n');
+    csv.append(WALLET_HEADER).append('\n');
+    for (Wallet wallet : wallets) {
+      appendWalletRow(csv, wallet);
+    }
+  }
+
+  private static void appendWalletRow(StringBuilder csv, Wallet wallet) {
+    csv.append(wallet.getId()).append(',');
+    csv.append(escapeCsv(wallet.getName())).append(',');
+    csv.append(escapeCsv(wallet.getCurrencyCode())).append(',');
+    csv.append(wallet.isDefault() ? 1 : 0).append(',');
+    csv.append(wallet.getOpeningBalanceMinor()).append('\n');
   }
 
   private static void writeTransactionRow(OutputStream out, Transaction transaction)
@@ -66,9 +111,12 @@ public class ExportService {
     csv.append(escapeCsv(transaction.getNote())).append(',');
     Long merchantId = transaction.getMerchantId();
     csv.append(merchantId == null ? "" : merchantId).append(',');
-    csv.append(escapeCsv(formatTagIds(transaction.getTagIds()))).append('\n');
+    csv.append(escapeCsv(formatTagIds(transaction.getTagIds()))).append(',');
+    Long transferId = transaction.getTransferId();
+    csv.append(transferId == null ? "" : transferId).append('\n');
   }
 
+  @SuppressWarnings("SizeReplaceableByIsEmpty")
   private static String formatTagIds(List<Long> tagIds) {
     if (tagIds == null || tagIds.isEmpty()) {
       return "";

@@ -6,6 +6,7 @@ public final class Wallet {
   private final String name;
   private final String currencyCode;
   private final boolean isDefault;
+  private final long openingBalanceMinor;
   private final long cachedBalanceMinor;
   private final long createdAt;
 
@@ -14,12 +15,14 @@ public final class Wallet {
       String name,
       String currencyCode,
       boolean isDefault,
+      long openingBalanceMinor,
       long cachedBalanceMinor,
       long createdAt) {
     this.id = id;
     this.name = name;
     this.currencyCode = currencyCode;
     this.isDefault = isDefault;
+    this.openingBalanceMinor = openingBalanceMinor;
     this.cachedBalanceMinor = cachedBalanceMinor;
     this.createdAt = createdAt;
   }
@@ -42,6 +45,10 @@ public final class Wallet {
 
   public long getCachedBalanceMinor() {
     return cachedBalanceMinor;
+  }
+
+  public long getOpeningBalanceMinor() {
+    return openingBalanceMinor;
   }
 
   public long getCreatedAt() {

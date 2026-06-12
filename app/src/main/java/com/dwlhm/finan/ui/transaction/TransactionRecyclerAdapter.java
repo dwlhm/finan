@@ -17,7 +17,6 @@ import com.dwlhm.finan.data.entity.Merchant;
 import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.Transaction;
-import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.ui.common.infinitescroll.InfiniteScrollRecyclerAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
@@ -102,7 +101,7 @@ public final class TransactionRecyclerAdapter
             ? null
             : merchantsById.get(transaction.getMerchantId());
 
-    holder.category.setText(category != null ? category.getName() : "—");
+    holder.category.setText(TransactionRowLabels.title(context, transaction, category));
     setIndicatorColor(
         holder.categoryIndicator,
         colorFor(
@@ -117,19 +116,14 @@ public final class TransactionRecyclerAdapter
             wallet != null ? wallet.getName() : ""));
 
     String formatted = MoneyFormatter.format(transaction.getAmountMinor());
-    int typeColor;
-    if (transaction.getType() == TransactionType.INCOME) {
-      holder.amount.setText(context.getString(R.string.transaction_income_amount_format, formatted));
-      typeColor = ContextCompat.getColor(context, R.color.finan_income);
-    } else {
-      holder.amount.setText(context.getString(R.string.transaction_expense_amount_format, formatted));
-      typeColor = ContextCompat.getColor(context, R.color.finan_expense);
-    }
-    holder.amount.setTextColor(typeColor);
+    holder.amount.setText(
+        context.getString(TransactionRowLabels.amountFormat(transaction.getType()), formatted));
+    holder.amount.setTextColor(
+        ContextCompat.getColor(context, TransactionRowLabels.amountColor(transaction.getType())));
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
-    holder.meta.setText(TransactionRowLabels.formatMeta(transaction, merchant, walletName, when));
+    holder.meta.setText(TransactionRowLabels.formatMeta(merchant, walletName, when));
 
     String tagLine = TransactionRowLabels.formatTagLine(transaction, tagsById);
     String secondary = TransactionRowLabels.formatSecondaryLine(transaction, tagLine);

@@ -19,6 +19,7 @@ final class CaptureFormValidation {
   enum Field {
     AMOUNT,
     WALLET,
+    DESTINATION,
     CATEGORY
   }
 
@@ -27,6 +28,8 @@ final class CaptureFormValidation {
   private final EditText amountInput;
   private final View walletSection;
   private final TextView walletError;
+  private final View destinationSection;
+  private final TextView destinationError;
   private final View categorySection;
   private final TextView categoryError;
   @Nullable private final TextView validationBanner;
@@ -38,6 +41,8 @@ final class CaptureFormValidation {
     amountInput = root.findViewById(R.id.capture_amount);
     walletSection = root.findViewById(R.id.capture_wallet_section);
     walletError = root.findViewById(R.id.capture_wallet_error);
+    destinationSection = root.findViewById(R.id.capture_destination_section);
+    destinationError = root.findViewById(R.id.capture_destination_error);
     categorySection = root.findViewById(R.id.capture_category_section);
     categoryError = root.findViewById(R.id.capture_category_error);
   }
@@ -69,6 +74,11 @@ final class CaptureFormValidation {
         clearSectionHighlight(walletSection);
         walletError.setVisibility(View.GONE);
         walletError.setText("");
+        break;
+      case DESTINATION:
+        clearSectionHighlight(destinationSection);
+        destinationError.setVisibility(View.GONE);
+        destinationError.setText("");
         break;
       case CATEGORY:
         categorySection.setBackgroundResource(R.drawable.bg_card);
@@ -102,6 +112,11 @@ final class CaptureFormValidation {
         walletError.setText(message);
         walletError.setVisibility(View.VISIBLE);
         break;
+      case DESTINATION:
+        destinationSection.setBackgroundResource(R.drawable.bg_field_error);
+        destinationError.setText(message);
+        destinationError.setVisibility(View.VISIBLE);
+        break;
       case CATEGORY:
         categorySection.setBackgroundResource(R.drawable.bg_field_error);
         categoryError.setText(message);
@@ -132,6 +147,9 @@ final class CaptureFormValidation {
     if (walletError.getVisibility() == View.VISIBLE) {
       return walletSection;
     }
+    if (destinationError.getVisibility() == View.VISIBLE) {
+      return destinationSection;
+    }
     if (categoryError.getVisibility() == View.VISIBLE) {
       return categorySection;
     }
@@ -156,6 +174,7 @@ final class CaptureFormValidation {
   private boolean hasVisibleErrors() {
     return amountError.getVisibility() == View.VISIBLE
         || walletError.getVisibility() == View.VISIBLE
+        || destinationError.getVisibility() == View.VISIBLE
         || categoryError.getVisibility() == View.VISIBLE;
   }
 }

@@ -18,6 +18,18 @@ public class BalanceRulesTest {
     }
 
     @Test
+    public void system_transactions_apply_correct_direction() {
+        assertEquals(
+                10_000L,
+                BalanceRules.deltaFor(TransactionType.ADJUSTMENT_INCREASE, 10_000L));
+        assertEquals(
+                -10_000L,
+                BalanceRules.deltaFor(TransactionType.ADJUSTMENT_DECREASE, 10_000L));
+        assertEquals(10_000L, BalanceRules.deltaFor(TransactionType.TRANSFER_IN, 10_000L));
+        assertEquals(-10_000L, BalanceRules.deltaFor(TransactionType.TRANSFER_OUT, 10_000L));
+    }
+
+    @Test
     public void apply_delta_updates_balance() {
         assertEquals(75_000L, BalanceRules.apply(100_000L, -25_000L));
     }

@@ -30,14 +30,39 @@ public final class TransactionDao {
       Long merchantId,
       long createdAt,
       long updatedAt) {
+    return insert(
+        amountMinor,
+        type,
+        walletId,
+        categoryId,
+        occurredAt,
+        note,
+        merchantId,
+        null,
+        createdAt,
+        updatedAt);
+  }
+
+  public long insert(
+      long amountMinor,
+      String type,
+      long walletId,
+      long categoryId,
+      long occurredAt,
+      String note,
+      Long merchantId,
+      Long transferId,
+      long createdAt,
+      long updatedAt) {
     ContentValues values = new ContentValues();
     values.put("amount_minor", amountMinor);
     values.put("type", type);
     values.put("wallet_id", walletId);
-    values.put("category_id", categoryId);
+    putCategoryId(values, categoryId);
     values.put("occurred_at", occurredAt);
     putNote(values, note);
     putMerchantId(values, merchantId);
+    putTransferId(values, transferId);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.insert("transactions", null, values);
@@ -54,14 +79,41 @@ public final class TransactionDao {
       Long merchantId,
       long createdAt,
       long updatedAt) {
+    return update(
+        id,
+        amountMinor,
+        type,
+        walletId,
+        categoryId,
+        occurredAt,
+        note,
+        merchantId,
+        null,
+        createdAt,
+        updatedAt);
+  }
+
+  public boolean update(
+      long id,
+      long amountMinor,
+      String type,
+      long walletId,
+      long categoryId,
+      long occurredAt,
+      String note,
+      Long merchantId,
+      Long transferId,
+      long createdAt,
+      long updatedAt) {
     ContentValues values = new ContentValues();
     values.put("amount_minor", amountMinor);
     values.put("type", type);
     values.put("wallet_id", walletId);
-    values.put("category_id", categoryId);
+    putCategoryId(values, categoryId);
     values.put("occurred_at", occurredAt);
     putNote(values, note);
     putMerchantId(values, merchantId);
+    putTransferId(values, transferId);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.update("transactions", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
@@ -201,11 +253,6 @@ public final class TransactionDao {
     return new HistoryTotalsRow(count, incomeMinor, expenseMinor);
   }
 
-  public Transaction findLast() {
-    List<Transaction> recent = findRecent(1);
-    return recent.isEmpty() ? null : recent.get(0);
-  }
-
   public List<Transaction> findByWalletId(long walletId) {
     List<Transaction> transactions = new ArrayList<>();
     try (Cursor c =
@@ -244,6 +291,32 @@ public final class TransactionDao {
     return transactions;
   }
 
+  public List<Transaction> findByTransferId(long transferId) {
+    List<Transaction> transactions = new ArrayList<>();
+    try (Cursor c =
+        db.query(
+            "transactions",
+            null,
+            "transfer_id = ?",
+            new String[] {String.valueOf(transferId)},
+            null,
+            null,
+            "id ASC")) {
+      while (c.moveToNext()) {
+        transactions.add(map(c));
+      }
+    }
+    return transactions;
+  }
+
+  private static void putCategoryId(ContentValues values, long categoryId) {
+    if (categoryId <= 0L) {
+      values.putNull("category_id");
+    } else {
+      values.put("category_id", categoryId);
+    }
+  }
+
   private static void putNote(ContentValues values, String note) {
     if (note == null) {
       values.putNull("note");
@@ -257,6 +330,14 @@ public final class TransactionDao {
       values.putNull("merchant_id");
     } else {
       values.put("merchant_id", merchantId);
+    }
+  }
+
+  private static void putTransferId(ContentValues values, Long transferId) {
+    if (transferId == null) {
+      values.putNull("transfer_id");
+    } else {
+      values.put("transfer_id", transferId);
     }
   }
 
@@ -377,6 +458,7 @@ public final class TransactionDao {
     return values.toString();
   }
 
+  @SuppressWarnings("SizeReplaceableByIsEmpty")
   private static boolean hasContent(StringBuilder value) {
     return value.length() != 0;
   }
@@ -407,6 +489,11 @@ public final class TransactionDao {
     if (merchantIndex >= 0 && !c.isNull(merchantIndex)) {
       merchantId = c.getLong(merchantIndex);
     }
+    int transferIndex = c.getColumnIndex("transfer_id");
+    Long transferId = null;
+    if (transferIndex >= 0 && !c.isNull(transferIndex)) {
+      transferId = c.getLong(transferIndex);
+    }
     return new Transaction(
         c.getLong(c.getColumnIndexOrThrow("id")),
         c.getLong(c.getColumnIndexOrThrow("amount_minor")),
@@ -416,6 +503,7 @@ public final class TransactionDao {
         c.getLong(c.getColumnIndexOrThrow("occurred_at")),
         c.getString(c.getColumnIndexOrThrow("note")),
         merchantId,
+        transferId,
         c.getLong(c.getColumnIndexOrThrow("created_at")),
         c.getLong(c.getColumnIndexOrThrow("updated_at")));
   }

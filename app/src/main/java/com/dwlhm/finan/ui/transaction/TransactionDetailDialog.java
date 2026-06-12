@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.transaction;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
@@ -228,20 +229,20 @@ public final class TransactionDetailDialog extends Dialog {
     titleView.setText(R.string.transaction_detail_title);
     detailPanel.setVisibility(android.view.View.VISIBLE);
     editPanel.setVisibility(android.view.View.GONE);
-    boolean income = transaction.getType() == TransactionType.INCOME;
-
     amountView.setText(
         getContext()
             .getString(
-                income
-                    ? R.string.transaction_income_amount_format
-                    : R.string.transaction_expense_amount_format,
+                TransactionRowLabels.amountFormat(transaction.getType()),
                 MoneyFormatter.format(transaction.getAmountMinor())));
     amountView.setTextColor(
-        ContextCompat.getColor(getContext(), income ? R.color.finan_income : R.color.finan_expense));
-    typeView.setText(income ? R.string.capture_type_income : R.string.capture_type_expense);
+        ContextCompat.getColor(
+            getContext(), TransactionRowLabels.amountColor(transaction.getType())));
+    typeView.setText(TransactionRowLabels.typeLabel(transaction.getType()));
     walletView.setText(wallet != null ? wallet.getName() : "—");
-    categoryView.setText(category != null ? category.getName() : "—");
+    categoryView.setText(
+        transaction.getType().isRegular() && category != null
+            ? category.getName()
+            : getContext().getString(R.string.transaction_system_category));
     dateView.setText(dateFormat.format(new Date(transaction.getOccurredAt())));
     String note = transaction.getNote();
     boolean hasNote = !TextUtils.isEmpty(note);
@@ -267,8 +268,57 @@ public final class TransactionDetailDialog extends Dialog {
 
     secondaryButton.setText(android.R.string.cancel);
     secondaryButton.setOnClickListener(v -> dismiss());
-    primaryButton.setText(R.string.transaction_edit_action);
-    primaryButton.setOnClickListener(v -> beginEdit());
+    if (transaction.getType().isSystem()) {
+      primaryButton.setText(R.string.transaction_delete_action);
+      primaryButton.setOnClickListener(v -> confirmDeleteSystemTransaction());
+    } else {
+      primaryButton.setText(R.string.transaction_edit_action);
+      primaryButton.setOnClickListener(v -> beginEdit());
+    }
+  }
+
+  private void confirmDeleteSystemTransaction() {
+    new AlertDialog.Builder(getContext())
+        .setMessage(R.string.transaction_delete_system_confirmation)
+        .setNegativeButton(android.R.string.cancel, null)
+        .setPositiveButton(
+            R.string.transaction_delete_action, (dialog, which) -> deleteSystemTransaction())
+        .show();
+  }
+
+  private void deleteSystemTransaction() {
+    services.dbWorker.compute(
+        () -> {
+          try {
+            if (transaction.getType().isTransfer()) {
+              Long transferId = transaction.getTransferId();
+              if (transferId == null) {
+                return Boolean.FALSE;
+              }
+              services.transferService.delete(transferId);
+            } else {
+              services.adjustmentService.delete(transaction.getId());
+            }
+            return Boolean.TRUE;
+          } catch (RuntimeException e) {
+            return Boolean.FALSE;
+          }
+        },
+        deleted -> {
+          if (!isShowing()) {
+            return;
+          }
+          if (!Boolean.TRUE.equals(deleted)) {
+            Toast.makeText(getContext(), R.string.transaction_delete_error, Toast.LENGTH_SHORT)
+                .show();
+            return;
+          }
+          if (listener != null) {
+            listener.onTransactionChanged();
+          }
+          Toast.makeText(getContext(), R.string.transaction_deleted, Toast.LENGTH_SHORT).show();
+          dismiss();
+        });
   }
 
   private void beginEdit() {

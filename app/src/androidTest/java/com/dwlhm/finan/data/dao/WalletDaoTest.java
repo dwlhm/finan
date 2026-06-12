@@ -1,6 +1,7 @@
 package com.dwlhm.finan.data.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -56,15 +57,25 @@ public class WalletDaoTest {
         assertNotNull(wallet);
         assertEquals("Tabungan", wallet.getName());
         assertEquals("USD", wallet.getCurrencyCode());
-        assertEquals(false, wallet.isDefault());
+        assertFalse(wallet.isDefault());
+        assertEquals(5000, wallet.getOpeningBalanceMinor());
         assertEquals(5000, wallet.getCachedBalanceMinor());
     }
 
     @Test
     public void update_changesFields() {
         Wallet seeded = dao.findDefault();
-        dao.update(seeded.getId(), "Dompet Baru", "SGD", true, 100, seeded.getCreatedAt());
+        assertNotNull(seeded);
+        dao.update(
+                seeded.getId(),
+                "Dompet Baru",
+                "SGD",
+                true,
+                seeded.getOpeningBalanceMinor(),
+                100,
+                seeded.getCreatedAt());
         Wallet updated = dao.findById(seeded.getId());
+        assertNotNull(updated);
         assertEquals("Dompet Baru", updated.getName());
         assertEquals("SGD", updated.getCurrencyCode());
         assertTrue(updated.isDefault());

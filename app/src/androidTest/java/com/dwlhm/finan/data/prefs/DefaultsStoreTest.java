@@ -2,6 +2,7 @@ package com.dwlhm.finan.data.prefs;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -58,8 +59,9 @@ public class DefaultsStoreTest {
 
         TransactionFormDraft draft = new TransactionFormDraft();
         draft.setAmountMinor(25_000L);
-        draft.setType(TransactionType.EXPENSE);
+        draft.setType(TransactionType.TRANSFER_OUT);
         draft.setWalletId(3L);
+        draft.setDestinationWalletId(4L);
         draft.setCategoryId(9L);
         draft.setOccurredAtMillis(1_700_000_000_000L);
         draft.setNote("coffee");
@@ -67,8 +69,9 @@ public class DefaultsStoreTest {
 
         TransactionFormDraft restored = store.getCaptureDraft();
         assertEquals(25_000L, restored.getAmountMinor());
-        assertEquals(TransactionType.EXPENSE, restored.getType());
+        assertEquals(TransactionType.TRANSFER_OUT, restored.getType());
         assertEquals(Long.valueOf(3L), restored.getWalletId());
+        assertEquals(Long.valueOf(4L), restored.getDestinationWalletId());
         assertEquals(Long.valueOf(9L), restored.getCategoryId());
         assertEquals(1_700_000_000_000L, restored.getOccurredAtMillis());
         assertEquals("coffee", restored.getNote());
@@ -90,6 +93,7 @@ public class DefaultsStoreTest {
         store.setEditDraft(42L, draft);
 
         TransactionFormDraft restored = store.getEditDraft(42L);
+        assertNotNull(restored);
         assertEquals(Long.valueOf(42L), restored.getTransactionId());
         assertEquals(50_000L, restored.getAmountMinor());
         assertEquals(TransactionType.INCOME, restored.getType());
@@ -107,6 +111,7 @@ public class DefaultsStoreTest {
         draft.setOccurredAtMillis(123L);
 
         TransactionFormDraft parsed = TransactionFormDraft.fromJson(draft.toJson());
+        assertNotNull(parsed);
         assertEquals(10_000L, parsed.getAmountMinor());
         assertEquals(TransactionType.EXPENSE, parsed.getType());
         assertEquals(Long.valueOf(1L), parsed.getCategoryId());

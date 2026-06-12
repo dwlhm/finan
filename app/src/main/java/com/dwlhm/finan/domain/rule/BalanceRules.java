@@ -8,13 +8,10 @@ public final class BalanceRules {
     }
 
     public static long deltaFor(TransactionType type, long amountMinor) {
-        if (type == TransactionType.EXPENSE) {
-            return -amountMinor;
-        }
-        if (type == TransactionType.INCOME) {
-            return amountMinor;
-        }
-        throw new IllegalArgumentException("Unknown transaction type: " + type);
+        return switch (type) {
+            case EXPENSE, ADJUSTMENT_DECREASE, TRANSFER_OUT -> -amountMinor;
+            case INCOME, ADJUSTMENT_INCREASE, TRANSFER_IN -> amountMinor;
+        };
     }
 
     public static long apply(long currentBalanceMinor, long deltaMinor) {

@@ -35,6 +35,7 @@ public final class SqliteTransactionDao implements TransactionGateway {
             occurredAt,
             transaction.getNote(),
             transaction.getMerchantId(),
+            transaction.getTransferId(),
             now,
             now);
     transactionTags.replaceAll(id, transaction.getTagIds());
@@ -57,6 +58,7 @@ public final class SqliteTransactionDao implements TransactionGateway {
         transaction.getOccurredAt(),
         transaction.getNote(),
         transaction.getMerchantId(),
+        transaction.getTransferId(),
         existing.getCreatedAt(),
         now);
     transactionTags.replaceAll(transaction.getId(), transaction.getTagIds());
@@ -70,11 +72,6 @@ public final class SqliteTransactionDao implements TransactionGateway {
   @Override
   public com.dwlhm.finan.domain.model.Transaction findById(long transactionId) {
     return toDomain(table.findById(transactionId));
-  }
-
-  @Override
-  public com.dwlhm.finan.domain.model.Transaction findLast() {
-    return toDomain(table.findLast());
   }
 
   @Override
@@ -123,6 +120,11 @@ public final class SqliteTransactionDao implements TransactionGateway {
     return toDomainList(table.findByWalletId(walletId));
   }
 
+  @Override
+  public List<com.dwlhm.finan.domain.model.Transaction> findByTransferId(long transferId) {
+    return toDomainList(table.findByTransferId(transferId));
+  }
+
   private List<com.dwlhm.finan.domain.model.Transaction> toDomainList(List<Transaction> entities) {
     List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
     if (entities.isEmpty()) {
@@ -137,7 +139,7 @@ public final class SqliteTransactionDao implements TransactionGateway {
     Map<Long, List<Long>> tagIdsByTransaction =
         transactionTags.findTagIdsByTransactions(transactionIds);
     for (Transaction entity : entities) {
-      com.dwlhm.finan.domain.model.Transaction domain = toDomain(entity);
+      com.dwlhm.finan.domain.model.Transaction domain = map(entity);
       if (domain != null) {
         List<Long> tagIds = tagIdsByTransaction.get(entity.getId());
         if (tagIds != null) {
@@ -150,6 +152,14 @@ public final class SqliteTransactionDao implements TransactionGateway {
   }
 
   private com.dwlhm.finan.domain.model.Transaction toDomain(Transaction entity) {
+    com.dwlhm.finan.domain.model.Transaction domain = map(entity);
+    if (domain != null) {
+      domain.setTagIds(transactionTags.findTagIdsByTransaction(entity.getId()));
+    }
+    return domain;
+  }
+
+  private static com.dwlhm.finan.domain.model.Transaction map(Transaction entity) {
     if (entity == null) {
       return null;
     }
@@ -163,7 +173,7 @@ public final class SqliteTransactionDao implements TransactionGateway {
             entity.getOccurredAt(),
             entity.getNote());
     domain.setMerchantId(entity.getMerchantId());
-    domain.setTagIds(transactionTags.findTagIdsByTransaction(entity.getId()));
+    domain.setTransferId(entity.getTransferId());
     return domain;
   }
 }

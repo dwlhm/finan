@@ -45,12 +45,13 @@ public class BalanceServiceTest {
 
     @Test
     public void recalculate_from_transactions() {
+        walletBalanceDao.openingBalances.put(1L, 100_000L);
         transactionDao.add(expense(10_000L));
         transactionDao.add(income(50_000L));
         transactionDao.add(expense(5_000L));
         long balance = balanceService.recalculate(1L);
-        assertEquals(35_000L, balance);
-        assertEquals(35_000L, walletBalanceDao.getCachedBalance(1L));
+        assertEquals(135_000L, balance);
+        assertEquals(135_000L, walletBalanceDao.getCachedBalance(1L));
     }
 
     private static Transaction expense(long amount) {
@@ -88,11 +89,6 @@ public class BalanceServiceTest {
         }
 
         @Override
-        public Transaction findLast() {
-            return transactions.isEmpty() ? null : transactions.get(transactions.size() - 1);
-        }
-
-        @Override
         public List<Transaction> findRecent(int limit) {
             return transactions;
         }
@@ -125,6 +121,11 @@ public class BalanceServiceTest {
         }
 
         @Override
+        public List<Transaction> findByTransferId(long transferId) {
+            return List.of();
+        }
+
+        @Override
         public void forEachTransaction(Consumer<Transaction> consumer) {
             for (Transaction transaction : transactions) {
                 consumer.accept(transaction);
@@ -139,10 +140,17 @@ public class BalanceServiceTest {
 
     private static final class FakeWalletBalanceDao implements WalletBalanceDao {
         private final Map<Long, Long> balances = new HashMap<>();
+        private final Map<Long, Long> openingBalances = new HashMap<>();
 
         @Override
         public long getCachedBalance(long walletId) {
             Long balance = balances.get(walletId);
+            return balance == null ? 0L : balance;
+        }
+
+        @Override
+        public long getOpeningBalance(long walletId) {
+            Long balance = openingBalances.get(walletId);
             return balance == null ? 0L : balance;
         }
 

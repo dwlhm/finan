@@ -23,6 +23,7 @@ public final class TransactionFormDraft {
   private static final String KEY_AMOUNT_MINOR = "amountMinor";
   private static final String KEY_TYPE = "type";
   private static final String KEY_WALLET_ID = "walletId";
+  private static final String KEY_DESTINATION_WALLET_ID = "destinationWalletId";
   private static final String KEY_CATEGORY_ID = "categoryId";
   private static final String KEY_OCCURRED_AT = "occurredAtMillis";
   private static final String KEY_NOTE = "note";
@@ -33,6 +34,7 @@ public final class TransactionFormDraft {
   private long amountMinor;
   @NonNull private TransactionType type = TransactionType.EXPENSE;
   @Nullable private Long walletId;
+  @Nullable private Long destinationWalletId;
   @Nullable private Long categoryId;
   private long occurredAtMillis;
   @Nullable private String note;
@@ -66,6 +68,15 @@ public final class TransactionFormDraft {
 
   public void setWalletId(@Nullable Long walletId) {
     this.walletId = walletId;
+  }
+
+  @Nullable
+  public Long getDestinationWalletId() {
+    return destinationWalletId;
+  }
+
+  public void setDestinationWalletId(@Nullable Long destinationWalletId) {
+    this.destinationWalletId = destinationWalletId;
   }
 
   @Nullable
@@ -130,6 +141,7 @@ public final class TransactionFormDraft {
         || !TextUtils.isEmpty(note)
         || (merchantId != null && merchantId > 0L)
         || !tagIds.isEmpty()
+        || (destinationWalletId != null && destinationWalletId > 0L)
         || (categoryId != null && categoryId > 0L);
   }
 
@@ -178,6 +190,9 @@ public final class TransactionFormDraft {
       if (walletId != null && walletId > 0L) {
         object.put(KEY_WALLET_ID, walletId);
       }
+      if (destinationWalletId != null && destinationWalletId > 0L) {
+        object.put(KEY_DESTINATION_WALLET_ID, destinationWalletId);
+      }
       if (categoryId != null && categoryId > 0L) {
         object.put(KEY_CATEGORY_ID, categoryId);
       }
@@ -219,6 +234,9 @@ public final class TransactionFormDraft {
       draft.type = TransactionType.valueOf(typeName);
       if (object.has(KEY_WALLET_ID)) {
         draft.walletId = object.getLong(KEY_WALLET_ID);
+      }
+      if (object.has(KEY_DESTINATION_WALLET_ID)) {
+        draft.destinationWalletId = object.getLong(KEY_DESTINATION_WALLET_ID);
       }
       if (object.has(KEY_CATEGORY_ID)) {
         draft.categoryId = object.getLong(KEY_CATEGORY_ID);

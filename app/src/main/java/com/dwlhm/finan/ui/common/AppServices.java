@@ -18,17 +18,20 @@ import com.dwlhm.finan.data.dao.TagGateway;
 import com.dwlhm.finan.data.dao.TransactionDao;
 import com.dwlhm.finan.data.dao.TransactionGateway;
 import com.dwlhm.finan.data.dao.TransactionTagDao;
+import com.dwlhm.finan.data.dao.TransferDao;
 import com.dwlhm.finan.data.dao.WalletBalanceDao;
 import com.dwlhm.finan.data.dao.WalletDao;
 import com.dwlhm.finan.data.db.FinanDatabaseHelper;
 import com.dwlhm.finan.data.prefs.DefaultsStore;
 import com.dwlhm.finan.service.balance.BalanceService;
+import com.dwlhm.finan.service.balance.AdjustmentService;
 import com.dwlhm.finan.service.category.CategoryUsageService;
 import com.dwlhm.finan.service.export.ExportService;
 import com.dwlhm.finan.service.merchant.MerchantUsageService;
 import com.dwlhm.finan.service.summary.SummaryService;
 import com.dwlhm.finan.service.tag.TagUsageService;
 import com.dwlhm.finan.service.transaction.TransactionService;
+import com.dwlhm.finan.service.transfer.TransferService;
 import com.dwlhm.finan.util.date.SystemTimeProvider;
 
 import java.time.ZoneId;
@@ -37,6 +40,8 @@ public final class AppServices {
 
   public final FinanDatabaseHelper databaseHelper;
   public final TransactionService transactionService;
+  public final AdjustmentService adjustmentService;
+  public final TransferService transferService;
   public final SummaryService summaryService;
   public final ExportService exportService;
   public final TransactionGateway transactionGateway;
@@ -50,6 +55,8 @@ public final class AppServices {
   private AppServices(
       FinanDatabaseHelper databaseHelper,
       TransactionService transactionService,
+      AdjustmentService adjustmentService,
+      TransferService transferService,
       SummaryService summaryService,
       ExportService exportService,
       TransactionGateway transactionGateway,
@@ -61,6 +68,8 @@ public final class AppServices {
       DbWorker dbWorker) {
     this.databaseHelper = databaseHelper;
     this.transactionService = transactionService;
+    this.adjustmentService = adjustmentService;
+    this.transferService = transferService;
     this.summaryService = summaryService;
     this.exportService = exportService;
     this.transactionGateway = transactionGateway;
@@ -82,6 +91,7 @@ public final class AppServices {
     TagDao tagTable = new TagDao(db);
     MerchantDao merchantTable = new MerchantDao(db);
     WalletDao walletTable = new WalletDao(db);
+    TransferDao transferTable = new TransferDao(db);
     SummaryDao summaryDao = new SummaryDao(db);
 
     TransactionGateway transactionGateway =
@@ -98,11 +108,23 @@ public final class AppServices {
     SystemTimeProvider timeProvider = new SystemTimeProvider();
     TransactionService transactionService =
         new TransactionService(
+            db,
             transactionGateway,
             balanceService,
             categoryUsageService,
             tagUsageService,
             merchantUsageService,
+            timeProvider);
+    AdjustmentService adjustmentService =
+        new AdjustmentService(
+            db, transactionGateway, walletBalanceDao, balanceService, timeProvider);
+    TransferService transferService =
+        new TransferService(
+            db,
+            transferTable,
+            transactionGateway,
+            walletTable,
+            balanceService,
             timeProvider);
     SummaryService summaryService =
         new SummaryService(
@@ -115,6 +137,8 @@ public final class AppServices {
     return new AppServices(
         databaseHelper,
         transactionService,
+        adjustmentService,
+        transferService,
         summaryService,
         new ExportService(),
         transactionGateway,

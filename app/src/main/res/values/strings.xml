@@ -58,6 +58,7 @@
     <string name="capture_tag_already_exists">Tag sudah ada, dipilih otomatis</string>
     <string name="capture_type_expense">Pengeluaran</string>
     <string name="capture_type_income">Pemasukan</string>
+    <string name="capture_type_transfer">Transfer</string>
     <string name="capture_saved_undo_message">Transaksi tersimpan</string>
     <string name="capture_undo_action">Batalkan</string>
     <string name="capture_undo_failed">Tidak bisa membatalkan simpanan</string>
@@ -67,6 +68,7 @@
     <string name="capture_error_amount_positive">Nominal harus lebih dari 0</string>
     <string name="capture_error_category">Pilih kategori</string>
     <string name="capture_error_wallet">Pilih dompet</string>
+    <string name="capture_error_destination">Pilih dompet tujuan</string>
     <string name="capture_validation_hint">Periksa field yang ditandai merah</string>
     <string name="capture_error_save">Gagal menyimpan transaksi</string>
 
@@ -122,6 +124,10 @@
     <string name="transaction_tags_empty">Tidak ada tag</string>
     <string name="transaction_category_pick">Pilih kategori</string>
     <string name="transaction_edit_action">Edit</string>
+    <string name="transaction_delete_action">Hapus</string>
+    <string name="transaction_delete_system_confirmation">Hapus operasi ini dan pulihkan saldo dompet terkait?</string>
+    <string name="transaction_deleted">Operasi dihapus</string>
+    <string name="transaction_delete_error">Gagal menghapus operasi</string>
     <string name="transaction_edit_save">Simpan</string>
     <string name="transaction_updated">Transaksi diperbarui</string>
     <string name="transaction_not_found">Transaksi tidak ditemukan</string>
@@ -178,6 +184,27 @@
     <string name="wallet_error_update">Gagal memperbarui dompet</string>
     <string name="wallet_created">Dompet dibuat</string>
     <string name="wallet_updated">Dompet diperbarui</string>
+    <string name="wallet_adjust_action">Sesuaikan saldo</string>
+    <string name="wallet_adjust_dialog_title">Penyesuaian saldo</string>
+    <string name="wallet_current_balance_label">Saldo saat ini</string>
+    <string name="wallet_adjust_target_label">Saldo aktual</string>
+    <string name="wallet_adjust_target_example">Rp 0</string>
+    <string name="wallet_adjust_difference_label">Perubahan saldo</string>
+    <string name="wallet_adjust_no_change">Tidak ada perubahan</string>
+    <string name="wallet_adjust_save">Sesuaikan</string>
+    <string name="wallet_adjust_error_target">Masukkan saldo aktual yang valid</string>
+    <string name="wallet_adjust_saved">Saldo disesuaikan</string>
+    <string name="wallet_adjust_error_save">Gagal menyesuaikan saldo</string>
+    <string name="wallet_transfer_action">Transfer</string>
+    <string name="wallet_transfer_dialog_title">Transfer antar-dompet</string>
+    <string name="wallet_transfer_source_label">Dari dompet</string>
+    <string name="wallet_transfer_destination_label">Ke dompet</string>
+    <string name="wallet_transfer_save">Transfer</string>
+    <string name="wallet_transfer_need_two">Tambahkan dompet lain untuk melakukan transfer</string>
+    <string name="wallet_transfer_same_wallet">Pilih dompet tujuan yang berbeda</string>
+    <string name="wallet_transfer_error_amount">Masukkan nominal transfer yang valid</string>
+    <string name="wallet_transfer_saved">Transfer tersimpan</string>
+    <string name="wallet_transfer_error_save">Gagal menyimpan transfer</string>
 
     <string name="category_title">Kategori</string>
     <string name="category_empty">Belum ada kategori</string>
@@ -187,7 +214,7 @@
 
     <string name="settings_title">Pengaturan</string>
     <string name="settings_export">Ekspor data</string>
-    <string name="settings_export_hint">Ekspor transaksi ke file CSV (format Finan v1)</string>
+    <string name="settings_export_hint">Ekspor dompet dan transaksi ke file CSV (format Finan v3)</string>
     <string name="settings_export_success">Ekspor berhasil</string>
     <string name="settings_export_failed">Ekspor gagal</string>
     <string name="settings_export_in_progress">Mengekspor…</string>
@@ -200,4 +227,9 @@
     <string name="tag_remove_suffix">  ×</string>
     <string name="transaction_income_amount_format">+%1$s</string>
     <string name="transaction_expense_amount_format">-%1$s</string>
+    <string name="transaction_adjustment_increase">Penyesuaian saldo masuk</string>
+    <string name="transaction_adjustment_decrease">Penyesuaian saldo keluar</string>
+    <string name="transaction_transfer_in">Transfer masuk</string>
+    <string name="transaction_transfer_out">Transfer keluar</string>
+    <string name="transaction_system_category">Tidak berkategori</string>
 </resources>

@@ -52,13 +52,19 @@ public final class SummaryDao {
   public long walletBalanceBefore(long walletId, long endExclusive) {
     try (Cursor c =
         db.rawQuery(
-            "SELECT COALESCE(SUM("
-                + "CASE type "
+            "SELECT wallets.opening_balance_minor + COALESCE(SUM("
+                + "CASE transactions.type "
                 + "WHEN 'INCOME' THEN amount_minor "
+                + "WHEN 'ADJUSTMENT_INCREASE' THEN amount_minor "
+                + "WHEN 'TRANSFER_IN' THEN amount_minor "
                 + "WHEN 'EXPENSE' THEN -amount_minor "
-                + "ELSE 0 END), 0) FROM transactions "
-                + "WHERE wallet_id = ? AND occurred_at < ?",
-            new String[] {String.valueOf(walletId), String.valueOf(endExclusive)})) {
+                + "WHEN 'ADJUSTMENT_DECREASE' THEN -amount_minor "
+                + "WHEN 'TRANSFER_OUT' THEN -amount_minor "
+                + "ELSE 0 END), 0) FROM wallets "
+                + "LEFT JOIN transactions ON transactions.wallet_id = wallets.id "
+                + "AND transactions.occurred_at < ? "
+                + "WHERE wallets.id = ? GROUP BY wallets.id",
+            new String[] {String.valueOf(endExclusive), String.valueOf(walletId)})) {
       if (!c.moveToFirst()) {
         return 0L;
       }
