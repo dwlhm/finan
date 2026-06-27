@@ -4,6 +4,7 @@ public final class Category {
 
   private final long id;
   private final String name;
+  private final String icon;
   private final String typeFilter;
   private final int sortOrder;
   private final int usageCount;
@@ -13,6 +14,7 @@ public final class Category {
   public Category(
       long id,
       String name,
+      String icon,
       String typeFilter,
       int sortOrder,
       int usageCount,
@@ -20,6 +22,7 @@ public final class Category {
       String cashFlowActivity) {
     this.id = id;
     this.name = name;
+    this.icon = icon;
     this.typeFilter = typeFilter;
     this.sortOrder = sortOrder;
     this.usageCount = usageCount;
@@ -33,6 +36,10 @@ public final class Category {
 
   public String getName() {
     return name;
+  }
+
+  public String getIcon() {
+    return icon;
   }
 
   public String getTypeFilter() {

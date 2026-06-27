@@ -76,7 +76,7 @@ public final class HistoryFragment extends ScreenFragment {
   private EditText searchInput;
   private TextView dateRangeView;
   private TextView countView;
-  private TextView totalTransactionsView;
+  private TextView totalBalanceView;
   private TextView incomeTotalView;
   private TextView expenseTotalView;
   private TextView emptyTitleView;
@@ -125,13 +125,34 @@ public final class HistoryFragment extends ScreenFragment {
     searchClearButton = view.findViewById(R.id.history_search_clear);
     dateRangeView = view.findViewById(R.id.history_date_range);
     countView = view.findViewById(R.id.history_count);
-    totalTransactionsView = view.findViewById(R.id.history_total_transactions);
+    totalBalanceView = view.findViewById(R.id.history_total_balance);
     incomeTotalView = view.findViewById(R.id.history_income_total);
     expenseTotalView = view.findViewById(R.id.history_expense_total);
     emptyTitleView = view.findViewById(R.id.history_empty_title);
     emptyHintView = view.findViewById(R.id.history_empty_hint);
     filterButton.setOnClickListener(v -> showHistoryFilterDialog());
     dateRangeView.setOnClickListener(v -> showDateRangeDialog());
+    
+    View thisMonthChip = view.findViewById(R.id.history_chip_this_month);
+    View lastMonthChip = view.findViewById(R.id.history_chip_last_month);
+    
+    thisMonthChip.setOnClickListener(v -> {
+        LocalDate today = LocalDate.now();
+        selectedStartDate = today.withDayOfMonth(1);
+        selectedEndDate = today.withDayOfMonth(today.lengthOfMonth());
+        updateDateRangeView();
+        reload();
+    });
+    
+    lastMonthChip.setOnClickListener(v -> {
+        LocalDate today = LocalDate.now();
+        LocalDate lastMonth = today.minusMonths(1);
+        selectedStartDate = lastMonth.withDayOfMonth(1);
+        selectedEndDate = lastMonth.withDayOfMonth(lastMonth.lengthOfMonth());
+        updateDateRangeView();
+        reload();
+    });
+    
     searchInput.setText(searchQuery);
     searchInput.setSelection(searchInput.length());
     searchWatcher =
@@ -485,7 +506,10 @@ public final class HistoryFragment extends ScreenFragment {
     int count = totals.getCount();
     countView.setText(
         getResources().getQuantityString(R.plurals.history_count, count, count));
-    totalTransactionsView.setText(String.valueOf(count));
+    
+    long netBalance = totals.getIncomeMinor() - totals.getExpenseMinor();
+    totalBalanceView.setText(MoneyFormatter.format(netBalance));
+    
     incomeTotalView.setText(MoneyFormatter.format(totals.getIncomeMinor()));
     expenseTotalView.setText(MoneyFormatter.format(totals.getExpenseMinor()));
   }

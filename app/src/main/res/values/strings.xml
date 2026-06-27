@@ -88,6 +88,7 @@
         <item quantity="other">%1$d transaksi ditampilkan</item>
     </plurals>
     <string name="history_transactions_label">Transaksi</string>
+    <string name="history_total_balance_label">Total saldo</string>
     <string name="history_income_label">Masuk</string>
     <string name="history_expense_label">Keluar</string>
     <string name="history_filter_title">Filter riwayat</string>

@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
@@ -56,6 +57,8 @@ public class TransactionListAdapter extends BaseAdapter {
   private final List<Transaction> items = new ArrayList<>();
   private final SimpleDateFormat dateFormat =
       new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID"));
+  private final SimpleDateFormat headerDateFormat =
+      new SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("id-ID"));
 
   public TransactionListAdapter(Context context) {
     this.context = context;
@@ -103,9 +106,11 @@ public class TransactionListAdapter extends BaseAdapter {
     if (convertView == null) {
       convertView = inflater.inflate(R.layout.item_transaction, parent, false);
       holder = new ViewHolder();
-      holder.categoryIndicator = convertView.findViewById(R.id.item_transaction_category_indicator);
-      holder.walletIndicator = convertView.findViewById(R.id.item_transaction_wallet_indicator);
+      holder.dateHeader = convertView.findViewById(R.id.item_transaction_date_header);
+      holder.icon = convertView.findViewById(R.id.item_transaction_icon);
+      holder.emoji = convertView.findViewById(R.id.item_transaction_emoji);
       holder.category = convertView.findViewById(R.id.item_transaction_category);
+      holder.wallet = convertView.findViewById(R.id.item_transaction_wallet);
       holder.amount = convertView.findViewById(R.id.item_transaction_amount);
       holder.meta = convertView.findViewById(R.id.item_transaction_meta);
       holder.note = convertView.findViewById(R.id.item_transaction_note);
@@ -123,18 +128,21 @@ public class TransactionListAdapter extends BaseAdapter {
             : merchantsById.get(transaction.getMerchantId());
 
     holder.category.setText(TransactionRowLabels.title(context, transaction, category));
-    setIndicatorColor(
-        holder.categoryIndicator,
-        colorFor(
-            CATEGORY_COLORS,
-            transaction.getCategoryId(),
-            category != null ? category.getName() : ""));
-    setIndicatorColor(
-        holder.walletIndicator,
-        colorFor(
-            WALLET_COLORS,
-            transaction.getWalletId(),
-            wallet != null ? wallet.getName() : ""));
+    if (category != null && category.getIcon() != null && !category.getIcon().trim().isEmpty()) {
+      holder.icon.setImageDrawable(null);
+      holder.icon.setBackground(null);
+      holder.emoji.setVisibility(View.VISIBLE);
+      holder.emoji.setText(category.getIcon().trim());
+    } else {
+      setIndicatorColor(
+          holder.icon,
+          colorFor(
+              CATEGORY_COLORS,
+              transaction.getCategoryId(),
+              category != null ? category.getName() : ""));
+      holder.icon.setImageResource(R.drawable.ic_summary_filter);
+      holder.emoji.setVisibility(View.GONE);
+    }
 
     String formatted = MoneyFormatter.format(transaction.getAmountMinor());
     holder.amount.setText(
@@ -144,7 +152,17 @@ public class TransactionListAdapter extends BaseAdapter {
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
-    holder.meta.setText(TransactionRowLabels.formatMeta(merchant, walletName, when));
+    
+    StringBuilder subtitle = new StringBuilder();
+    if (merchant != null) {
+      subtitle.append(merchant.getName());
+      if (!TextUtils.isEmpty(walletName)) subtitle.append(" · ");
+    }
+    subtitle.append(walletName);
+    
+    holder.wallet.setText(subtitle.toString());
+    holder.wallet.setVisibility(TextUtils.isEmpty(subtitle.toString()) ? View.GONE : View.VISIBLE);
+    holder.meta.setText(when);
 
     String tagLine = TransactionRowLabels.formatTagLine(transaction, tagsById);
     String secondary = TransactionRowLabels.formatSecondaryLine(transaction, tagLine);
@@ -152,6 +170,23 @@ public class TransactionListAdapter extends BaseAdapter {
     holder.note.setVisibility(hasSecondary ? View.VISIBLE : View.GONE);
     if (hasSecondary) {
       holder.note.setText(secondary);
+    }
+    
+    boolean showHeader = false;
+    String currentHeader = headerDateFormat.format(new Date(transaction.getOccurredAt()));
+    if (position == 0) {
+      showHeader = true;
+    } else {
+      Transaction prevTransaction = getItem(position - 1);
+      String prevHeader = headerDateFormat.format(new Date(prevTransaction.getOccurredAt()));
+      showHeader = !currentHeader.equals(prevHeader);
+    }
+    
+    if (showHeader) {
+      holder.dateHeader.setVisibility(View.VISIBLE);
+      holder.dateHeader.setText(currentHeader);
+    } else {
+      holder.dateHeader.setVisibility(View.GONE);
     }
 
     return convertView;
@@ -161,7 +196,7 @@ public class TransactionListAdapter extends BaseAdapter {
     GradientDrawable background = new GradientDrawable();
     background.setColor(color);
     background.setCornerRadius(
-        2f * context.getResources().getDisplayMetrics().density);
+        22f * context.getResources().getDisplayMetrics().density);
     indicator.setBackground(background);
   }
 
@@ -174,9 +209,11 @@ public class TransactionListAdapter extends BaseAdapter {
   }
 
   private static class ViewHolder {
-    View categoryIndicator;
-    View walletIndicator;
+    TextView dateHeader;
+    ImageView icon;
+    TextView emoji;
     TextView category;
+    TextView wallet;
     TextView amount;
     TextView meta;
     TextView note;

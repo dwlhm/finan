@@ -13,6 +13,14 @@ public final class CategoryClassificationService {
   private final CategoryDao categories;
   private final TransactionDao transactions;
 
+  private static final String[] RANDOM_EMOJIS = {
+    "🍔", "🚗", "💼", "🛒", "🎉", "✈️", "🏠", "🎁", "☕", "🎮", "💡", "🩺", "📚", "👕", "🐶"
+  };
+
+  private static String getRandomEmoji() {
+    return RANDOM_EMOJIS[(int) (Math.random() * RANDOM_EMOJIS.length)];
+  }
+
   public CategoryClassificationService(
       SQLiteDatabase db, CategoryDao categories, TransactionDao transactions) {
     this.db = db;
@@ -20,13 +28,15 @@ public final class CategoryClassificationService {
     this.transactions = transactions;
   }
 
-  public Category create(String name, String typeFilter, CashFlowActivity activity) {
+  public Category create(String name, String icon, String typeFilter, CashFlowActivity activity) {
     String normalizedName = requireName(name, 0L);
+    String finalIcon = (icon == null || icon.trim().isEmpty()) ? getRandomEmoji() : icon.trim();
     db.beginTransaction();
     try {
       long id =
           categories.insert(
               normalizedName,
+              finalIcon,
               requireType(typeFilter),
               categories.nextSortOrder(),
               0,
@@ -46,6 +56,7 @@ public final class CategoryClassificationService {
   public Category update(
       long id,
       String name,
+      String icon,
       String typeFilter,
       CashFlowActivity activity,
       boolean includeHistory) {
@@ -54,10 +65,11 @@ public final class CategoryClassificationService {
       throw new IllegalArgumentException("Category not found");
     }
     String normalizedName = requireName(name, id);
+    String finalIcon = (icon == null || icon.trim().isEmpty()) ? getRandomEmoji() : icon.trim();
     CashFlowActivity normalizedActivity = requireActivity(activity);
     db.beginTransaction();
     try {
-      if (!categories.update(id, normalizedName, requireType(typeFilter), normalizedActivity.name())) {
+      if (!categories.update(id, normalizedName, finalIcon, requireType(typeFilter), normalizedActivity.name())) {
         throw new IllegalStateException("Failed to update category");
       }
       if (includeHistory && !existing.getCashFlowActivity().equals(normalizedActivity.name())) {

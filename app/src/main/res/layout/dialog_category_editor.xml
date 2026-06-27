@@ -16,14 +16,30 @@
             android:layout_height="wrap_content"
             android:textAppearance="@style/Finan.Text.Title" />
 
-        <com.dwlhm.finan.ui.common.LabeledEditTextView
-            android:id="@+id/category_name_field"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:inputType="textCapWords"
-            app:fieldHint="@string/category_name_example"
-            app:labelText="@string/category_name_label" />
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <com.dwlhm.finan.ui.common.LabeledEditTextView
+                android:id="@+id/category_icon_field"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="16dp"
+                app:fieldHint="🍔"
+                app:labelText="Icon" />
+
+            <com.dwlhm.finan.ui.common.LabeledEditTextView
+                android:id="@+id/category_name_field"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:inputType="textCapWords"
+                app:fieldHint="@string/category_name_example"
+                app:labelText="@string/category_name_label" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"

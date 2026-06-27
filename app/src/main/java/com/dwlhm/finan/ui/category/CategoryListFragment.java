@@ -309,6 +309,9 @@ public final class CategoryListFragment extends ScreenFragment {
     TextView title = dialog.findViewById(R.id.category_editor_title);
     LabeledEditTextView nameField = dialog.findViewById(R.id.category_name_field);
     EditText nameInput = nameField.getEditText();
+    LabeledEditTextView iconField = dialog.findViewById(R.id.category_icon_field);
+    EditText iconInput = iconField.getEditText();
+    iconInput.setFilters(new android.text.InputFilter[] { new android.text.InputFilter.LengthFilter(5) });
     CheckBox expenseInput = dialog.findViewById(R.id.category_type_expense);
     CheckBox incomeInput = dialog.findViewById(R.id.category_type_income);
     RadioGroup activityGroup = dialog.findViewById(R.id.category_activity_group);
@@ -316,7 +319,7 @@ public final class CategoryListFragment extends ScreenFragment {
     Button transactionsButton = dialog.findViewById(R.id.category_view_transactions);
     DialogActionsView actions = dialog.findViewById(R.id.category_editor_actions);
     EditorDraft draft =
-        new EditorDraft(category, nameInput, expenseInput, incomeInput, activityGroup);
+        new EditorDraft(category, nameInput, iconInput, expenseInput, incomeInput, activityGroup);
 
     boolean editing = category != null;
     title.setText(editing ? R.string.category_editor_edit_title : R.string.category_editor_create_title);
@@ -426,10 +429,11 @@ public final class CategoryListFragment extends ScreenFragment {
             Category saved =
                 draft.original == null
                     ? services.categoryClassificationService.create(
-                        draft.name(), draft.type(), draft.activity())
+                        draft.name(), draft.icon(), draft.type(), draft.activity())
                     : services.categoryClassificationService.update(
                         draft.original.getId(),
                         draft.name(),
+                        draft.icon(),
                         draft.type(),
                         draft.activity(),
                         includeHistory);
@@ -509,6 +513,7 @@ public final class CategoryListFragment extends ScreenFragment {
   private static final class EditorDraft {
     private final Category original;
     private final EditText nameInput;
+    private final EditText iconInput;
     private final CheckBox expenseInput;
     private final CheckBox incomeInput;
     private final RadioGroup activityGroup;
@@ -516,11 +521,13 @@ public final class CategoryListFragment extends ScreenFragment {
     private EditorDraft(
         Category original,
         EditText nameInput,
+        EditText iconInput,
         CheckBox expenseInput,
         CheckBox incomeInput,
         RadioGroup activityGroup) {
       this.original = original;
       this.nameInput = nameInput;
+      this.iconInput = iconInput;
       this.expenseInput = expenseInput;
       this.incomeInput = incomeInput;
       this.activityGroup = activityGroup;
@@ -529,6 +536,7 @@ public final class CategoryListFragment extends ScreenFragment {
     private void bindOriginal() {
       nameInput.setText(original.getName());
       nameInput.setSelection(nameInput.length());
+      iconInput.setText(original.getIcon());
       expenseInput.setChecked(!"INCOME".equals(original.getTypeFilter()));
       incomeInput.setChecked(!"EXPENSE".equals(original.getTypeFilter()));
       activityGroup.check(activityId(CashFlowActivity.valueOf(original.getCashFlowActivity())));
@@ -536,6 +544,10 @@ public final class CategoryListFragment extends ScreenFragment {
 
     private String name() {
       return nameInput.getText().toString().trim();
+    }
+
+    private String icon() {
+      return iconInput.getText().toString().trim();
     }
 
     private String type() {
@@ -569,9 +581,11 @@ public final class CategoryListFragment extends ScreenFragment {
     private boolean dirty() {
       return original == null
           ? !name().isEmpty()
+              || !icon().isEmpty()
               || !"EXPENSE".equals(type())
               || activity() != CashFlowActivity.UNCLASSIFIED
           : !original.getName().equals(name())
+              || !java.util.Objects.equals(original.getIcon(), icon())
               || !original.getTypeFilter().equals(type())
               || activityChanged();
     }
@@ -757,7 +771,25 @@ public final class CategoryListFragment extends ScreenFragment {
       }
       TextView name = convertView.findViewById(R.id.item_category_name);
       TextView metadata = convertView.findViewById(R.id.item_category_type);
+      ImageView icon = convertView.findViewById(R.id.item_category_icon);
+      TextView emoji = convertView.findViewById(R.id.item_category_emoji);
+      
       Category category = item.category;
+      
+      if (category.getIcon() != null && !category.getIcon().trim().isEmpty()) {
+        icon.setBackground(null);
+        icon.setImageDrawable(null);
+        emoji.setVisibility(View.VISIBLE);
+        emoji.setText(category.getIcon().trim());
+      } else {
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(0xFFEEEEEE);
+        bg.setCornerRadius(22f * context.getResources().getDisplayMetrics().density);
+        icon.setBackground(bg);
+        icon.setImageResource(R.drawable.ic_summary_filter);
+        emoji.setVisibility(View.GONE);
+      }
+      
       String type = typeLabel(context, category.getTypeFilter());
       String activity = activityLabel(context, category.getCashFlowActivity());
       name.setText(category.getName());

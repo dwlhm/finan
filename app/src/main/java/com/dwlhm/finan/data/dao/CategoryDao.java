@@ -19,9 +19,10 @@ public final class CategoryDao {
   }
 
   public long insert(
-      String name, String typeFilter, int sortOrder, int usageCount, Long lastUsedAt) {
+      String name, String icon, String typeFilter, int sortOrder, int usageCount, Long lastUsedAt) {
     return insert(
         name,
+        icon,
         typeFilter,
         sortOrder,
         usageCount,
@@ -31,6 +32,7 @@ public final class CategoryDao {
 
   public long insert(
       String name,
+      String icon,
       String typeFilter,
       int sortOrder,
       int usageCount,
@@ -38,6 +40,7 @@ public final class CategoryDao {
       String cashFlowActivity) {
     ContentValues values = new ContentValues();
     values.put("name", name);
+    values.put("icon", icon);
     values.put("type_filter", typeFilter);
     values.put("sort_order", sortOrder);
     values.put("usage_count", usageCount);
@@ -193,13 +196,14 @@ public final class CategoryDao {
       return existing;
     }
     String typeFilter = "INCOME".equals(transactionType) ? "INCOME" : "EXPENSE";
-    long id = insert(trimmed, typeFilter, nextSortOrder(), 0, null);
+    long id = insert(trimmed, null, typeFilter, nextSortOrder(), 0, null);
     return findById(id);
   }
 
-  public boolean update(long id, String name, String typeFilter, String cashFlowActivity) {
+  public boolean update(long id, String name, String icon, String typeFilter, String cashFlowActivity) {
     ContentValues values = new ContentValues();
     values.put("name", name);
+    values.put("icon", icon);
     values.put("type_filter", typeFilter);
     values.put("cash_flow_activity", cashFlowActivity);
     return db.update("categories", values, "id = ?", new String[] {String.valueOf(id)}) > 0;
@@ -226,9 +230,12 @@ public final class CategoryDao {
     if (lastUsedIndex >= 0 && !c.isNull(lastUsedIndex)) {
       lastUsedAt = c.getLong(lastUsedIndex);
     }
+    int iconIndex = c.getColumnIndex("icon");
+    String icon = iconIndex >= 0 ? c.getString(iconIndex) : null;
     return new Category(
         c.getLong(c.getColumnIndexOrThrow("id")),
         c.getString(c.getColumnIndexOrThrow("name")),
+        icon,
         c.getString(c.getColumnIndexOrThrow("type_filter")),
         c.getInt(c.getColumnIndexOrThrow("sort_order")),
         c.getInt(c.getColumnIndexOrThrow("usage_count")),

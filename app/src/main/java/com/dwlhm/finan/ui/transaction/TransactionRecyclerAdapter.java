@@ -53,6 +53,8 @@ public final class TransactionRecyclerAdapter
   private Map<Long, Merchant> merchantsById = Collections.emptyMap();
   private final SimpleDateFormat dateFormat =
       new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID"));
+  private final SimpleDateFormat headerDateFormat =
+      new SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("id-ID"));
   private OnTransactionClickListener clickListener;
 
   public interface OnTransactionClickListener {
@@ -102,18 +104,21 @@ public final class TransactionRecyclerAdapter
             : merchantsById.get(transaction.getMerchantId());
 
     holder.category.setText(TransactionRowLabels.title(context, transaction, category));
-    setIndicatorColor(
-        holder.categoryIndicator,
-        colorFor(
-            CATEGORY_COLORS,
-            transaction.getCategoryId(),
-            category != null ? category.getName() : ""));
-    setIndicatorColor(
-        holder.walletIndicator,
-        colorFor(
-            WALLET_COLORS,
-            transaction.getWalletId(),
-            wallet != null ? wallet.getName() : ""));
+    if (category != null && category.getIcon() != null && !category.getIcon().trim().isEmpty()) {
+      holder.icon.setImageDrawable(null);
+      holder.icon.setBackground(null);
+      holder.emoji.setVisibility(View.VISIBLE);
+      holder.emoji.setText(category.getIcon().trim());
+    } else {
+      setIndicatorColor(
+          holder.icon,
+          colorFor(
+              CATEGORY_COLORS,
+              transaction.getCategoryId(),
+              category != null ? category.getName() : ""));
+      holder.icon.setImageResource(R.drawable.ic_summary_filter);
+      holder.emoji.setVisibility(View.GONE);
+    }
 
     String formatted = MoneyFormatter.format(transaction.getAmountMinor());
     holder.amount.setText(
@@ -123,7 +128,17 @@ public final class TransactionRecyclerAdapter
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
-    holder.meta.setText(TransactionRowLabels.formatMeta(merchant, walletName, when));
+    
+    StringBuilder subtitle = new StringBuilder();
+    if (merchant != null) {
+      subtitle.append(merchant.getName());
+      if (!TextUtils.isEmpty(walletName)) subtitle.append(" · ");
+    }
+    subtitle.append(walletName);
+    
+    holder.wallet.setText(subtitle.toString());
+    holder.wallet.setVisibility(TextUtils.isEmpty(subtitle.toString()) ? View.GONE : View.VISIBLE);
+    holder.meta.setText(when);
 
     String tagLine = TransactionRowLabels.formatTagLine(transaction, tagsById);
     String secondary = TransactionRowLabels.formatSecondaryLine(transaction, tagLine);
@@ -131,6 +146,23 @@ public final class TransactionRecyclerAdapter
     holder.note.setVisibility(hasSecondary ? View.VISIBLE : View.GONE);
     if (hasSecondary) {
       holder.note.setText(secondary);
+    }
+    
+    boolean showHeader = false;
+    String currentHeader = headerDateFormat.format(new Date(transaction.getOccurredAt()));
+    if (position == 0) {
+      showHeader = true;
+    } else {
+      Transaction prevTransaction = getItemAt(position - 1);
+      String prevHeader = headerDateFormat.format(new Date(prevTransaction.getOccurredAt()));
+      showHeader = !currentHeader.equals(prevHeader);
+    }
+    
+    if (showHeader) {
+      holder.dateHeader.setVisibility(View.VISIBLE);
+      holder.dateHeader.setText(currentHeader);
+    } else {
+      holder.dateHeader.setVisibility(View.GONE);
     }
 
     holder.itemView.setOnClickListener(
@@ -145,7 +177,7 @@ public final class TransactionRecyclerAdapter
     GradientDrawable background = new GradientDrawable();
     background.setColor(color);
     background.setCornerRadius(
-        2f * context.getResources().getDisplayMetrics().density);
+        22f * context.getResources().getDisplayMetrics().density);
     indicator.setBackground(background);
   }
 
