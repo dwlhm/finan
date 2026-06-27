@@ -26,6 +26,7 @@ import com.dwlhm.finan.data.prefs.DefaultsStore;
 import com.dwlhm.finan.service.balance.BalanceService;
 import com.dwlhm.finan.service.balance.AdjustmentService;
 import com.dwlhm.finan.service.category.CategoryUsageService;
+import com.dwlhm.finan.service.category.CategoryClassificationService;
 import com.dwlhm.finan.service.export.ExportService;
 import com.dwlhm.finan.service.merchant.MerchantUsageService;
 import com.dwlhm.finan.service.summary.SummaryService;
@@ -46,6 +47,7 @@ public final class AppServices {
   public final ExportService exportService;
   public final TransactionGateway transactionGateway;
   public final CategoryDao categoryDao;
+  public final CategoryClassificationService categoryClassificationService;
   public final TagDao tagDao;
   public final MerchantDao merchantDao;
   public final WalletDao walletDao;
@@ -61,6 +63,7 @@ public final class AppServices {
       ExportService exportService,
       TransactionGateway transactionGateway,
       CategoryDao categoryDao,
+      CategoryClassificationService categoryClassificationService,
       TagDao tagDao,
       MerchantDao merchantDao,
       WalletDao walletDao,
@@ -74,6 +77,7 @@ public final class AppServices {
     this.exportService = exportService;
     this.transactionGateway = transactionGateway;
     this.categoryDao = categoryDao;
+    this.categoryClassificationService = categoryClassificationService;
     this.tagDao = tagDao;
     this.merchantDao = merchantDao;
     this.walletDao = walletDao;
@@ -114,6 +118,7 @@ public final class AppServices {
             categoryUsageService,
             tagUsageService,
             merchantUsageService,
+            categoryTable,
             timeProvider);
     AdjustmentService adjustmentService =
         new AdjustmentService(
@@ -133,6 +138,8 @@ public final class AppServices {
             walletTable,
             timeProvider,
             ZoneId.systemDefault());
+    CategoryClassificationService categoryClassificationService =
+        new CategoryClassificationService(db, categoryTable, transactionTable);
 
     return new AppServices(
         databaseHelper,
@@ -143,6 +150,7 @@ public final class AppServices {
         new ExportService(),
         transactionGateway,
         categoryTable,
+        categoryClassificationService,
         tagTable,
         merchantTable,
         walletTable,

@@ -131,9 +131,6 @@ public final class FuzzySearch {
   }
 
   private static int tolerance(int length) {
-    if (length < 4) {
-      return 0;
-    }
     return length < 8 ? 1 : 2;
   }
 

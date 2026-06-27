@@ -11,6 +11,8 @@ public final class Transaction {
   private final String note;
   private final Long merchantId;
   private final Long transferId;
+  private final String cashFlowActivity;
+  private final boolean cashFlowActivityOverridden;
   private final long createdAt;
   private final long updatedAt;
 
@@ -24,6 +26,8 @@ public final class Transaction {
       String note,
       Long merchantId,
       Long transferId,
+      String cashFlowActivity,
+      boolean cashFlowActivityOverridden,
       long createdAt,
       long updatedAt) {
     this.id = id;
@@ -35,6 +39,8 @@ public final class Transaction {
     this.note = note;
     this.merchantId = merchantId;
     this.transferId = transferId;
+    this.cashFlowActivity = cashFlowActivity;
+    this.cashFlowActivityOverridden = cashFlowActivityOverridden;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
@@ -73,6 +79,14 @@ public final class Transaction {
 
   public Long getTransferId() {
     return transferId;
+  }
+
+  public String getCashFlowActivity() {
+    return cashFlowActivity;
+  }
+
+  public boolean isCashFlowActivityOverridden() {
+    return cashFlowActivityOverridden;
   }
 
   public long getCreatedAt() {

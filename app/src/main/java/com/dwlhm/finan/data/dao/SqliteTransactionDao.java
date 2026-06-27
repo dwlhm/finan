@@ -36,6 +36,8 @@ public final class SqliteTransactionDao implements TransactionGateway {
             transaction.getNote(),
             transaction.getMerchantId(),
             transaction.getTransferId(),
+            transaction.getCashFlowActivity().name(),
+            transaction.isCashFlowActivityOverridden(),
             now,
             now);
     transactionTags.replaceAll(id, transaction.getTagIds());
@@ -59,6 +61,8 @@ public final class SqliteTransactionDao implements TransactionGateway {
         transaction.getNote(),
         transaction.getMerchantId(),
         transaction.getTransferId(),
+        transaction.getCashFlowActivity().name(),
+        transaction.isCashFlowActivityOverridden(),
         existing.getCreatedAt(),
         now);
     transactionTags.replaceAll(transaction.getId(), transaction.getTagIds());
@@ -174,6 +178,9 @@ public final class SqliteTransactionDao implements TransactionGateway {
             entity.getNote());
     domain.setMerchantId(entity.getMerchantId());
     domain.setTransferId(entity.getTransferId());
+    domain.setCashFlowActivity(
+        com.dwlhm.finan.domain.model.CashFlowActivity.valueOf(entity.getCashFlowActivity()));
+    domain.setCashFlowActivityOverridden(entity.isCashFlowActivityOverridden());
     return domain;
   }
 }

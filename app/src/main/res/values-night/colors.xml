@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="finan_background">#121212</color>
+    <color name="finan_surface">#1E1E1E</color>
+    <color name="finan_primary">#4DB6AC</color>
+    <color name="finan_primary_dark">#26A69A</color>
+    <color name="finan_accent">#80CBC4</color>
+    
+    <color name="finan_text_primary">#E0E0E0</color>
+    <color name="finan_text_secondary">#9E9E9E</color>
+    <color name="finan_text_hint">#757575</color>
+    <color name="finan_divider">#333333</color>
+    
+    <color name="finan_chip_bg">#2C2C2C</color>
+    <color name="finan_chip_selected">#4DB6AC</color>
+    <color name="finan_chip_text">#E0E0E0</color>
+    <color name="finan_chip_text_selected">#121212</color>
+    
+    <color name="finan_error">#EF5350</color>
+    <color name="finan_error_bg">#3E2723</color>
+    <color name="finan_expense">#EF5350</color>
+    <color name="finan_income">#66BB6A</color>
+    <color name="finan_expense_bg">#3E2723</color>
+    <color name="finan_expense_stroke">#5D4037</color>
+    <color name="finan_income_bg">#1B5E20</color>
+    <color name="finan_income_stroke">#2E7D32</color>
+    <color name="finan_emphasis_bg">#3E2723</color>
+    <color name="finan_emphasis_stroke">#4E342E</color>
+    <color name="finan_control_bg">#242424</color>
+    <color name="finan_warm_accent">#FFA726</color>
+    
+    <color name="finan_summary_on_hero">#E0E0E0</color>
+    <color name="finan_summary_on_hero_muted">#B0BEC5</color>
+    <color name="finan_summary_hero_divider">#37474F</color>
+    <color name="finan_summary_progress_bg">#333333</color>
+    <color name="finan_bottom_nav_bg">#1E1E1E</color>
+    <color name="finan_bottom_nav_active_bg">#2C2C2C</color>
+
+    <color name="finan_keypad_bg">#121212</color>
+    <color name="finan_key_bg">#1E1E1E</color>
+    <color name="finan_key_bg_pressed">#2C2C2C</color>
+    <color name="finan_key_text">#E0E0E0</color>
+    <color name="finan_key_action_bg">#4DB6AC</color>
+    <color name="finan_key_action_bg_pressed">#26A69A</color>
+    <color name="finan_key_action_text">#121212</color>
+    <color name="finan_key_border">#2C2C2C</color>
+</resources>

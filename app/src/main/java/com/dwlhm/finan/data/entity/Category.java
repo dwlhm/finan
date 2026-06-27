@@ -8,6 +8,7 @@ public final class Category {
   private final int sortOrder;
   private final int usageCount;
   private final Long lastUsedAt;
+  private final String cashFlowActivity;
 
   public Category(
       long id,
@@ -15,13 +16,15 @@ public final class Category {
       String typeFilter,
       int sortOrder,
       int usageCount,
-      Long lastUsedAt) {
+      Long lastUsedAt,
+      String cashFlowActivity) {
     this.id = id;
     this.name = name;
     this.typeFilter = typeFilter;
     this.sortOrder = sortOrder;
     this.usageCount = usageCount;
     this.lastUsedAt = lastUsedAt;
+    this.cashFlowActivity = cashFlowActivity;
   }
 
   public long getId() {
@@ -46,5 +49,9 @@ public final class Category {
 
   public Long getLastUsedAt() {
     return lastUsedAt;
+  }
+
+  public String getCashFlowActivity() {
+    return cashFlowActivity;
   }
 }

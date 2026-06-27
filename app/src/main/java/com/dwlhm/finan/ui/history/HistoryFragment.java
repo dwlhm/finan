@@ -205,6 +205,13 @@ public final class HistoryFragment extends ScreenFragment {
     reload(true);
   }
 
+  public void setCategoryFilter(long categoryId) {
+    selectedCategoryId = categoryId > 0L ? categoryId : null;
+    if (getView() != null) {
+      reload(true);
+    }
+  }
+
   private void reload() {
     reload(false);
   }

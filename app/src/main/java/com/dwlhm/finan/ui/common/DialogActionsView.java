@@ -64,6 +64,14 @@ public final class DialogActionsView extends LinearLayout {
     primaryButton.setOnClickListener(listener);
   }
 
+  public void setPrimaryText(CharSequence text) {
+    primaryButton.setText(text);
+  }
+
+  public void setPrimaryEnabled(boolean enabled) {
+    primaryButton.setEnabled(enabled);
+  }
+
   private int dp(int value) {
     return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
   }

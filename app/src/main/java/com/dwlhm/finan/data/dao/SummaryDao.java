@@ -72,22 +72,22 @@ public final class SummaryDao {
     }
   }
 
-  public List<CategorySumRow> topExpenseByCategory(long startInclusive, long endExclusive, int limit) {
-    return topExpenseByCategory(startInclusive, endExclusive, limit, null, null);
+  public List<CategorySumRow> expenseByCategory(long startInclusive, long endExclusive) {
+    return expenseByCategory(startInclusive, endExclusive, null, null);
   }
 
-  public List<CategorySumRow> topExpenseByCategory(
-      long startInclusive, long endExclusive, int limit, Long walletId, Long categoryId) {
+  public List<CategorySumRow> expenseByCategory(
+      long startInclusive, long endExclusive, Long walletId, Long categoryId) {
     List<CategorySumRow> rows = new ArrayList<>();
     List<String> args = new ArrayList<>();
     args.add(String.valueOf(startInclusive));
     args.add(String.valueOf(endExclusive));
     String sql =
         "SELECT category_id, SUM(amount_minor) AS total_minor FROM transactions "
-            + "WHERE type = 'EXPENSE' AND occurred_at >= ? AND occurred_at < ?";
+            + "WHERE type = 'EXPENSE' AND occurred_at >= ? AND occurred_at < ? "
+            + "AND category_id IS NOT NULL";
     sql = appendFilterWhere(sql, args, walletId, categoryId);
-    sql += " GROUP BY category_id ORDER BY total_minor DESC LIMIT ?";
-    args.add(String.valueOf(limit));
+    sql += " GROUP BY category_id ORDER BY total_minor DESC";
     try (Cursor c =
         db.rawQuery(
             sql,

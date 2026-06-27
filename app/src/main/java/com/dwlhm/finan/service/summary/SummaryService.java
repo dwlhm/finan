@@ -19,8 +19,6 @@ import java.util.List;
 
 public final class SummaryService {
 
-  private static final int TOP_CATEGORY_LIMIT = 5;
-
   private final SummaryDao summaryDao;
   private final CategoryDao categoryDao;
   private final WalletDao walletDao;
@@ -68,8 +66,7 @@ public final class SummaryService {
 
     List<CategoryTotal> topCategories = new ArrayList<>();
     for (SummaryDao.CategorySumRow row :
-        summaryDao.topExpenseByCategory(
-            startInclusive, endExclusive, TOP_CATEGORY_LIMIT, walletId, categoryId)) {
+        summaryDao.expenseByCategory(startInclusive, endExclusive, walletId, categoryId)) {
       Category category = categoryDao.findById(row.categoryId);
       String name = category != null ? category.getName() : "#" + row.categoryId;
       topCategories.add(new CategoryTotal(row.categoryId, name, row.totalMinor));
@@ -117,8 +114,7 @@ public final class SummaryService {
 
     List<CategoryTotal> topCategories = new ArrayList<>();
     for (SummaryDao.CategorySumRow row :
-        summaryDao.topExpenseByCategory(
-            monthRange.getStartInclusive(), monthRange.getEndExclusive(), TOP_CATEGORY_LIMIT)) {
+        summaryDao.expenseByCategory(monthRange.getStartInclusive(), monthRange.getEndExclusive())) {
       Category category = categoryDao.findById(row.categoryId);
       String name = category != null ? category.getName() : "#" + row.categoryId;
       topCategories.add(new CategoryTotal(row.categoryId, name, row.totalMinor));

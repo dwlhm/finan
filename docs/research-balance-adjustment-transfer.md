@@ -234,8 +234,35 @@ Wallet > Transfer
 → pilih sumber
 → pilih tujuan
 → input jumlah
+→ input biaya transfer (opsional)
 → simpan
 ```
+
+#### Rekomendasi improvement: biaya transfer
+
+Transfer antar-wallet dapat memiliki biaya admin. Field biaya bersifat opsional dan tidak menambah
+langkah wajib pada transfer tanpa biaya.
+
+Contoh:
+
+```text
+Transfer                         Rp500.000
+Biaya transfer                    Rp2.500
+
+Wallet sumber                   -Rp502.500
+Wallet tujuan                   +Rp500.000
+Arus kas transfer bersih                 0
+Pengeluaran biaya transfer        Rp2.500
+```
+
+Kontrak perilaku:
+
+- Nilai transfer tetap netral pada laporan arus kas.
+- Biaya dicatat sebagai transaction expense biasa dan dapat memakai category default `Biaya admin`.
+- User dapat memilih, mengganti, atau membuat category fee sendiri.
+- Transaction fee terhubung dengan pasangan transfer agar create, edit, dan delete berjalan atomik.
+- Mengubah biaya tidak mengubah nominal yang diterima wallet tujuan.
+- Fee tidak disembunyikan di dalam nominal transfer karena akan mengurangi keterjelasan laporan.
 
 History menampilkan transfer sebagai satu kejadian yang mudah dipahami:
 
@@ -328,10 +355,19 @@ aggregate transfer, bukan pada satu sisi saja.
 - Sumber dan tujuan yang sama ditolak.
 - Transfer beda currency ditolak pada versi pertama.
 
+### Rekomendasi improvement: biaya transfer
+
+- Transfer Rp500.000 dengan fee Rp2.500 menurunkan wallet sumber Rp502.500.
+- Wallet tujuan tetap bertambah Rp500.000.
+- Transfer tetap netral pada laporan, sedangkan fee masuk sebagai expense Rp2.500.
+- User dapat mengedit nominal fee dan category fee.
+- Menghapus transfer juga menghapus transaction fee yang terhubung setelah konfirmasi.
+
 ## Risiko dan Keputusan Lanjutan
 
 - Multi-currency membutuhkan kurs dan dapat membuat total transfer tidak nol secara nominal.
-- Biaya admin membutuhkan transaksi expense tambahan.
+- Biaya admin membutuhkan linked expense transaction seperti pada rekomendasi improvement fee
+  transfer.
 - Penggabungan dua sisi transfer dalam global history menambah kompleksitas paging.
 - Undo transaksi terakhir harus memahami aggregate transfer agar tidak menghapus satu sisi.
 - Category dan merchant usage tidak boleh bertambah untuk adjustment atau transfer.
@@ -349,4 +385,3 @@ Desain yang paling sesuai dengan struktur Finan saat ini adalah:
 - Adjustment tercatat sebagai transaksi sistem.
 - Transfer adalah aggregate dengan dua transaction entries terhubung.
 - Report hanya menganggap transaksi ekonomi nyata sebagai income atau expense.
-

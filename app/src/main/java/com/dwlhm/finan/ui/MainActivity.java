@@ -62,6 +62,16 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     openSettingsChild(new WalletListFragment(), WalletListFragment.TAG, BACK_STACK_WALLET);
   }
 
+  @Override
+  public void openHistoryForCategory(long categoryId) {
+    showScreen(Screen.HISTORY, true);
+    getSupportFragmentManager().executePendingTransactions();
+    Fragment fragment = getSupportFragmentManager().findFragmentByTag(Screen.HISTORY.tag);
+    if (fragment instanceof HistoryFragment) {
+      ((HistoryFragment) fragment).setCategoryFilter(categoryId);
+    }
+  }
+
   private void openSettingsChild(Fragment fragment, String tag, String backStackName) {
     FragmentManager fragmentManager = getSupportFragmentManager();
     fragmentManager.executePendingTransactions();

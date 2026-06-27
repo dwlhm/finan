@@ -31,4 +31,13 @@
     <color name="finan_summary_progress_bg">#E9EEF2</color>
     <color name="finan_bottom_nav_bg">#FFFFFF</color>
     <color name="finan_bottom_nav_active_bg">#E6F0EF</color>
+
+    <color name="finan_keypad_bg">#F4F6F8</color>
+    <color name="finan_key_bg">#FFFFFF</color>
+    <color name="finan_key_bg_pressed">#E8ECEF</color>
+    <color name="finan_key_text">#1A2830</color>
+    <color name="finan_key_action_bg">#2D6A6A</color>
+    <color name="finan_key_action_bg_pressed">#1F4E4E</color>
+    <color name="finan_key_action_text">#FFFFFF</color>
+    <color name="finan_key_border">#DDE3E8</color>
 </resources>

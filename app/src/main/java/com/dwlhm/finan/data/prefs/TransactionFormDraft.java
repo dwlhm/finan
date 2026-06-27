@@ -140,9 +140,7 @@ public final class TransactionFormDraft {
     return amountMinor > 0L
         || !TextUtils.isEmpty(note)
         || (merchantId != null && merchantId > 0L)
-        || !tagIds.isEmpty()
-        || (destinationWalletId != null && destinationWalletId > 0L)
-        || (categoryId != null && categoryId > 0L);
+        || !tagIds.isEmpty();
   }
 
   public boolean equalsSavedTransaction(@NonNull Transaction transaction) {

@@ -6,6 +6,7 @@ import android.content.Context;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.dwlhm.finan.R;
 
@@ -34,7 +35,7 @@ public final class TransactionOccurredAtPicker {
   public TransactionOccurredAtPicker(
       @NonNull Context context,
       @NonNull TextView dateView,
-      @NonNull TextView timeView,
+      @Nullable TextView timeView,
       long initialMillis) {
     this.context = context;
     this.dateView = dateView;
@@ -42,7 +43,9 @@ public final class TransactionOccurredAtPicker {
     this.zoneId = ZoneId.systemDefault();
     setOccurredAtMillis(initialMillis > 0L ? initialMillis : System.currentTimeMillis());
     dateView.setOnClickListener(v -> showDatePicker());
-    timeView.setOnClickListener(v -> showTimePicker());
+    if (timeView != null) {
+        timeView.setOnClickListener(v -> showTimePicker());
+    }
   }
 
   public long getOccurredAtMillis() {
@@ -56,8 +59,14 @@ public final class TransactionOccurredAtPicker {
   public void setOccurredAtMillis(long millis) {
     occurredAtMillis = millis;
     LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), zoneId);
-    dateView.setText(dateTime.format(DATE_FORMAT));
-    timeView.setText(dateTime.format(TIME_FORMAT));
+    
+    // Formatting "@Now" logic if it's close to current time, else format normally.
+    // For simplicity, we just format the date.
+    dateView.setText("@" + dateTime.format(DATE_FORMAT));
+    
+    if (timeView != null) {
+        timeView.setText(dateTime.format(TIME_FORMAT));
+    }
   }
 
   private void showDatePicker() {

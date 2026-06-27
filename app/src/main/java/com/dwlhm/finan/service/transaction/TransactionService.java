@@ -3,6 +3,8 @@ package com.dwlhm.finan.service.transaction;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.dwlhm.finan.data.dao.TransactionGateway;
+import com.dwlhm.finan.data.dao.CategoryDao;
+import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.rule.ValidationRules;
 import com.dwlhm.finan.domain.rule.ValidationResult;
@@ -24,6 +26,7 @@ public class TransactionService {
     private final TagUsageService tagUsageService;
     private final MerchantUsageService merchantUsageService;
     private final TimeProvider timeProvider;
+    private final CategoryDao categoryDao;
 
     public TransactionService(
             SQLiteDatabase db,
@@ -32,6 +35,7 @@ public class TransactionService {
             CategoryUsageService categoryUsageService,
             TagUsageService tagUsageService,
             MerchantUsageService merchantUsageService,
+            CategoryDao categoryDao,
             TimeProvider timeProvider
     ) {
         this.db = db;
@@ -40,6 +44,7 @@ public class TransactionService {
         this.categoryUsageService = categoryUsageService;
         this.tagUsageService = tagUsageService;
         this.merchantUsageService = merchantUsageService;
+        this.categoryDao = categoryDao;
         this.timeProvider = timeProvider;
     }
 
@@ -80,6 +85,10 @@ public class TransactionService {
             throw new IllegalArgumentException("Transaction not found");
         }
         requireRegularTransaction(existing);
+        if (existing.isCashFlowActivityOverridden()) {
+            transaction.setCashFlowActivity(existing.getCashFlowActivity());
+            transaction.setCashFlowActivityOverridden(true);
+        }
         prepareForWrite(transaction);
         requireRegularTransaction(transaction);
         ValidationResult validation = ValidationRules.isValid(transaction);
@@ -127,6 +136,14 @@ public class TransactionService {
 
     private void prepareForWrite(Transaction transaction) {
         transaction.setOccurredAt(OccurredAtHelper.resolve(transaction.getOccurredAt(), timeProvider));
+        if (!transaction.isCashFlowActivityOverridden()) {
+            Category category = categoryDao.findById(transaction.getCategoryId());
+            if (category != null) {
+                transaction.setCashFlowActivity(
+                        com.dwlhm.finan.domain.model.CashFlowActivity.valueOf(
+                                category.getCashFlowActivity()));
+            }
+        }
     }
 
     private static void requireRegularTransaction(Transaction transaction) {

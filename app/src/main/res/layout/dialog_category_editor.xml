@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <com.dwlhm.finan.ui.common.FinanDialogCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp">
+
+        <TextView
+            android:id="@+id/category_editor_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/Finan.Text.Title" />
+
+        <com.dwlhm.finan.ui.common.LabeledEditTextView
+            android:id="@+id/category_name_field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:inputType="textCapWords"
+            app:fieldHint="@string/category_name_example"
+            app:labelText="@string/category_name_label" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/category_type_label"
+            android:textAppearance="@style/Finan.Text.SectionLabel" />
+
+        <LinearLayout
+            android:id="@+id/category_type_group"
+            android:background="@drawable/bg_control_surface"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <CheckBox
+                android:id="@+id/category_type_expense"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:buttonTint="@color/checkbox_default_tint"
+                android:checked="true"
+                android:text="@string/category_type_expense" />
+
+            <CheckBox
+                android:id="@+id/category_type_income"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:buttonTint="@color/checkbox_default_tint"
+                android:text="@string/category_type_income" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/category_activity_label"
+            android:textAppearance="@style/Finan.Text.SectionLabel" />
+
+        <RadioGroup
+            android:id="@+id/category_activity_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_control_surface"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <RadioButton
+                android:id="@+id/category_activity_operating"
+                style="@style/Finan.Control.RadioButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="@string/category_activity_operating" />
+
+            <RadioButton
+                android:id="@+id/category_activity_investing"
+                style="@style/Finan.Control.RadioButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="@string/category_activity_investing" />
+
+            <RadioButton
+                android:id="@+id/category_activity_financing"
+                style="@style/Finan.Control.RadioButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="@string/category_activity_financing" />
+
+            <RadioButton
+                android:id="@+id/category_activity_unclassified"
+                style="@style/Finan.Control.RadioButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="@string/category_activity_unclassified" />
+        </RadioGroup>
+
+        <TextView
+            android:id="@+id/category_transaction_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/finan_text_secondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/category_view_transactions"
+            style="@style/Finan.Button.Nav"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="@string/category_view_transactions"
+            android:visibility="gone" />
+
+        <com.dwlhm.finan.ui.common.DialogActionsView
+            android:id="@+id/category_editor_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:primaryText="@string/category_save" />
+    </com.dwlhm.finan.ui.common.FinanDialogCardView>
+</ScrollView>

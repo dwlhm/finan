@@ -44,6 +44,7 @@ public class CategoryDaoTest {
         assertEquals(7, categories.size());
         assertEquals("Makanan", categories.get(0).getName());
         assertEquals("EXPENSE", categories.get(0).getTypeFilter());
+        assertEquals("OPERATING", categories.get(0).getCashFlowActivity());
     }
 
     @Test

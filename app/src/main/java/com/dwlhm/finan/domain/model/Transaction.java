@@ -15,6 +15,8 @@ public class Transaction {
     private String note;
     private Long merchantId;
     private Long transferId;
+    private CashFlowActivity cashFlowActivity = CashFlowActivity.UNCLASSIFIED;
+    private boolean cashFlowActivityOverridden;
     private List<Long> tagIds = Collections.emptyList();
 
     public Transaction(
@@ -105,6 +107,23 @@ public class Transaction {
 
     public void setTransferId(Long transferId) {
         this.transferId = transferId;
+    }
+
+    public CashFlowActivity getCashFlowActivity() {
+        return cashFlowActivity;
+    }
+
+    public void setCashFlowActivity(CashFlowActivity cashFlowActivity) {
+        this.cashFlowActivity =
+                cashFlowActivity == null ? CashFlowActivity.UNCLASSIFIED : cashFlowActivity;
+    }
+
+    public boolean isCashFlowActivityOverridden() {
+        return cashFlowActivityOverridden;
+    }
+
+    public void setCashFlowActivityOverridden(boolean overridden) {
+        cashFlowActivityOverridden = overridden;
     }
 
     public List<Long> getTagIds() {

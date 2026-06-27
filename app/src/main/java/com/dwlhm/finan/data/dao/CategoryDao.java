@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.dwlhm.finan.data.entity.Category;
+import com.dwlhm.finan.domain.model.CashFlowActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +20,22 @@ public final class CategoryDao {
 
   public long insert(
       String name, String typeFilter, int sortOrder, int usageCount, Long lastUsedAt) {
+    return insert(
+        name,
+        typeFilter,
+        sortOrder,
+        usageCount,
+        lastUsedAt,
+        CashFlowActivity.UNCLASSIFIED.name());
+  }
+
+  public long insert(
+      String name,
+      String typeFilter,
+      int sortOrder,
+      int usageCount,
+      Long lastUsedAt,
+      String cashFlowActivity) {
     ContentValues values = new ContentValues();
     values.put("name", name);
     values.put("type_filter", typeFilter);
@@ -29,6 +46,7 @@ public final class CategoryDao {
     } else {
       values.put("last_used_at", lastUsedAt);
     }
+    values.put("cash_flow_activity", cashFlowActivity);
     return db.insert("categories", null, values);
   }
 
@@ -71,6 +89,25 @@ public final class CategoryDao {
     List<Category> categories = new ArrayList<>();
     try (Cursor c =
         db.query("categories", null, null, null, null, null, "sort_order ASC, id ASC")) {
+      while (c.moveToNext()) {
+        categories.add(map(c));
+      }
+    }
+    return categories;
+  }
+
+  public List<Category> findAllForManage() {
+    List<Category> categories = new ArrayList<>();
+    try (Cursor c =
+        db.query(
+            "categories",
+            null,
+            null,
+            null,
+            null,
+            null,
+            "CASE cash_flow_activity WHEN 'UNCLASSIFIED' THEN 0 ELSE 1 END, "
+                + "usage_count DESC, last_used_at DESC, name COLLATE NOCASE")) {
       while (c.moveToNext()) {
         categories.add(map(c));
       }
@@ -160,6 +197,23 @@ public final class CategoryDao {
     return findById(id);
   }
 
+  public boolean update(long id, String name, String typeFilter, String cashFlowActivity) {
+    ContentValues values = new ContentValues();
+    values.put("name", name);
+    values.put("type_filter", typeFilter);
+    values.put("cash_flow_activity", cashFlowActivity);
+    return db.update("categories", values, "id = ?", new String[] {String.valueOf(id)}) > 0;
+  }
+
+  public int countTransactions(long categoryId) {
+    try (Cursor c =
+        db.rawQuery(
+            "SELECT COUNT(*) FROM transactions WHERE category_id = ?",
+            new String[] {String.valueOf(categoryId)})) {
+      return c.moveToFirst() ? c.getInt(0) : 0;
+    }
+  }
+
   public void incrementUsage(long id, long usedAt) {
     db.execSQL(
         "UPDATE categories SET usage_count = usage_count + 1, last_used_at = ? WHERE id = ?",
@@ -178,6 +232,7 @@ public final class CategoryDao {
         c.getString(c.getColumnIndexOrThrow("type_filter")),
         c.getInt(c.getColumnIndexOrThrow("sort_order")),
         c.getInt(c.getColumnIndexOrThrow("usage_count")),
-        lastUsedAt);
+        lastUsedAt,
+        c.getString(c.getColumnIndexOrThrow("cash_flow_activity")));
   }
 }

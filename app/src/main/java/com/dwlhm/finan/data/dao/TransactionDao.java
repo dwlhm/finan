@@ -39,6 +39,8 @@ public final class TransactionDao {
         note,
         merchantId,
         null,
+        "UNCLASSIFIED",
+        false,
         createdAt,
         updatedAt);
   }
@@ -52,6 +54,8 @@ public final class TransactionDao {
       String note,
       Long merchantId,
       Long transferId,
+      String cashFlowActivity,
+      boolean cashFlowActivityOverridden,
       long createdAt,
       long updatedAt) {
     ContentValues values = new ContentValues();
@@ -63,6 +67,8 @@ public final class TransactionDao {
     putNote(values, note);
     putMerchantId(values, merchantId);
     putTransferId(values, transferId);
+    values.put("cash_flow_activity", cashFlowActivity);
+    values.put("cash_flow_activity_overridden", cashFlowActivityOverridden ? 1 : 0);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.insert("transactions", null, values);
@@ -89,6 +95,8 @@ public final class TransactionDao {
         note,
         merchantId,
         null,
+        "UNCLASSIFIED",
+        false,
         createdAt,
         updatedAt);
   }
@@ -103,6 +111,8 @@ public final class TransactionDao {
       String note,
       Long merchantId,
       Long transferId,
+      String cashFlowActivity,
+      boolean cashFlowActivityOverridden,
       long createdAt,
       long updatedAt) {
     ContentValues values = new ContentValues();
@@ -114,6 +124,8 @@ public final class TransactionDao {
     putNote(values, note);
     putMerchantId(values, merchantId);
     putTransferId(values, transferId);
+    values.put("cash_flow_activity", cashFlowActivity);
+    values.put("cash_flow_activity_overridden", cashFlowActivityOverridden ? 1 : 0);
     values.put("created_at", createdAt);
     values.put("updated_at", updatedAt);
     return db.update("transactions", values, "id = ?", new String[]{String.valueOf(id)}) > 0;
@@ -307,6 +319,16 @@ public final class TransactionDao {
       }
     }
     return transactions;
+  }
+
+  public int updateCashFlowActivityForCategory(long categoryId, String cashFlowActivity) {
+    ContentValues values = new ContentValues();
+    values.put("cash_flow_activity", cashFlowActivity);
+    return db.update(
+        "transactions",
+        values,
+        "category_id = ? AND cash_flow_activity_overridden = 0",
+        new String[] {String.valueOf(categoryId)});
   }
 
   private static void putCategoryId(ContentValues values, long categoryId) {
@@ -504,6 +526,8 @@ public final class TransactionDao {
         c.getString(c.getColumnIndexOrThrow("note")),
         merchantId,
         transferId,
+        c.getString(c.getColumnIndexOrThrow("cash_flow_activity")),
+        c.getInt(c.getColumnIndexOrThrow("cash_flow_activity_overridden")) != 0,
         c.getLong(c.getColumnIndexOrThrow("created_at")),
         c.getLong(c.getColumnIndexOrThrow("updated_at")));
   }

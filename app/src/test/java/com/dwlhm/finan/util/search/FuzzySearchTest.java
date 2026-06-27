@@ -1,7 +1,6 @@
 package com.dwlhm.finan.util.search;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -25,11 +24,11 @@ public class FuzzySearchTest {
   }
 
   @Test
-  public void index_requiresFourCharactersForTypoTolerance() {
+  public void index_toleratesTyposInShortNames() {
     List<Value> values = List.of(new Value(1L, "Kopi"));
     FuzzySearch.Index<Value> index = FuzzySearch.index(values, Value::name);
 
-    assertTrue(index.matching("kpi").isEmpty());
+    assertEquals(values, index.matching("kpi"));
     assertEquals(values, index.matching("kopi"));
   }
 

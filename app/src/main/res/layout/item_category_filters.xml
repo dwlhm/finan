@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_control_surface"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/category_classification_picker_title"
+        android:textAppearance="@style/Finan.Text.SectionLabel" />
+
+    <Button
+        android:id="@+id/category_classification_all"
+        style="@style/Finan.Button.Nav"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/category_classification_filter_all" />
+
+    <Button
+        android:id="@+id/category_classification_operating"
+        style="@style/Finan.Button.Nav"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/category_classification_filter_operating" />
+
+    <Button
+        android:id="@+id/category_classification_investing"
+        style="@style/Finan.Button.Nav"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/category_classification_filter_investing" />
+
+    <Button
+        android:id="@+id/category_classification_financing"
+        style="@style/Finan.Button.Nav"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/category_classification_filter_financing" />
+</LinearLayout>
