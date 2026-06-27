@@ -188,39 +188,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:gravity="center"
+            android:background="@drawable/bg_panel_emphasis_error"
+            android:drawableStart="@drawable/ic_error"
+            android:drawablePadding="8dp"
+            android:padding="8dp"
+            android:gravity="center_vertical"
             android:text="@string/capture_validation_hint"
             android:visibility="gone" />
     </LinearLayout>
     
-    <LinearLayout
-        android:id="@+id/capture_undo_bar"
-        style="@style/Finan.Panel.Section"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:visibility="gone">
 
-        <TextView
-            android:id="@+id/capture_undo_message"
-            style="@style/Finan.Text.Body"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/capture_saved_undo_message" />
-
-        <Button
-            android:id="@+id/capture_undo_action"
-            style="@style/Finan.Button.Nav"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:minHeight="0dp"
-            android:minWidth="0dp"
-            android:text="@string/capture_undo_action" />
-    </LinearLayout>
 
     <View
         android:layout_width="match_parent"

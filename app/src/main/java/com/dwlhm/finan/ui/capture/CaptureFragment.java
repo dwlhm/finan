@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,14 +39,14 @@ import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
 import com.dwlhm.finan.ui.components.FinancialKeypadView;
 import com.dwlhm.finan.ui.components.KeypadAmountManager;
+import com.dwlhm.finan.ui.components.FinanToast;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class CaptureFragment extends ScreenFragment {
 
-  private static final long UNDO_TIMEOUT_MS = 8_000L;
-
+  private static final long WALLET_PRESELECTION_DELAY_MS = 250L;
   private AppServices services;
   private TransactionService transactionService;
   private DefaultsStore defaultsStore;
@@ -65,9 +66,6 @@ public final class CaptureFragment extends ScreenFragment {
   private TextView validationBanner;
   private CaptureFormValidation formValidation;
   
-  private View undoBar;
-  private TextView undoMessage;
-  private Button undoActionButton;
 
   private Wallet activeWallet;
   private Wallet destinationWallet;
@@ -75,8 +73,7 @@ public final class CaptureFragment extends ScreenFragment {
   private TransactionType selectedType = TransactionType.EXPENSE;
   private TransactionOccurredAtPicker occurredAtPicker;
 
-  private final Handler undoHandler = new Handler(Looper.getMainLooper());
-  @Nullable private Runnable undoDismissRunnable;
+  private FinanToast activeToast;
   @Nullable private PendingSaveUndo pendingUndo;
 
   private List<Wallet> wallets = new ArrayList<>();
@@ -146,15 +143,6 @@ public final class CaptureFragment extends ScreenFragment {
         v -> {
           expireAmountAutoFocus();
           saveTransaction();
-        });
-
-    undoBar = view.findViewById(R.id.capture_undo_bar);
-    undoMessage = view.findViewById(R.id.capture_undo_message);
-    undoActionButton = view.findViewById(R.id.capture_undo_action);
-    undoActionButton.setOnClickListener(
-        v -> {
-          expireAmountAutoFocus();
-          performUndo();
         });
 
     installAmountAutoFocusExpiry(view);
@@ -361,15 +349,42 @@ public final class CaptureFragment extends ScreenFragment {
     }
   }
 
+  private void applyErrorBackground(TextView view) {
+      int paddingLeft = view.getPaddingLeft();
+      int paddingTop = view.getPaddingTop();
+      int paddingRight = view.getPaddingRight();
+      int paddingBottom = view.getPaddingBottom();
+      view.setBackgroundResource(R.drawable.bg_field_error);
+      view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+  }
+
+  private void applySelectionBackground(TextView view, boolean isSelected) {
+      int paddingLeft = view.getPaddingLeft();
+      int paddingTop = view.getPaddingTop();
+      int paddingRight = view.getPaddingRight();
+      int paddingBottom = view.getPaddingBottom();
+
+      if (isSelected) {
+          TypedValue outValue = new TypedValue();
+          requireContext().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+          view.setBackgroundResource(outValue.resourceId);
+      } else {
+          view.setBackgroundResource(R.drawable.bg_unselected_field);
+      }
+      view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+  }
+
   private void updateCategoryLabel() {
       if (selectedType.isTransfer()) {
           categoryText.setText(destinationWallet != null ? destinationWallet.getName() : "Wallet");
+          applySelectionBackground(categoryText, destinationWallet != null);
           categoryText.setOnClickListener(v -> {
               expireAmountAutoFocus();
               openWalletSearchDialog(true);
           });
       } else {
           categoryText.setText(selectedCategory != null ? "#" + selectedCategory.getName() : "#Category");
+          applySelectionBackground(categoryText, selectedCategory != null);
           categoryText.setOnClickListener(v -> {
               expireAmountAutoFocus();
               openCategorySearchDialog();
@@ -379,6 +394,7 @@ public final class CaptureFragment extends ScreenFragment {
 
   private void updateWalletLabel() {
       walletText.setText(activeWallet != null ? activeWallet.getName() : "Wallet");
+      applySelectionBackground(walletText, activeWallet != null);
   }
 
   private void openCategorySearchDialog() {
@@ -552,25 +568,20 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void showUndoBar() {
-    if (undoBar == null) {
-      return;
+    if (activeToast != null) {
+      activeToast.dismiss();
     }
-    undoBar.setVisibility(View.VISIBLE);
-    if (undoDismissRunnable != null) {
-      undoHandler.removeCallbacks(undoDismissRunnable);
-    }
-    undoDismissRunnable = this::dismissUndoBar;
-    undoHandler.postDelayed(undoDismissRunnable, UNDO_TIMEOUT_MS);
+    activeToast = FinanToast.show(requireActivity(), getString(R.string.capture_saved_undo_message), getString(R.string.capture_undo_action), () -> {
+        expireAmountAutoFocus();
+        performUndo();
+    });
   }
 
   private void dismissUndoBar() {
-    if (undoDismissRunnable != null) {
-      undoHandler.removeCallbacks(undoDismissRunnable);
-      undoDismissRunnable = null;
-    }
     pendingUndo = null;
-    if (undoBar != null) {
-      undoBar.setVisibility(View.GONE);
+    if (activeToast != null) {
+      activeToast.dismiss();
+      activeToast = null;
     }
   }
 
@@ -913,18 +924,21 @@ public final class CaptureFragment extends ScreenFragment {
     }
 
     if (activeWallet == null) {
+      applyErrorBackground(walletText);
       formValidation.showError(requireContext(), CaptureFormValidation.Field.WALLET, R.string.capture_error_wallet);
       valid = false;
     }
 
     if (selectedType.isTransfer()) {
       if (destinationWallet == null) {
+        applyErrorBackground(categoryText);
         formValidation.showError(
             requireContext(),
             CaptureFormValidation.Field.DESTINATION,
             R.string.capture_error_destination);
         valid = false;
       } else if (activeWallet != null && activeWallet.getId() == destinationWallet.getId()) {
+        applyErrorBackground(categoryText);
         formValidation.showError(
             requireContext(),
             CaptureFormValidation.Field.DESTINATION,
@@ -932,6 +946,7 @@ public final class CaptureFragment extends ScreenFragment {
         valid = false;
       }
     } else if (selectedCategory == null) {
+      applyErrorBackground(categoryText);
       formValidation.showError(
           requireContext(),
           CaptureFormValidation.Field.CATEGORY,
