@@ -28,8 +28,15 @@ import com.dwlhm.finan.data.prefs.DefaultsStore;
 import com.dwlhm.finan.data.prefs.TransactionFormDraft;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.service.transaction.TransactionService;
+import android.app.Dialog;
+import android.widget.CheckBox;
+import android.widget.RadioGroup;
+import com.dwlhm.finan.ui.common.DialogActionsView;
+import com.dwlhm.finan.ui.common.LabeledEditTextView;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.common.EntitySearchBottomSheet;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
@@ -412,9 +419,29 @@ public final class CaptureFragment extends ScreenFragment {
               selectedCategory = item;
               formValidation.clear(CaptureFormValidation.Field.CATEGORY);
               updateCategoryLabel();
-          }
+          },
+          getString(R.string.capture_category_add_new),
+          this::openCategoryCreator
       );
       bottomSheet.show();
+  }
+
+  private void openCategoryCreator() {
+      new CategoryEditorDialog(
+          requireContext(),
+          services,
+          null,
+          0,
+          saved -> {
+              selectedCategory = saved;
+              formValidation.clear(CaptureFormValidation.Field.CATEGORY);
+              updateCategoryLabel();
+              refreshCaptureData(true);
+          },
+          null,
+          null,
+          selectedType.name()
+      );
   }
 
   private void openWalletSearchDialog(boolean isDestination) {

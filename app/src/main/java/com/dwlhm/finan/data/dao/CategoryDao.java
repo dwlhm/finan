@@ -218,6 +218,10 @@ public final class CategoryDao {
     }
   }
 
+  public boolean delete(long id) {
+    return db.delete("categories", "id = ?", new String[]{String.valueOf(id)}) > 0;
+  }
+
   public void incrementUsage(long id, long usedAt) {
     db.execSQL(
         "UPDATE categories SET usage_count = usage_count + 1, last_used_at = ? WHERE id = ?",

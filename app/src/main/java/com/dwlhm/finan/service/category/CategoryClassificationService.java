@@ -18,7 +18,8 @@ public final class CategoryClassificationService {
   };
 
   private static String getRandomEmoji() {
-    return RANDOM_EMOJIS[(int) (Math.random() * RANDOM_EMOJIS.length)];
+    java.security.SecureRandom random = new java.security.SecureRandom();
+    return RANDOM_EMOJIS[random.nextInt(RANDOM_EMOJIS.length)];
   }
 
   public CategoryClassificationService(

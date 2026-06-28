@@ -2,7 +2,10 @@ package com.dwlhm.finan.ui.common;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Typeface;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -53,9 +56,32 @@ public final class LabeledEditTextView extends LinearLayout {
     editText.setSingleLine(true);
     editText.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
     editText.setHintTextColor(ContextCompat.getColor(context, R.color.finan_text_hint));
+    
+    updateTypeface(editText.getText().toString());
+    editText.addTextChangedListener(new TextWatcher() {
+      @Override
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+      @Override
+      public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+      @Override
+      public void afterTextChanged(Editable s) {
+        updateTypeface(s.toString());
+      }
+    });
+
     LayoutParams inputParams = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
     inputParams.topMargin = dp(6);
     addView(editText, inputParams);
+  }
+
+  private void updateTypeface(String text) {
+    if (text.isEmpty()) {
+      editText.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.ITALIC));
+    } else {
+      editText.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+    }
   }
 
   public EditText getEditText() {

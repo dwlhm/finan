@@ -42,6 +42,8 @@ public class EntitySearchBottomSheet<T> extends Dialog {
   private final Listener<T> listener;
   private final Long selectedId;
   private final FuzzySearch.Index<T> searchIndex;
+  private final String actionText;
+  private final Runnable actionListener;
 
   private EditText searchInput;
   private SearchListAdapter listAdapter;
@@ -52,12 +54,25 @@ public class EntitySearchBottomSheet<T> extends Dialog {
       @Nullable Long selectedId,
       @NonNull ItemMapper<T> mapper,
       @NonNull Listener<T> listener) {
+    this(context, items, selectedId, mapper, listener, null, null);
+  }
+
+  public EntitySearchBottomSheet(
+      @NonNull Context context,
+      @NonNull List<T> items,
+      @Nullable Long selectedId,
+      @NonNull ItemMapper<T> mapper,
+      @NonNull Listener<T> listener,
+      @Nullable String actionText,
+      @Nullable Runnable actionListener) {
     super(context, R.style.Finan_BottomSheetDialog);
     this.allItems = items;
     this.mapper = mapper;
     this.listener = listener;
     this.selectedId = selectedId;
     this.searchIndex = buildSearchIndex(items, mapper);
+    this.actionText = actionText;
+    this.actionListener = actionListener;
   }
 
   private FuzzySearch.Index<T> buildSearchIndex(List<T> items, ItemMapper<T> mapper) {
@@ -79,14 +94,27 @@ public class EntitySearchBottomSheet<T> extends Dialog {
     searchInput = findViewById(R.id.search_input);
     ListView listView = findViewById(R.id.search_list);
 
+    if (actionText != null && actionListener != null) {
+      View footerView = LayoutInflater.from(getContext()).inflate(R.layout.item_category_search_action, listView, false);
+      TextView labelView = footerView.findViewById(R.id.category_action_label);
+      labelView.setText(actionText);
+      footerView.setOnClickListener(v -> {
+        dismiss();
+        actionListener.run();
+      });
+      listView.addFooterView(footerView);
+    }
+
     listAdapter = new SearchListAdapter();
     listView.setAdapter(listAdapter);
     listAdapter.setItems(allItems);
 
     listView.setOnItemClickListener((parent, view, position, id) -> {
-      T item = listAdapter.getItem(position);
-      listener.onItemSelected(item);
-      dismiss();
+      if (position < listAdapter.getCount()) {
+        T item = listAdapter.getItem(position);
+        listener.onItemSelected(item);
+        dismiss();
+      }
     });
 
     searchInput.addTextChangedListener(new TextWatcher() {

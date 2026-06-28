@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
+import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.DebouncedTextWatcher;
 import com.dwlhm.finan.ui.common.DialogActionsView;
@@ -107,7 +108,7 @@ public final class CategoryListFragment extends ScreenFragment {
     searchInput.setSelection(searchInput.length());
     ScreenHeaderView header = view.findViewById(R.id.category_header);
     header.setOnBackClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
-    header.setOnActionClickListener(v -> showEditor(null, 0));
+    header.setOnActionClickListener(v -> openCategoryCreator());
 
     adapter =
         new CategoryAdapter(
@@ -273,12 +274,12 @@ public final class CategoryListFragment extends ScreenFragment {
       emptyTitle.setText(R.string.category_empty);
       emptyHint.setText(R.string.category_empty_hint);
       emptyAction.setText(R.string.category_empty_action);
-      emptyAction.setOnClickListener(v -> showEditor(null, 0));
+      emptyAction.setOnClickListener(v -> openCategoryCreator());
     } else {
       emptyTitle.setText(R.string.category_search_empty);
       emptyHint.setText(R.string.category_search_empty_hint);
       emptyAction.setText(R.string.category_search_empty_action);
-      emptyAction.setOnClickListener(v -> showEditor(null, 0));
+      emptyAction.setOnClickListener(v -> openCategoryCreator());
     }
   }
 
@@ -296,204 +297,34 @@ public final class CategoryListFragment extends ScreenFragment {
         () -> services.categoryDao.countTransactions(category.getId()),
         count -> {
           if (isAdded() && count != null) {
-            showEditor(category, count);
+            new CategoryEditorDialog(
+                requireContext(),
+                services,
+                category,
+                count,
+                saved -> reload(),
+                () -> {
+                  if (requireActivity() instanceof ScreenNavigator) {
+                    ((ScreenNavigator) requireActivity())
+                        .openHistoryForCategory(category.getId());
+                  }
+                }
+            );
           }
         });
   }
 
-  private void showEditor(@Nullable Category category, int transactionCount) {
-    Dialog dialog = new Dialog(requireContext());
-    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    dialog.setContentView(R.layout.dialog_category_editor);
-    dialog.setCancelable(false);
-    TextView title = dialog.findViewById(R.id.category_editor_title);
-    LabeledEditTextView nameField = dialog.findViewById(R.id.category_name_field);
-    EditText nameInput = nameField.getEditText();
-    LabeledEditTextView iconField = dialog.findViewById(R.id.category_icon_field);
-    EditText iconInput = iconField.getEditText();
-    iconInput.setFilters(new android.text.InputFilter[] { new android.text.InputFilter.LengthFilter(5) });
-    CheckBox expenseInput = dialog.findViewById(R.id.category_type_expense);
-    CheckBox incomeInput = dialog.findViewById(R.id.category_type_income);
-    RadioGroup activityGroup = dialog.findViewById(R.id.category_activity_group);
-    TextView countView = dialog.findViewById(R.id.category_transaction_count);
-    Button transactionsButton = dialog.findViewById(R.id.category_view_transactions);
-    DialogActionsView actions = dialog.findViewById(R.id.category_editor_actions);
-    EditorDraft draft =
-        new EditorDraft(category, nameInput, iconInput, expenseInput, incomeInput, activityGroup);
-
-    boolean editing = category != null;
-    title.setText(editing ? R.string.category_editor_edit_title : R.string.category_editor_create_title);
-    actions.setPrimaryText(
-        getString(editing ? R.string.category_save_changes : R.string.category_save));
-    if (editing) {
-      draft.bindOriginal();
-      countView.setText(
-          getResources()
-              .getQuantityString(
-                  R.plurals.category_transaction_count, transactionCount, transactionCount));
-      countView.setVisibility(View.VISIBLE);
-      transactionsButton.setVisibility(View.VISIBLE);
-      transactionsButton.setOnClickListener(
-          v ->
-              closeEditor(
-                  dialog,
-                  draft,
-                  () -> {
-                    if (requireActivity() instanceof ScreenNavigator) {
-                      ((ScreenNavigator) requireActivity())
-                          .openHistoryForCategory(category.getId());
-                    }
-                  }));
-    }
-    actions.setOnCancelClickListener(v -> closeEditor(dialog, draft, null));
-    actions.setOnPrimaryClickListener(v -> submitEditor(dialog, draft, actions));
-    dialog.setOnKeyListener(
-        (d, keyCode, event) -> {
-          if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP) {
-            closeEditor(dialog, draft, null);
-            return true;
-          }
-          return false;
-        });
-    showDialog(dialog);
-    if (!editing) {
-      String prefill = query.trim();
-      if (!prefill.isEmpty()) {
-        nameInput.setText(prefill);
-        nameInput.setSelection(nameInput.length());
-      }
-      nameInput.requestFocus();
-      dialog
-          .getWindow()
-          .setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-    }
-  }
-
-  private void submitEditor(Dialog dialog, EditorDraft draft, DialogActionsView actions) {
-    String name = draft.name();
-    if (name.isEmpty()) {
-      draft.nameInput.setError(getString(R.string.category_error_name));
-      draft.nameInput.requestFocus();
-      return;
-    }
-    if (!draft.hasType()) {
-      draft.expenseInput.setError(getString(R.string.category_error_type));
-      draft.expenseInput.requestFocus();
-      return;
-    }
-    draft.expenseInput.setError(null);
-    if (draft.original != null && draft.activityChanged()) {
-      showHistoryScope(dialog, draft, actions);
-    } else {
-      save(dialog, draft, actions, false);
-    }
-  }
-
-  private void showHistoryScope(Dialog editor, EditorDraft draft, DialogActionsView actions) {
-    boolean defaultAll =
-        CashFlowActivity.UNCLASSIFIED.name().equals(draft.original.getCashFlowActivity());
-    int[] selected = {defaultAll ? 1 : 0};
-    AlertDialog dialog =
-        new AlertDialog.Builder(requireContext())
-            .setTitle(R.string.category_history_scope_title)
-            .setMessage(
-                defaultAll
-                    ? R.string.category_history_scope_unclassified_hint
-                    : R.string.category_history_scope_classified_hint)
-            .setSingleChoiceItems(
-                new String[] {
-                  getString(R.string.category_history_scope_future),
-                  getString(R.string.category_history_scope_all)
-                },
-                selected[0],
-                (d, which) -> selected[0] = which)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(
-                R.string.category_history_scope_apply,
-                (d, which) -> save(editor, draft, actions, selected[0] == 1))
-            .create();
-    dialog.show();
-  }
-
-  private void save(
-      Dialog dialog, EditorDraft draft, DialogActionsView actions, boolean includeHistory) {
-    actions.setPrimaryEnabled(false);
-    services.dbWorker.compute(
-        () -> {
-          Category duplicate = services.categoryDao.findByNameIgnoreCase(draft.name());
-          if (duplicate != null
-              && (draft.original == null || duplicate.getId() != draft.original.getId())) {
-            return SaveResult.duplicate();
-          }
-          try {
-            Category saved =
-                draft.original == null
-                    ? services.categoryClassificationService.create(
-                        draft.name(), draft.icon(), draft.type(), draft.activity())
-                    : services.categoryClassificationService.update(
-                        draft.original.getId(),
-                        draft.name(),
-                        draft.icon(),
-                        draft.type(),
-                        draft.activity(),
-                        includeHistory);
-            return SaveResult.success(saved);
-          } catch (RuntimeException e) {
-            return SaveResult.failed();
-          }
-        },
-        result -> {
-          if (!isAdded() || !dialog.isShowing()) {
-            return;
-          }
-          actions.setPrimaryEnabled(true);
-          if (result == null || result.saved == null) {
-            if (result != null && result.duplicate) {
-              draft.nameInput.setError(getString(R.string.category_error_duplicate));
-              draft.nameInput.requestFocus();
-            } else {
-              Toast.makeText(requireContext(), R.string.category_error_save, Toast.LENGTH_SHORT)
-                  .show();
-            }
-            return;
-          }
-          Toast.makeText(requireContext(), R.string.category_saved, Toast.LENGTH_SHORT).show();
-          dialog.dismiss();
-          reload();
-        });
-  }
-
-  private void closeEditor(Dialog dialog, EditorDraft draft, @Nullable Runnable afterClose) {
-    if (!draft.dirty()) {
-      dialog.dismiss();
-      if (afterClose != null) {
-        afterClose.run();
-      }
-      return;
-    }
-    new AlertDialog.Builder(requireContext())
-        .setTitle(R.string.category_discard_title)
-        .setMessage(R.string.category_discard_message)
-        .setNegativeButton(R.string.category_keep_editing, null)
-        .setPositiveButton(
-            R.string.category_discard,
-            (d, which) -> {
-              dialog.dismiss();
-              if (afterClose != null) {
-                afterClose.run();
-              }
-            })
-        .show();
-  }
-
-  private void showDialog(Dialog dialog) {
-    dialog.show();
-    Window window = dialog.getWindow();
-    if (window != null) {
-      window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-      window.setLayout(
-          WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
-    }
+  private void openCategoryCreator() {
+    new CategoryEditorDialog(
+        requireContext(),
+        services,
+        null,
+        0,
+        saved -> reload(),
+        null,
+        query.trim(),
+        null
+    );
   }
 
   private static List<Category> unclassified(List<Category> source) {
@@ -506,124 +337,8 @@ public final class CategoryListFragment extends ScreenFragment {
     return result;
   }
 
-  private static boolean isUnclassified(Category category) {
+  static boolean isUnclassified(Category category) {
     return CashFlowActivity.UNCLASSIFIED.name().equals(category.getCashFlowActivity());
-  }
-
-  private static final class EditorDraft {
-    private final Category original;
-    private final EditText nameInput;
-    private final EditText iconInput;
-    private final CheckBox expenseInput;
-    private final CheckBox incomeInput;
-    private final RadioGroup activityGroup;
-
-    private EditorDraft(
-        Category original,
-        EditText nameInput,
-        EditText iconInput,
-        CheckBox expenseInput,
-        CheckBox incomeInput,
-        RadioGroup activityGroup) {
-      this.original = original;
-      this.nameInput = nameInput;
-      this.iconInput = iconInput;
-      this.expenseInput = expenseInput;
-      this.incomeInput = incomeInput;
-      this.activityGroup = activityGroup;
-    }
-
-    private void bindOriginal() {
-      nameInput.setText(original.getName());
-      nameInput.setSelection(nameInput.length());
-      iconInput.setText(original.getIcon());
-      expenseInput.setChecked(!"INCOME".equals(original.getTypeFilter()));
-      incomeInput.setChecked(!"EXPENSE".equals(original.getTypeFilter()));
-      activityGroup.check(activityId(CashFlowActivity.valueOf(original.getCashFlowActivity())));
-    }
-
-    private String name() {
-      return nameInput.getText().toString().trim();
-    }
-
-    private String icon() {
-      return iconInput.getText().toString().trim();
-    }
-
-    private String type() {
-      if (expenseInput.isChecked()) {
-        return incomeInput.isChecked() ? "BOTH" : "EXPENSE";
-      }
-      return incomeInput.isChecked() ? "INCOME" : "";
-    }
-
-    private boolean hasType() {
-      return expenseInput.isChecked() || incomeInput.isChecked();
-    }
-
-    private CashFlowActivity activity() {
-      int id = activityGroup.getCheckedRadioButtonId();
-      if (id == R.id.category_activity_operating) {
-        return CashFlowActivity.OPERATING;
-      }
-      if (id == R.id.category_activity_investing) {
-        return CashFlowActivity.INVESTING;
-      }
-      return id == R.id.category_activity_financing
-          ? CashFlowActivity.FINANCING
-          : CashFlowActivity.UNCLASSIFIED;
-    }
-
-    private boolean activityChanged() {
-      return original != null && !original.getCashFlowActivity().equals(activity().name());
-    }
-
-    private boolean dirty() {
-      return original == null
-          ? !name().isEmpty()
-              || !icon().isEmpty()
-              || !"EXPENSE".equals(type())
-              || activity() != CashFlowActivity.UNCLASSIFIED
-          : !original.getName().equals(name())
-              || !java.util.Objects.equals(original.getIcon(), icon())
-              || !original.getTypeFilter().equals(type())
-              || activityChanged();
-    }
-
-    private static int activityId(CashFlowActivity activity) {
-      switch (activity) {
-        case OPERATING:
-          return R.id.category_activity_operating;
-        case INVESTING:
-          return R.id.category_activity_investing;
-        case FINANCING:
-          return R.id.category_activity_financing;
-        default:
-          return R.id.category_activity_unclassified;
-      }
-    }
-  }
-
-  private static final class SaveResult {
-    private final Category saved;
-    private final boolean duplicate;
-
-    private SaveResult(Category saved, boolean duplicate) {
-      this.saved = saved;
-      this.duplicate = duplicate;
-    }
-
-    private static SaveResult success(Category saved) {
-      return new SaveResult(saved, false);
-    }
-
-    private static SaveResult duplicate() {
-      return new SaveResult(null, true);
-    }
-
-    private static SaveResult failed() {
-      return new SaveResult(null, false);
-    }
   }
 
   private enum Section {

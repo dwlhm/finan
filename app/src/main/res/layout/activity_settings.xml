@@ -1,77 +1,177 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="@string/settings_title"
-        android:textAppearance="@style/Finan.Text.Title" />
+    android:fillViewport="true"
+    android:overScrollMode="never">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
 
-        <Button
-            android:id="@+id/settings_export"
-            style="@style/Finan.Button.Primary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_export" />
-
-        <ProgressBar
-            android:id="@+id/settings_export_progress"
-            style="?android:attr/progressBarStyleSmall"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:indeterminate="true"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/settings_export_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center_horizontal"
-            android:text="@string/settings_export_in_progress"
-            android:textColor="@color/finan_text_secondary"
-            android:textSize="14sp"
-            android:visibility="gone" />
-
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/settings_export_hint"
-            android:textColor="@color/finan_text_secondary"
-            android:textSize="14sp" />
+            android:layout_marginBottom="16dp"
+            android:text="@string/settings_title"
+            android:textAppearance="@style/Finan.Text.Title" />
 
-        <Button
-            android:id="@+id/settings_wallets"
-            style="@style/Finan.Button.Nav"
+        <!-- Category Card (Top Categories) -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
             android:background="@drawable/bg_card"
-            android:padding="12dp"
-            android:text="@string/settings_manage_wallets" />
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
 
-        <Button
-            android:id="@+id/settings_categories"
-            style="@style/Finan.Button.Nav"
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:text="Kategori Sering Digunakan"
+                    android:textAppearance="@style/Finan.Text.SectionLabel"
+                    android:textColor="@color/finan_primary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settings_create_category_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="+ Tambah Baru"
+                    android:textColor="@color/finan_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </RelativeLayout>
+
+            <GridLayout
+                android:id="@+id/settings_categories_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:alignmentMode="alignBounds"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/settings_categories_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="16dp"
+                android:text="Belum ada data kategori"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/settings_categories"
+                style="@style/Finan.Button.Nav"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_chip"
+                android:textColor="@color/finan_text_primary"
+                android:padding="12dp"
+                android:text="@string/settings_manage_categories" />
+        </LinearLayout>
+
+        <!-- Wallet Card -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
             android:background="@drawable/bg_card"
-            android:padding="12dp"
-            android:text="@string/settings_manage_categories" />
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Dompet &amp; Rekening"
+                android:textAppearance="@style/Finan.Text.SectionLabel"
+                android:textColor="@color/finan_primary"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/settings_wallets"
+                style="@style/Finan.Button.Nav"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_chip"
+                android:textColor="@color/finan_text_primary"
+                android:padding="12dp"
+                android:text="@string/settings_manage_wallets" />
+        </LinearLayout>
+
+        <!-- Export CSV Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Data &amp; Ekspor"
+                android:textAppearance="@style/Finan.Text.SectionLabel"
+                android:textColor="@color/finan_primary"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/settings_export"
+                style="@style/Finan.Button.Primary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/settings_export" />
+
+            <ProgressBar
+                android:id="@+id/settings_export_progress"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/settings_export_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_horizontal"
+                android:text="@string/settings_export_in_progress"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/settings_export_hint"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
     </LinearLayout>
-</LinearLayout>
+</ScrollView>
