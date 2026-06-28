@@ -18,6 +18,20 @@ public final class SummaryDao {
     }
   }
 
+  public static final class CashFlowAggregateRow {
+    public final long categoryId;
+    public final String cashFlowActivity;
+    public final String type;
+    public final long totalMinor;
+
+    public CashFlowAggregateRow(long categoryId, String cashFlowActivity, String type, long totalMinor) {
+      this.categoryId = categoryId;
+      this.cashFlowActivity = cashFlowActivity;
+      this.type = type;
+      this.totalMinor = totalMinor;
+    }
+  }
+
   private final SQLiteDatabase db;
 
   public SummaryDao(SQLiteDatabase db) {
@@ -97,6 +111,34 @@ public final class SummaryDao {
             new CategorySumRow(
                 c.getLong(c.getColumnIndexOrThrow("category_id")),
                 c.getLong(c.getColumnIndexOrThrow("total_minor"))));
+      }
+    }
+    return rows;
+  }
+
+  public List<CashFlowAggregateRow> getCashFlowCategoryTotals(
+      long startInclusive, long endExclusive, Long walletId, Long categoryId) {
+    List<CashFlowAggregateRow> rows = new ArrayList<>();
+    List<String> args = new ArrayList<>();
+    args.add(String.valueOf(startInclusive));
+    args.add(String.valueOf(endExclusive));
+    String sql =
+        "SELECT COALESCE(category_id, 0) AS category_id, cash_flow_activity, type, SUM(amount_minor) AS total_minor FROM transactions "
+            + "WHERE occurred_at >= ? AND occurred_at < ? AND type IN ('EXPENSE', 'INCOME')";
+    sql = appendFilterWhere(sql, args, walletId, categoryId);
+    sql += " GROUP BY category_id, cash_flow_activity, type ORDER BY total_minor DESC";
+    try (Cursor c = db.rawQuery(sql, args.toArray(new String[0]))) {
+      int catIdx = c.getColumnIndexOrThrow("category_id");
+      int actIdx = c.getColumnIndexOrThrow("cash_flow_activity");
+      int typeIdx = c.getColumnIndexOrThrow("type");
+      int totIdx = c.getColumnIndexOrThrow("total_minor");
+      while (c.moveToNext()) {
+        rows.add(
+            new CashFlowAggregateRow(
+                c.getLong(catIdx),
+                c.getString(actIdx),
+                c.getString(typeIdx),
+                c.getLong(totIdx)));
       }
     }
     return rows;

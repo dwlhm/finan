@@ -7,30 +7,25 @@ public final class MonthlySummary {
 
   private final int year;
   private final int month;
-  private final long monthExpenseMinor;
-  private final long monthIncomeMinor;
-  private final long todayExpenseMinor;
-  private final long todayIncomeMinor;
-  private final List<CategoryTotal> topExpenseCategories;
+  private final long totalExpenseMinor;
+  private final long totalIncomeMinor;
+  private final long netFlowMinor;
+  private final List<ActivitySummary> activitySummaries;
   private final List<WalletBalance> walletBalances;
 
   public MonthlySummary(
       int year,
       int month,
-      long monthExpenseMinor,
-      long monthIncomeMinor,
-      long todayExpenseMinor,
-      long todayIncomeMinor,
-      List<CategoryTotal> topExpenseCategories,
+      long totalExpenseMinor,
+      long totalIncomeMinor,
+      List<ActivitySummary> activitySummaries,
       List<WalletBalance> walletBalances) {
     this.year = year;
     this.month = month;
-    this.monthExpenseMinor = monthExpenseMinor;
-    this.monthIncomeMinor = monthIncomeMinor;
-    this.todayExpenseMinor = todayExpenseMinor;
-    this.todayIncomeMinor = todayIncomeMinor;
-    this.topExpenseCategories =
-        Collections.unmodifiableList(topExpenseCategories);
+    this.totalExpenseMinor = totalExpenseMinor;
+    this.totalIncomeMinor = totalIncomeMinor;
+    this.netFlowMinor = totalIncomeMinor - totalExpenseMinor;
+    this.activitySummaries = Collections.unmodifiableList(activitySummaries);
     this.walletBalances = Collections.unmodifiableList(walletBalances);
   }
 
@@ -43,26 +38,78 @@ public final class MonthlySummary {
   }
 
   public long getMonthExpenseMinor() {
-    return monthExpenseMinor;
+    return totalExpenseMinor;
   }
 
   public long getMonthIncomeMinor() {
-    return monthIncomeMinor;
+    return totalIncomeMinor;
   }
 
   public long getTodayExpenseMinor() {
-    return todayExpenseMinor;
+    return totalExpenseMinor;
   }
 
   public long getTodayIncomeMinor() {
-    return todayIncomeMinor;
+    return totalIncomeMinor;
   }
 
-  public List<CategoryTotal> getTopExpenseCategories() {
-    return topExpenseCategories;
+  public long getNetFlowMinor() {
+    return netFlowMinor;
+  }
+
+  public List<ActivitySummary> getActivitySummaries() {
+    return activitySummaries;
   }
 
   public List<WalletBalance> getWalletBalances() {
     return walletBalances;
+  }
+
+  public List<CategoryTotal> getTopExpenseCategories() {
+    java.util.List<CategoryTotal> combined = new java.util.ArrayList<>();
+    for (ActivitySummary act : activitySummaries) {
+      combined.addAll(act.getTopCategories());
+    }
+    return combined;
+  }
+
+  public static final class ActivitySummary {
+    private final CashFlowActivity activity;
+    private final long inflowMinor;
+    private final long outflowMinor;
+    private final long netFlowMinor;
+    private final List<CategoryTotal> topCategories;
+
+    public ActivitySummary(
+        CashFlowActivity activity,
+        long inflowMinor,
+        long outflowMinor,
+        List<CategoryTotal> topCategories) {
+      this.activity = activity;
+      this.inflowMinor = inflowMinor;
+      this.outflowMinor = outflowMinor;
+      this.netFlowMinor = inflowMinor - outflowMinor;
+      this.topCategories = Collections.unmodifiableList(topCategories);
+    }
+
+    public CashFlowActivity getActivity() {
+      return activity;
+    }
+
+    public long getInflowMinor() {
+      return inflowMinor;
+    }
+
+    public long getOutflowMinor() {
+      return outflowMinor;
+    }
+
+    public long getNetFlowMinor() {
+      return netFlowMinor;
+    }
+
+    public List<CategoryTotal> getTopCategories() {
+      return topCategories;
+    }
   }
 }

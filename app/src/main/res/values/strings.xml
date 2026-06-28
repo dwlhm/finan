@@ -137,12 +137,12 @@
     <string name="transaction_error_wallet">Pilih dompet</string>
     <string name="transaction_error_update">Gagal memperbarui transaksi</string>
 
-    <string name="summary_title">Ringkasan</string>
+    <string name="summary_title">Analisis Arus Kas</string>
     <string name="summary_date_picker_title">Pilih rentang tanggal</string>
     <string name="summary_range_start_label">Mulai</string>
     <string name="summary_range_end_label">Selesai</string>
     <string name="summary_range_apply">Terapkan</string>
-    <string name="summary_filter_title">Filter ringkasan</string>
+    <string name="summary_filter_title">Filter analisis</string>
     <string name="summary_filter_content_description">Filter dompet dan kategori</string>
     <string name="summary_filter_active_content_description">Filter aktif: %1$s, %2$s</string>
     <string name="summary_filter_reset">Reset filter</string>
@@ -152,13 +152,21 @@
     <string name="summary_category_filter_label">Kategori</string>
     <string name="summary_all_wallets">Semua dompet</string>
     <string name="summary_all_categories">Semua kategori</string>
-    <string name="summary_net_flow_label">Arus kas periode</string>
+    <string name="summary_net_flow_label">Aliran Kas Bersih</string>
     <string name="summary_income_label">Pemasukan</string>
     <string name="summary_expense_label">Pengeluaran</string>
     <string name="summary_today_heading">Total periode</string>
     <string name="summary_categories_heading">Kategori pengeluaran (periode)</string>
     <string name="summary_wallets_heading">Saldo dompet</string>
     <string name="summary_no_expense">Belum ada pengeluaran pada periode ini</string>
+    <string name="cashflow_inflow_label">Uang Masuk</string>
+    <string name="cashflow_outflow_label">Uang Keluar</string>
+    <string name="cashflow_net_label">Aliran Bersih</string>
+    <string name="cashflow_operating">Aktivitas Harian (Operasional)</string>
+    <string name="cashflow_investing">Aset &amp; Investasi (Investasi)</string>
+    <string name="cashflow_financing">Pinjaman &amp; Modal (Pendanaan)</string>
+    <string name="cashflow_unclassified">Belum Dikelompokkan / Lainnya</string>
+    <string name="cashflow_no_data">Tidak ada aktivitas arus kas pada periode ini</string>
 
     <string name="wallet_title">Dompet</string>
     <string name="wallet_add">Tambah dompet</string>

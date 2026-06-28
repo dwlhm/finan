@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
+import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.CategoryTotal;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.WalletBalance;
@@ -64,9 +65,7 @@ public final class SummaryFragment extends ScreenFragment {
   private TextView netFlow;
   private TextView monthExpense;
   private TextView monthIncome;
-  private TextView todayExpense;
-  private TextView todayIncome;
-  private LinearLayout categoryList;
+  private LinearLayout cashFlowContainer;
   private LinearLayout walletList;
   private TextView walletTotal;
   private TextView emptyMessage;
@@ -101,9 +100,7 @@ public final class SummaryFragment extends ScreenFragment {
     netFlow = view.findViewById(R.id.summary_net_flow);
     monthExpense = view.findViewById(R.id.summary_month_expense);
     monthIncome = view.findViewById(R.id.summary_month_income);
-    todayExpense = view.findViewById(R.id.summary_today_expense);
-    todayIncome = view.findViewById(R.id.summary_today_income);
-    categoryList = view.findViewById(R.id.summary_category_list);
+    cashFlowContainer = view.findViewById(R.id.summary_cash_flow_container);
     walletList = view.findViewById(R.id.summary_wallet_list);
     walletTotal = view.findViewById(R.id.summary_wallet_total);
     emptyMessage = view.findViewById(R.id.summary_empty);
@@ -171,22 +168,22 @@ public final class SummaryFragment extends ScreenFragment {
 
   private void bindSummary(MonthlySummary summary, LocalDate startDate, LocalDate endDate) {
     periodLabel.setText(formatRangeLabel(startDate, endDate));
-    netFlow.setText(format(summary.getMonthIncomeMinor() - summary.getMonthExpenseMinor()));
+    
+    long net = summary.getNetFlowMinor();
+    netFlow.setText((net >= 0 ? "+" : "") + format(net));
+    netFlow.setTextColor(ContextCompat.getColor(requireContext(), net >= 0 ? R.color.finan_income : R.color.finan_expense));
+    
     monthExpense.setText(format(summary.getMonthExpenseMinor()));
     monthIncome.setText(format(summary.getMonthIncomeMinor()));
-    todayExpense.setText(format(summary.getTodayExpenseMinor()));
-    todayIncome.setText(format(summary.getTodayIncomeMinor()));
     walletTotal.setText(format(totalWalletBalance(summary)));
 
-    categoryList.removeAllViews();
-    if (summary.getTopExpenseCategories().isEmpty()) {
+    cashFlowContainer.removeAllViews();
+    if (summary.getActivitySummaries().isEmpty()) {
       emptyMessage.setVisibility(View.VISIBLE);
-      emptyMessage.setText(R.string.summary_no_expense);
     } else {
       emptyMessage.setVisibility(View.GONE);
-      long maxTotalMinor = maxCategoryTotal(summary);
-      for (CategoryTotal row : summary.getTopExpenseCategories()) {
-        categoryList.addView(createCategoryRow(row, maxTotalMinor));
+      for (MonthlySummary.ActivitySummary activitySummary : summary.getActivitySummaries()) {
+        cashFlowContainer.addView(createActivityCard(activitySummary));
       }
     }
 
@@ -199,10 +196,113 @@ public final class SummaryFragment extends ScreenFragment {
     }
   }
 
+  private View createActivityCard(MonthlySummary.ActivitySummary actSummary) {
+    Context context = requireContext();
+    View card = getLayoutInflater().inflate(R.layout.item_cash_flow_card, cashFlowContainer, false);
+
+    TextView title = card.findViewById(R.id.item_cashflow_title);
+    TextView netText = card.findViewById(R.id.item_cashflow_net);
+    TextView inflowText = card.findViewById(R.id.item_cashflow_inflow);
+    TextView outflowText = card.findViewById(R.id.item_cashflow_outflow);
+    LinearLayout categoryList = card.findViewById(R.id.item_cashflow_category_list);
+
+    title.setText(getActivityTitle(actSummary.getActivity()));
+    
+    long net = actSummary.getNetFlowMinor();
+    netText.setText((net >= 0 ? "+" : "") + format(net));
+    netText.setTextColor(ContextCompat.getColor(context, net >= 0 ? R.color.finan_income : R.color.finan_expense));
+
+    inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + format(actSummary.getInflowMinor()));
+    outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + format(actSummary.getOutflowMinor()));
+
+    long maxCatVal = 0;
+    for (CategoryTotal cat : actSummary.getTopCategories()) {
+      maxCatVal = Math.max(maxCatVal, cat.getTotalMinor());
+    }
+
+    for (CategoryTotal cat : actSummary.getTopCategories()) {
+      categoryList.addView(createCategoryRow(cat, maxCatVal));
+    }
+
+    return card;
+  }
+
+  private String getActivityTitle(CashFlowActivity activity) {
+    switch (activity) {
+      case OPERATING:
+        return getString(R.string.cashflow_operating);
+      case INVESTING:
+        return getString(R.string.cashflow_investing);
+      case FINANCING:
+        return getString(R.string.cashflow_financing);
+      case UNCLASSIFIED:
+      default:
+        return getString(R.string.cashflow_unclassified);
+    }
+  }
+
+  private View createCategoryRow(CategoryTotal row, long maxTotalMinor) {
+    View rowView = getLayoutInflater().inflate(R.layout.item_cash_flow_category, null, false);
+    
+    TextView name = rowView.findViewById(R.id.item_category_name);
+    TextView amount = rowView.findViewById(R.id.item_category_amount);
+    ProgressBar progress = rowView.findViewById(R.id.item_category_progress);
+
+    name.setText(row.getCategoryName());
+    amount.setText(format(row.getTotalMinor()));
+    progress.setProgress(progressFor(row.getTotalMinor(), maxTotalMinor));
+
+    return rowView;
+  }
+
+  private View createWalletRow(WalletBalance wallet) {
+    Context context = requireContext();
+    LinearLayout row = new LinearLayout(context);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setPadding(0, UiComponentStyles.dp(context, 10), 0, UiComponentStyles.dp(context, 10));
+
+    TextView name = new TextView(context);
+    name.setEllipsize(TextUtils.TruncateAt.END);
+    name.setMaxLines(1);
+    name.setText(wallet.getWalletName());
+    name.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
+    name.setTextSize(15f);
+    row.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+    TextView balance = new TextView(context);
+    balance.setMaxLines(1);
+    balance.setText(format(wallet.getBalanceMinor()));
+    balance.setTextColor(
+        ContextCompat.getColor(
+            context,
+            wallet.getBalanceMinor() < 0 ? R.color.finan_expense : R.color.finan_primary));
+    balance.setTextSize(15f);
+    balance.setTypeface(balance.getTypeface(), Typeface.BOLD);
+    row.addView(
+        balance,
+        new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+    return row;
+  }
+
+  private View createDivider(Context context) {
+    View divider = new View(context);
+    divider.setBackgroundColor(ContextCompat.getColor(context, R.color.finan_divider));
+    divider.setLayoutParams(
+        new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, UiComponentStyles.dp(context, 1)));
+    return divider;
+  }
+
   private void showDateRangePicker() {
     Context context = requireContext();
     LocalDate[] pendingStart = {selectedStartDate};
     LocalDate[] pendingEnd = {selectedEndDate};
+
+    android.content.SharedPreferences prefs = context.getSharedPreferences("finan_prefs", Context.MODE_PRIVATE);
+    int[] pendingCutoff = {prefs.getInt("cutoff_day", 1)};
 
     LinearLayout content = new LinearLayout(context);
     content.setOrientation(LinearLayout.VERTICAL);
@@ -212,9 +312,31 @@ public final class SummaryFragment extends ScreenFragment {
 
     TextView startValue = createRangeDateValue(context, pendingStart[0]);
     TextView endValue = createRangeDateValue(context, pendingEnd[0]);
-    content.addView(
-        createRangeDateRow(context, R.string.summary_range_start_label, startValue));
+    TextView cycleValue = createPickerValue(context, getCycleLabel(pendingCutoff[0]));
+
+    content.addView(createRangeDateRow(context, R.string.summary_range_start_label, startValue));
     content.addView(createRangeDateRow(context, R.string.summary_range_end_label, endValue));
+
+    LinearLayout cycleRow = new LinearLayout(context);
+    cycleRow.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout.LayoutParams cycleRowParams = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    cycleRowParams.topMargin = UiComponentStyles.dp(context, 10);
+    cycleRow.setLayoutParams(cycleRowParams);
+
+    TextView cycleLabel = new TextView(context);
+    cycleLabel.setText("Mulai Siklus Bulanan (Tanggal Gajian)");
+    cycleLabel.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+    cycleLabel.setTextSize(12f);
+    cycleLabel.setTypeface(cycleLabel.getTypeface(), Typeface.BOLD);
+    cycleRow.addView(cycleLabel);
+
+    LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    valueParams.topMargin = UiComponentStyles.dp(context, 6);
+    cycleRow.addView(cycleValue, valueParams);
+
+    content.addView(cycleRow);
 
     startValue.setOnClickListener(
         v ->
@@ -243,6 +365,57 @@ public final class SummaryFragment extends ScreenFragment {
                   endValue.setText(formatDateLabel(pendingEnd[0]));
                 }));
 
+    String[] cycleOptions = {
+      "Tanggal 1 (Awal Bulan)",
+      "Tanggal 5",
+      "Tanggal 10",
+      "Tanggal 15",
+      "Tanggal 20",
+      "Tanggal 25",
+      "Tanggal 28",
+      "Hari Kerja Terakhir (Akhir Bulan)"
+    };
+    int[] cycleValues = {1, 5, 10, 15, 20, 25, 28, -1};
+
+    cycleValue.setOnClickListener(v -> {
+      new AlertDialog.Builder(context)
+          .setTitle("Pilih Siklus Gajian")
+          .setItems(cycleOptions, (dialog, which) -> {
+            int newDay = cycleValues[which];
+            pendingCutoff[0] = newDay;
+            cycleValue.setText(getCycleLabel(newDay));
+
+            LocalDate now = LocalDate.now();
+            LocalDate start;
+            LocalDate end;
+            if (newDay == 1) {
+              start = now.withDayOfMonth(1);
+              end = start.withDayOfMonth(start.lengthOfMonth());
+            } else if (newDay == -1) {
+              LocalDate thisMonthCutoff = lastBusinessDayOfMonth(now);
+              if (now.isBefore(thisMonthCutoff)) {
+                start = lastBusinessDayOfMonth(now.minusMonths(1));
+                end = thisMonthCutoff.minusDays(1);
+              } else {
+                start = thisMonthCutoff;
+                end = lastBusinessDayOfMonth(now.plusMonths(1)).minusDays(1);
+              }
+            } else {
+              if (now.getDayOfMonth() >= newDay) {
+                start = now.withDayOfMonth(newDay);
+              } else {
+                start = now.minusMonths(1).withDayOfMonth(newDay);
+              }
+              end = start.plusMonths(1).minusDays(1);
+            }
+            pendingStart[0] = start;
+            pendingEnd[0] = end;
+            startValue.setText(formatDateLabel(pendingStart[0]));
+            endValue.setText(formatDateLabel(pendingEnd[0]));
+          })
+          .show();
+    });
+
     new AlertDialog.Builder(context)
         .setTitle(R.string.summary_date_picker_title)
         .setView(content)
@@ -250,11 +423,22 @@ public final class SummaryFragment extends ScreenFragment {
         .setPositiveButton(
             R.string.summary_range_apply,
             (dialog, which) -> {
+              prefs.edit().putInt("cutoff_day", pendingCutoff[0]).apply();
               selectedStartDate = pendingStart[0];
               selectedEndDate = pendingEnd[0];
               loadSummaryAsync();
             })
         .show();
+  }
+
+  private String getCycleLabel(int cutoffDay) {
+    if (cutoffDay == -1) {
+      return "Hari Kerja Terakhir (Akhir Bulan)";
+    } else if (cutoffDay == 1) {
+      return "Tanggal 1 (Awal Bulan)";
+    } else {
+      return "Tanggal " + cutoffDay;
+    }
   }
 
   private void showSummaryFilterDialog() {
@@ -372,102 +556,6 @@ public final class SummaryFragment extends ScreenFragment {
     return value;
   }
 
-  private View createCategoryRow(CategoryTotal row, long maxTotalMinor) {
-    Context context = requireContext();
-    LinearLayout container = new LinearLayout(context);
-    container.setOrientation(LinearLayout.VERTICAL);
-
-    LinearLayout.LayoutParams containerParams =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    if (categoryList.getChildCount() > 0) {
-      containerParams.topMargin = UiComponentStyles.dp(context, 14);
-    }
-    container.setLayoutParams(containerParams);
-
-    LinearLayout labelRow = new LinearLayout(context);
-    labelRow.setGravity(Gravity.CENTER_VERTICAL);
-    labelRow.setOrientation(LinearLayout.HORIZONTAL);
-
-    TextView name = new TextView(context);
-    name.setEllipsize(TextUtils.TruncateAt.END);
-    name.setMaxLines(1);
-    name.setText(row.getCategoryName());
-    name.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
-    name.setTextSize(15f);
-    name.setTypeface(name.getTypeface(), Typeface.BOLD);
-    labelRow.addView(
-        name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-    TextView amount = new TextView(context);
-    amount.setMaxLines(1);
-    amount.setText(format(row.getTotalMinor()));
-    amount.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
-    amount.setTextSize(14f);
-    labelRow.addView(
-        amount,
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-    container.addView(labelRow);
-
-    ProgressBar progress =
-        new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
-    progress.setIndeterminate(false);
-    progress.setMax(CATEGORY_PROGRESS_MAX);
-    progress.setProgress(progressFor(row.getTotalMinor(), maxTotalMinor));
-    progress.setProgressDrawable(
-        ContextCompat.getDrawable(context, R.drawable.bg_summary_category_progress));
-
-    LinearLayout.LayoutParams progressParams =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, UiComponentStyles.dp(context, 6));
-    progressParams.topMargin = UiComponentStyles.dp(context, 8);
-    container.addView(progress, progressParams);
-
-    return container;
-  }
-
-  private View createWalletRow(WalletBalance wallet) {
-    Context context = requireContext();
-    LinearLayout row = new LinearLayout(context);
-    row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setOrientation(LinearLayout.HORIZONTAL);
-    row.setPadding(0, UiComponentStyles.dp(context, 10), 0, UiComponentStyles.dp(context, 10));
-
-    TextView name = new TextView(context);
-    name.setEllipsize(TextUtils.TruncateAt.END);
-    name.setMaxLines(1);
-    name.setText(wallet.getWalletName());
-    name.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
-    name.setTextSize(15f);
-    row.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-    TextView balance = new TextView(context);
-    balance.setMaxLines(1);
-    balance.setText(format(wallet.getBalanceMinor()));
-    balance.setTextColor(
-        ContextCompat.getColor(
-            context,
-            wallet.getBalanceMinor() < 0 ? R.color.finan_expense : R.color.finan_primary));
-    balance.setTextSize(15f);
-    balance.setTypeface(balance.getTypeface(), Typeface.BOLD);
-    row.addView(
-        balance,
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-    return row;
-  }
-
-  private View createDivider(Context context) {
-    View divider = new View(context);
-    divider.setBackgroundColor(ContextCompat.getColor(context, R.color.finan_divider));
-    divider.setLayoutParams(
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, UiComponentStyles.dp(context, 1)));
-    return divider;
-  }
-
   private DateRange restoreSelectedRange(@Nullable Bundle savedInstanceState) {
     if (savedInstanceState == null) {
       return defaultRange();
@@ -574,9 +662,47 @@ public final class SummaryFragment extends ScreenFragment {
     return new DateRange(startDate, endDate);
   }
 
-  private static DateRange defaultRange() {
+  private static LocalDate lastBusinessDayOfMonth(LocalDate date) {
+    LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
+    if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
+      return lastDay.minusDays(1);
+    } else if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+      return lastDay.minusDays(2);
+    }
+    return lastDay;
+  }
+
+  private DateRange defaultRange() {
+    Context context = getContext();
+    int cutoffDay = 1;
+    if (context != null) {
+      cutoffDay = context.getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+                         .getInt("cutoff_day", 1);
+    }
     LocalDate now = LocalDate.now();
-    return new DateRange(now.withDayOfMonth(1), now.withDayOfMonth(now.lengthOfMonth()));
+    if (cutoffDay == 1) {
+      return new DateRange(now.withDayOfMonth(1), now.withDayOfMonth(now.lengthOfMonth()));
+    }
+    LocalDate start;
+    LocalDate end;
+    if (cutoffDay == -1) {
+      LocalDate thisMonthCutoff = lastBusinessDayOfMonth(now);
+      if (now.isBefore(thisMonthCutoff)) {
+        start = lastBusinessDayOfMonth(now.minusMonths(1));
+        end = thisMonthCutoff.minusDays(1);
+      } else {
+        start = thisMonthCutoff;
+        end = lastBusinessDayOfMonth(now.plusMonths(1)).minusDays(1);
+      }
+    } else {
+      if (now.getDayOfMonth() >= cutoffDay) {
+        start = now.withDayOfMonth(cutoffDay);
+      } else {
+        start = now.minusMonths(1).withDayOfMonth(cutoffDay);
+      }
+      end = start.plusMonths(1).minusDays(1);
+    }
+    return new DateRange(start, end);
   }
 
   private long totalWalletBalance(MonthlySummary summary) {
@@ -585,14 +711,6 @@ public final class SummaryFragment extends ScreenFragment {
       total += wallet.getBalanceMinor();
     }
     return total;
-  }
-
-  private long maxCategoryTotal(MonthlySummary summary) {
-    long max = 0L;
-    for (CategoryTotal category : summary.getTopExpenseCategories()) {
-      max = Math.max(max, category.getTotalMinor());
-    }
-    return max;
   }
 
   private int progressFor(long totalMinor, long maxTotalMinor) {
