@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -73,6 +74,10 @@ public final class SummaryFragment extends ScreenFragment {
   private LinearLayout walletList;
   private TextView walletTotal;
   private TextView emptyMessage;
+  private View adviceCard;
+  private ImageView adviceIcon;
+  private TextView adviceTitle;
+  private TextView adviceMessage;
 
   @Override
   protected int getLayoutResId() {
@@ -108,6 +113,10 @@ public final class SummaryFragment extends ScreenFragment {
     walletList = view.findViewById(R.id.summary_wallet_list);
     walletTotal = view.findViewById(R.id.summary_wallet_total);
     emptyMessage = view.findViewById(R.id.summary_empty);
+    adviceCard = view.findViewById(R.id.summary_advice_card);
+    adviceIcon = view.findViewById(R.id.summary_advice_icon);
+    adviceTitle = view.findViewById(R.id.summary_advice_title);
+    adviceMessage = view.findViewById(R.id.summary_advice_message);
     periodLabel.setOnClickListener(v -> showDateRangePicker());
     filterButton.setOnClickListener(v -> showSummaryFilterDialog());
     updateFilterButton();
@@ -180,6 +189,18 @@ public final class SummaryFragment extends ScreenFragment {
     monthExpense.setText(format(summary.getMonthExpenseMinor()));
     monthIncome.setText(format(summary.getMonthIncomeMinor()));
     walletTotal.setText(format(totalWalletBalance(summary)));
+
+    FinancialAdvisor.Advice advice = FinancialAdvisor.getAdvice(requireContext(), summary);
+    if (advice != null) {
+      adviceCard.setVisibility(View.VISIBLE);
+      adviceCard.setBackgroundResource(advice.bgRes);
+      adviceIcon.setImageResource(advice.iconRes);
+      adviceIcon.setColorFilter(ContextCompat.getColor(requireContext(), advice.colorRes));
+      adviceTitle.setText(advice.title);
+      adviceMessage.setText(advice.message);
+    } else {
+      adviceCard.setVisibility(View.GONE);
+    }
 
     cashFlowContainer.removeAllViews();
     if (summary.getActivitySummaries().isEmpty()) {

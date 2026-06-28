@@ -295,4 +295,15 @@
     <string name="transaction_transfer_in">Transfer masuk</string>
     <string name="transaction_transfer_out">Transfer keluar</string>
     <string name="transaction_system_category">Tidak berkategori</string>
+
+    <!-- Financial Advice -->
+    <string name="advice_no_data_title">Ayo Mulai Catat!</string>
+    <string name="advice_no_data_msg">Catat pemasukan dan pengeluaran Anda untuk mendapatkan analisis dan saran finansial berdasarkan teori penganggaran di sini.</string>
+    <string name="advice_overspending_title">Defisit Anggaran (Bahaya Utang)</string>
+    <string name="advice_overspending_msg">Pengeluaran Anda melebihi pendapatan. Secara teori ekonomi, defisit anggaran terus-menerus mengikis kekayaan bersih (net worth) dan memaksa akumulasi utang konsumtif yang membebani bunga. Segera potong pengeluaran non-esensial.</string>
+    <string name="advice_high_spending_title">Rasio Menabung Rendah (Aturan 50/30/20)</string>
+    <string name="advice_high_spending_msg">Anda membelanjakan %1$d%% dari pendapatan. Teori alokasi populer (Aturan 50/30/20) menyarankan batas pengeluaran maksimal 80%% agar minimal 20%% dialokasikan untuk tabungan dan investasi sebagai dana cadangan darurat.</string>
+    <string name="advice_healthy_title">Alokasi Finansial Sehat</string>
+    <string name="advice_healthy_msg">Luar biasa! Anda menyisihkan %1$d%% pendapatan Anda. Ini melampaui batas minimal 20%% dari Aturan Keuangan 50/30/20. Sisa dana ini dapat dikembangkan melalui investasi jangka panjang untuk memaksimalkan efek bunga majemuk (compounding interest).</string>
 </resources>
+
