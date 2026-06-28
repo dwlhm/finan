@@ -297,13 +297,18 @@
     <string name="transaction_system_category">Tidak berkategori</string>
 
     <!-- Financial Advice -->
-    <string name="advice_no_data_title">Ayo Mulai Catat!</string>
-    <string name="advice_no_data_msg">Catat pemasukan dan pengeluaran Anda untuk mendapatkan analisis dan saran finansial berdasarkan teori penganggaran di sini.</string>
-    <string name="advice_overspending_title">Defisit Anggaran (Bahaya Utang)</string>
-    <string name="advice_overspending_msg">Pengeluaran Anda melebihi pendapatan. Secara teori ekonomi, defisit anggaran terus-menerus mengikis kekayaan bersih (net worth) dan memaksa akumulasi utang konsumtif yang membebani bunga. Segera potong pengeluaran non-esensial.</string>
-    <string name="advice_high_spending_title">Rasio Menabung Rendah (Aturan 50/30/20)</string>
-    <string name="advice_high_spending_msg">Anda membelanjakan %1$d%% dari pendapatan. Teori alokasi populer (Aturan 50/30/20) menyarankan batas pengeluaran maksimal 80%% agar minimal 20%% dialokasikan untuk tabungan dan investasi sebagai dana cadangan darurat.</string>
-    <string name="advice_healthy_title">Alokasi Finansial Sehat</string>
-    <string name="advice_healthy_msg">Luar biasa! Anda menyisihkan %1$d%% pendapatan Anda. Ini melampaui batas minimal 20%% dari Aturan Keuangan 50/30/20. Sisa dana ini dapat dikembangkan melalui investasi jangka panjang untuk memaksimalkan efek bunga majemuk (compounding interest).</string>
+    <string name="advice_no_data_title">Mulai Perjalanan Finansialmu</string>
+    <string name="advice_no_data_msg">Catat pemasukan dan pengeluaran pertamamu untuk mendapatkan analisis finansial pribadi.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Aplikasi:&lt;/b&gt;&lt;br/&gt;Mulai catat transaksi harianmu di tab &lt;b&gt;Catat&lt;/b&gt; agar data keuanganmu mulai terbentuk!</string>
+    <string name="advice_overspending_title">Bulan yang Menantang</string>
+    <string name="advice_overspending_msg">Bulan ini pengeluaranmu sedikit lebih besar dari pemasukan. Yuk, kita evaluasi bersama pos-pos pengeluaran yang bisa disesuaikan agar bulan depan kembali seimbang!&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Gunakan tab &lt;b&gt;Riwayat&lt;/b&gt; untuk melihat detail transaksi dan menemukan pos pengeluaran non-esensial yang bisa dikurangi.</string>
+    <string name="advice_overspending_consecutive_title">Evaluasi Defisit Beruntun</string>
+    <string name="advice_overspending_consecutive_msg">Keuanganmu mengalami defisit selama 3 bulan berturut-turut. Ini saat yang tepat untuk meninjau prioritas pengeluaran atau mencari alternatif pemasukan tambahan. Kami siap membantumu menyusun langkah perbaikan!&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Buka menu &lt;b&gt;Dompet&lt;/b&gt; di tab &lt;b&gt;Pengaturan&lt;/b&gt; untuk memantau sisa saldo di setiap rekening dan menjaga disiplin anggaran.</string>
+    <string name="advice_high_spending_title">Yuk, Tingkatkan Tabunganmu</string>
+    <string name="advice_high_spending_msg">Bulan ini kamu menggunakan %1$d%% pemasukan untuk pengeluaran. Dengan menyisihkan sedikit lebih banyak, kamu akan lebih cepat membangun dana darurat yang aman.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Langsung catat transaksi di tab &lt;b&gt;Catat&lt;/b&gt; sesaat setelah belanja agar kamu tetap sadar akan sisa anggaran bulananmu.</string>
+    <string name="advice_healthy_title">Kerja Bagus!</string>
+    <string name="advice_healthy_msg">Kamu berhasil mengalokasikan %1$d%% dari pemasukan untuk ditabung. Kebiasaan ini sangat baik untuk masa depanmu. Pertahankan konsistensi ini, ya!&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Pantau terus tren keuangan bulananmu di tab &lt;b&gt;Ringkasan&lt;/b&gt; agar alokasi tabunganmu tetap terjaga secara konsisten.</string>
+    <string name="advice_excellent_title">Luar Biasa!</string>
+    <string name="advice_excellent_msg">Pengeluaranmu sangat hemat dan kamu bisa menabung %1$d%% dari pemasukan. Kamu punya ruang gerak keuangan yang sangat luas bulan ini. Pertimbangkan untuk mulai menginvestasikan sebagian tabunganmu.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Buat dompet terpisah (misalnya \&apos;Tabungan Investasi\&apos;) di menu &lt;b&gt;Dompet&lt;/b&gt; (tab &lt;b&gt;Pengaturan&lt;/b&gt;) untuk memisahkan dana investasi dari dana operasional harian.</string>
+    <string name="advice_category_rise_template">&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Sorotan Pengeluaran:&lt;/b&gt;&lt;br/&gt;• Pengeluaran kategori &lt;b&gt;%1$s&lt;/b&gt; naik %2$d%% (+%3$s) dibanding bulan lalu.</string>
 </resources>
 

@@ -158,7 +158,13 @@ public final class SummaryFragment extends ScreenFragment {
           MonthlySummary summary =
               services.summaryService.loadRange(
                   requestedStartDate, requestedEndDate, walletId, categoryId);
-          return new SummaryLoadData(walletMap, categoryMap, walletId, categoryId, summary);
+          MonthlySummary prevSummary =
+              services.summaryService.loadRange(
+                  requestedStartDate.minusMonths(1), requestedEndDate.minusMonths(1), walletId, categoryId);
+          MonthlySummary prevPrevSummary =
+              services.summaryService.loadRange(
+                  requestedStartDate.minusMonths(2), requestedEndDate.minusMonths(2), walletId, categoryId);
+          return new SummaryLoadData(walletMap, categoryMap, walletId, categoryId, summary, prevSummary, prevPrevSummary);
         },
         data -> {
           if (!isAdded()
@@ -173,13 +179,18 @@ public final class SummaryFragment extends ScreenFragment {
           categoriesById = data.categoriesById;
           selectedWalletId = data.walletId;
           selectedCategoryId = data.categoryId;
-          bindSummary(data.summary, requestedStartDate, requestedEndDate);
+          bindSummary(data.summary, data.prevSummary, data.prevPrevSummary, requestedStartDate, requestedEndDate);
           updateFilterButton();
           loading.setVisibility(View.GONE);
         });
   }
 
-  private void bindSummary(MonthlySummary summary, LocalDate startDate, LocalDate endDate) {
+  private void bindSummary(
+      MonthlySummary summary,
+      MonthlySummary prevSummary,
+      MonthlySummary prevPrevSummary,
+      LocalDate startDate,
+      LocalDate endDate) {
     periodLabel.setText(formatRangeLabel(startDate, endDate));
     
     long net = summary.getNetFlowMinor();
@@ -190,14 +201,18 @@ public final class SummaryFragment extends ScreenFragment {
     monthIncome.setText(format(summary.getMonthIncomeMinor()));
     walletTotal.setText(format(totalWalletBalance(summary)));
 
-    FinancialAdvisor.Advice advice = FinancialAdvisor.getAdvice(requireContext(), summary);
+    FinancialAdvisor.Advice advice = FinancialAdvisor.getAdvice(requireContext(), summary, prevSummary, prevPrevSummary);
     if (advice != null) {
       adviceCard.setVisibility(View.VISIBLE);
       adviceCard.setBackgroundResource(advice.bgRes);
       adviceIcon.setImageResource(advice.iconRes);
       adviceIcon.setColorFilter(ContextCompat.getColor(requireContext(), advice.colorRes));
       adviceTitle.setText(advice.title);
-      adviceMessage.setText(advice.message);
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+        adviceMessage.setText(android.text.Html.fromHtml(advice.message, android.text.Html.FROM_HTML_MODE_LEGACY));
+      } else {
+        adviceMessage.setText(android.text.Html.fromHtml(advice.message));
+      }
     } else {
       adviceCard.setVisibility(View.GONE);
     }
@@ -909,18 +924,24 @@ public final class SummaryFragment extends ScreenFragment {
     private final Long walletId;
     private final Long categoryId;
     private final MonthlySummary summary;
+    private final MonthlySummary prevSummary;
+    private final MonthlySummary prevPrevSummary;
 
     private SummaryLoadData(
         Map<Long, Wallet> walletsById,
         Map<Long, Category> categoriesById,
         Long walletId,
         Long categoryId,
-        MonthlySummary summary) {
+        MonthlySummary summary,
+        MonthlySummary prevSummary,
+        MonthlySummary prevPrevSummary) {
       this.walletsById = walletsById;
       this.categoriesById = categoriesById;
       this.walletId = walletId;
       this.categoryId = categoryId;
       this.summary = summary;
+      this.prevSummary = prevSummary;
+      this.prevPrevSummary = prevPrevSummary;
     }
   }
 

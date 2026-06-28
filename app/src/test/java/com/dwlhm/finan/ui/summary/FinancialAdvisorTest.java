@@ -49,4 +49,44 @@ public final class FinancialAdvisorTest {
     assertEquals(FinancialAdvisor.AdviceType.HEALTHY_SAVINGS, details.type);
     assertEquals(60, details.percentage);
   }
+
+  @Test
+  public void testExcellentSavings() {
+    // 15% spending -> 85% savings
+    MonthlySummary summary = new MonthlySummary(2026, 6, 150L, 1000L, Collections.emptyList(), Collections.emptyList());
+    FinancialAdvisor.AdviceDetails details = FinancialAdvisor.calculateAdviceDetails(summary);
+    assertEquals(FinancialAdvisor.AdviceType.EXCELLENT_SAVINGS, details.type);
+    assertEquals(85, details.percentage);
+  }
+
+  @Test
+  public void testConsecutiveDeficit() {
+    // Current month: Deficit
+    MonthlySummary summary = new MonthlySummary(2026, 6, 1200L, 1000L, Collections.emptyList(), Collections.emptyList());
+    // Prev month: Deficit
+    MonthlySummary prev = new MonthlySummary(2026, 5, 1100L, 1000L, Collections.emptyList(), Collections.emptyList());
+    // Prev Prev month: Deficit
+    MonthlySummary prevPrev = new MonthlySummary(2026, 4, 1300L, 1000L, Collections.emptyList(), Collections.emptyList());
+
+    FinancialAdvisor.AdviceDetails details = FinancialAdvisor.calculateAdviceDetails(summary, prev, prevPrev);
+    assertEquals(FinancialAdvisor.AdviceType.OVERSPENDING_CONSECUTIVE, details.type);
+  }
+
+  @Test
+  public void testNonConsecutiveDeficit() {
+    // Current month: Deficit
+    MonthlySummary summary = new MonthlySummary(2026, 6, 1200L, 1000L, Collections.emptyList(), Collections.emptyList());
+    // Prev month: Deficit
+    MonthlySummary prev = new MonthlySummary(2026, 5, 1100L, 1000L, Collections.emptyList(), Collections.emptyList());
+    // Prev Prev month: Healthy
+    MonthlySummary prevPrev = new MonthlySummary(2026, 4, 800L, 1000L, Collections.emptyList(), Collections.emptyList());
+
+    FinancialAdvisor.AdviceDetails details = FinancialAdvisor.calculateAdviceDetails(summary, prev, prevPrev);
+    assertEquals(FinancialAdvisor.AdviceType.OVERSPENDING, details.type);
+  }
+
+  @Test
+  public void testCategoryComparisonNulls() {
+    assertEquals("", FinancialAdvisor.getHighestRiseCategoryMessage(null, null, null));
+  }
 }
