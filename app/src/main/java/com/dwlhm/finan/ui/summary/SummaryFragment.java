@@ -32,6 +32,10 @@ import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
 import com.dwlhm.finan.util.money.MoneyFormatter;
+import android.graphics.drawable.GradientDrawable;
+import android.util.TypedValue;
+import android.widget.ViewFlipper;
+import com.dwlhm.finan.ui.components.DonutChartView;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -171,7 +175,7 @@ public final class SummaryFragment extends ScreenFragment {
     
     long net = summary.getNetFlowMinor();
     netFlow.setText((net >= 0 ? "+" : "") + format(net));
-    netFlow.setTextColor(ContextCompat.getColor(requireContext(), net >= 0 ? R.color.finan_income : R.color.finan_expense));
+    netFlow.setTextColor(ContextCompat.getColor(requireContext(), net >= 0 ? R.color.finan_summary_net_income : R.color.finan_summary_net_expense));
     
     monthExpense.setText(format(summary.getMonthExpenseMinor()));
     monthIncome.setText(format(summary.getMonthIncomeMinor()));
@@ -204,7 +208,9 @@ public final class SummaryFragment extends ScreenFragment {
     TextView netText = card.findViewById(R.id.item_cashflow_net);
     TextView inflowText = card.findViewById(R.id.item_cashflow_inflow);
     TextView outflowText = card.findViewById(R.id.item_cashflow_outflow);
-    LinearLayout categoryList = card.findViewById(R.id.item_cashflow_category_list);
+    
+    DonutChartView donutChart = card.findViewById(R.id.item_cashflow_donut_chart);
+    LinearLayout legendList = card.findViewById(R.id.item_cashflow_chart_legend);
 
     title.setText(getActivityTitle(actSummary.getActivity()));
     
@@ -215,16 +221,141 @@ public final class SummaryFragment extends ScreenFragment {
     inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + format(actSummary.getInflowMinor()));
     outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + format(actSummary.getOutflowMinor()));
 
-    long maxCatVal = 0;
-    for (CategoryTotal cat : actSummary.getTopCategories()) {
-      maxCatVal = Math.max(maxCatVal, cat.getTotalMinor());
-    }
+    List<CategoryTotal> categories = actSummary.getTopCategories();
+    if (categories.isEmpty()) {
+      card.findViewById(R.id.item_cashflow_chart_container).setVisibility(View.GONE);
+      card.findViewById(R.id.item_cashflow_divider).setVisibility(View.GONE);
+    } else {
+      card.findViewById(R.id.item_cashflow_chart_container).setVisibility(View.VISIBLE);
+      card.findViewById(R.id.item_cashflow_divider).setVisibility(View.VISIBLE);
 
-    for (CategoryTotal cat : actSummary.getTopCategories()) {
-      categoryList.addView(createCategoryRow(cat, maxCatVal));
+      // Separate into Inflow (Income) and Outflow (Expense) categories
+      List<CategoryTotal> inflowCategories = new ArrayList<>();
+      List<CategoryTotal> outflowCategories = new ArrayList<>();
+      for (CategoryTotal cat : categories) {
+        if (cat.isIncome()) {
+          inflowCategories.add(cat);
+        } else {
+          outflowCategories.add(cat);
+        }
+      }
+
+      long totalInflow = actSummary.getInflowMinor();
+      long totalOutflow = actSummary.getOutflowMinor();
+
+      // Configure central status label text
+      if (totalInflow > 0) {
+        long remaining = totalInflow - totalOutflow;
+        double sisaPercent = Math.max(0.0, (remaining * 100.0) / totalInflow);
+        donutChart.setCenterText("Sisa", String.format(Locale.getDefault(), "%.0f%%", sisaPercent));
+      } else {
+        donutChart.setCenterText("Keluar", formatCompact(totalOutflow));
+      }
+
+      // Chart View (Concentric Donut & Legend)
+      List<DonutChartView.DonutItem> inflowDonutItems = new ArrayList<>();
+      List<DonutChartView.DonutItem> outflowDonutItems = new ArrayList<>();
+      legendList.removeAllViews();
+
+      // 2a. Inflow
+      if (!inflowCategories.isEmpty()) {
+        legendList.addView(createLegendHeader(context, "PENDAPATAN"));
+        for (CategoryTotal cat : inflowCategories) {
+          int color = getCategoryColor(context, cat.getCategoryId());
+          inflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
+          double percentage = totalInflow > 0 ? (cat.getTotalMinor() * 100.0 / totalInflow) : 0.0;
+          legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
+        }
+      }
+
+      // 2b. Outflow
+      if (!outflowCategories.isEmpty()) {
+        legendList.addView(createLegendHeader(context, "PENGELUARAN"));
+        for (CategoryTotal cat : outflowCategories) {
+          int color = getCategoryColor(context, cat.getCategoryId());
+          outflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
+          double percentage = totalOutflow > 0 ? (cat.getTotalMinor() * 100.0 / totalOutflow) : 0.0;
+          legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
+        }
+      }
+
+      donutChart.setData(inflowDonutItems, outflowDonutItems);
     }
 
     return card;
+  }
+
+  private View createLegendRow(Context context, String label, long amount, int color, double percentage) {
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(0, dpToPx(context, 4), 0, dpToPx(context, 4));
+
+    // Color dot
+    View dot = new View(context);
+    LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(dpToPx(context, 8), dpToPx(context, 8));
+    dotParams.setMarginEnd(dpToPx(context, 8));
+    dot.setLayoutParams(dotParams);
+
+    GradientDrawable shape = new GradientDrawable();
+    shape.setShape(GradientDrawable.OVAL);
+    shape.setColor(color);
+    dot.setBackground(shape);
+
+    // Label & Percentage
+    TextView labelView = new TextView(context);
+    LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+    labelView.setLayoutParams(labelParams);
+    labelView.setText(String.format(Locale.getDefault(), "%s (%.0f%%)", label, percentage));
+    labelView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+    labelView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+    labelView.setEllipsize(TextUtils.TruncateAt.END);
+    labelView.setMaxLines(1);
+
+    // Amount
+    TextView amountView = new TextView(context);
+    amountView.setText(format(amount));
+    amountView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
+    amountView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+    amountView.setTypeface(amountView.getTypeface(), Typeface.BOLD);
+
+    row.addView(dot);
+    row.addView(labelView);
+    row.addView(amountView);
+    return row;
+  }
+
+  private View createLegendHeader(Context context, String title) {
+    TextView tv = new TextView(context);
+    tv.setText(title);
+    tv.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+    tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+    tv.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+    tv.setPadding(0, dpToPx(context, 8), 0, dpToPx(context, 4));
+    return tv;
+  }
+
+  private int getCategoryColor(Context context, long categoryId) {
+    int[] palette = {
+        ContextCompat.getColor(context, R.color.finan_primary),
+        ContextCompat.getColor(context, R.color.finan_income),
+        ContextCompat.getColor(context, R.color.finan_expense),
+        ContextCompat.getColor(context, R.color.finan_warm_accent),
+        ContextCompat.getColor(context, R.color.finan_accent),
+        0xFF4A90E2, // Soft Blue
+        0xFF8B6EB8, // Muted Purple
+        0xFF4F6D7A  // Slate Blue
+    };
+    int index = (int) (categoryId % palette.length);
+    if (index < 0) {
+      index += palette.length;
+    }
+    return palette[index];
+  }
+
+  private int dpToPx(Context context, float dp) {
+    return (int) TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, dp, context.getResources().getDisplayMetrics());
   }
 
   private String getActivityTitle(CashFlowActivity activity) {
@@ -723,6 +854,18 @@ public final class SummaryFragment extends ScreenFragment {
 
   private String format(long amountMinor) {
     return MoneyFormatter.format(amountMinor);
+  }
+
+  private String formatCompact(long amountMinor) {
+    long amount = amountMinor / 100;
+    if (Math.abs(amount) >= 1_000_000_000) {
+      return String.format(Locale.getDefault(), "%.1fM", amount / 1_000_000_000.0);
+    } else if (Math.abs(amount) >= 1_000_000) {
+      return String.format(Locale.getDefault(), "%.1fJt", amount / 1_000_000.0);
+    } else if (Math.abs(amount) >= 1_000) {
+      return String.format(Locale.getDefault(), "%.1fRb", amount / 1_000.0);
+    }
+    return String.valueOf(amount);
   }
 
   private interface DateSelectionListener {

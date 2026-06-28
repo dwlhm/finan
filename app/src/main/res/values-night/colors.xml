@@ -44,4 +44,11 @@
     <color name="finan_key_action_bg_pressed">#26A69A</color>
     <color name="finan_key_action_text">#121212</color>
     <color name="finan_key_border">#2C2C2C</color>
+
+    <!-- Custom colors for Summary Hero Card in Dark Mode -->
+    <color name="finan_summary_hero_bg_start">#1D4646</color>
+    <color name="finan_summary_hero_bg_end">#0F2626</color>
+    <color name="finan_summary_net_income">#A3F5CF</color>
+    <color name="finan_summary_net_expense">#FFC2C2</color>
+    <color name="finan_summary_period_text">#1D4646</color>
 </resources>

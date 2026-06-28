@@ -5,11 +5,13 @@ public final class CategoryTotal {
   private final long categoryId;
   private final String categoryName;
   private final long totalMinor;
+  private final boolean isIncome;
 
-  public CategoryTotal(long categoryId, String categoryName, long totalMinor) {
+  public CategoryTotal(long categoryId, String categoryName, long totalMinor, boolean isIncome) {
     this.categoryId = categoryId;
     this.categoryName = categoryName;
     this.totalMinor = totalMinor;
+    this.isIncome = isIncome;
   }
 
   public long getCategoryId() {
@@ -22,5 +24,9 @@ public final class CategoryTotal {
 
   public long getTotalMinor() {
     return totalMinor;
+  }
+
+  public boolean isIncome() {
+    return isIncome;
   }
 }

@@ -93,7 +93,7 @@ public final class SummaryService {
 
       Category category = row.categoryId > 0 ? categoryDao.findById(row.categoryId) : null;
       String name = category != null ? category.getName() : (row.categoryId > 0 ? "#" + row.categoryId : "Lainnya");
-      activityCategories.get(activity).add(new CategoryTotal(row.categoryId, name, amt));
+      activityCategories.get(activity).add(new CategoryTotal(row.categoryId, name, amt, isIncome));
     }
 
     List<MonthlySummary.ActivitySummary> activitySummaries = new ArrayList<>();
