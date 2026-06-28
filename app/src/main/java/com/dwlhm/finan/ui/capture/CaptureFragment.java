@@ -58,6 +58,10 @@ public final class CaptureFragment extends ScreenFragment {
   private TransactionService transactionService;
   private DefaultsStore defaultsStore;
 
+  private View typeExpenseWrapper;
+  private View typeIncomeWrapper;
+  private View typeTransferWrapper;
+
   private TextView typeExpense;
   private TextView typeIncome;
   private TextView typeTransfer;
@@ -107,6 +111,10 @@ public final class CaptureFragment extends ScreenFragment {
     amountInput = view.findViewById(R.id.capture_amount);
     MoneyInputFormatter.attach(amountInput, false);
     
+    typeExpenseWrapper = view.findViewById(R.id.capture_type_expense_wrapper);
+    typeIncomeWrapper = view.findViewById(R.id.capture_type_income_wrapper);
+    typeTransferWrapper = view.findViewById(R.id.capture_type_transfer_wrapper);
+
     typeExpense = view.findViewById(R.id.capture_type_expense);
     typeIncome = view.findViewById(R.id.capture_type_income);
     typeTransfer = view.findViewById(R.id.capture_type_transfer);
@@ -132,9 +140,9 @@ public final class CaptureFragment extends ScreenFragment {
     financialKeypad.setOnKeypadActionListener(keypadManager);
     
 
-    typeExpense.setOnClickListener(v -> setType(TransactionType.EXPENSE));
-    typeIncome.setOnClickListener(v -> setType(TransactionType.INCOME));
-    typeTransfer.setOnClickListener(v -> setType(TransactionType.TRANSFER_OUT));
+    typeExpenseWrapper.setOnClickListener(v -> setType(TransactionType.EXPENSE));
+    typeIncomeWrapper.setOnClickListener(v -> setType(TransactionType.INCOME));
+    typeTransferWrapper.setOnClickListener(v -> setType(TransactionType.TRANSFER_OUT));
 
     categoryText.setOnClickListener(v -> {
         expireAmountAutoFocus();
@@ -329,21 +337,21 @@ public final class CaptureFragment extends ScreenFragment {
     boolean expense = selectedType == TransactionType.EXPENSE;
     boolean income = selectedType == TransactionType.INCOME;
 
-    typeExpense.setBackgroundResource(expense ? R.drawable.bg_chip_selected : 0);
-    if (expense) typeExpense.setBackgroundTintList(ColorStateList.valueOf(requireContext().getColor(R.color.finan_expense)));
-    else typeExpense.setBackgroundTintList(null);
+    typeExpenseWrapper.setBackgroundResource(expense ? R.drawable.bg_tab_active_expense : 0);
+    typeIncomeWrapper.setBackgroundResource(income ? R.drawable.bg_tab_active_income : 0);
+    typeTransferWrapper.setBackgroundResource(transfer ? R.drawable.bg_tab_active_transfer : 0);
 
-    typeIncome.setBackgroundResource(income ? R.drawable.bg_chip_selected : 0);
-    if (income) typeIncome.setBackgroundTintList(ColorStateList.valueOf(requireContext().getColor(R.color.finan_income)));
-    else typeIncome.setBackgroundTintList(null);
+    int colorExpense = requireContext().getColor(expense ? R.color.finan_chip_text_selected : R.color.finan_text_secondary);
+    typeExpense.setTextColor(colorExpense);
+    typeExpense.setCompoundDrawableTintList(ColorStateList.valueOf(colorExpense));
 
-    typeTransfer.setBackgroundResource(transfer ? R.drawable.bg_chip_selected : 0);
-    if (transfer) typeTransfer.setBackgroundTintList(ColorStateList.valueOf(requireContext().getColor(R.color.finan_primary)));
-    else typeTransfer.setBackgroundTintList(null);
+    int colorIncome = requireContext().getColor(income ? R.color.finan_chip_text_selected : R.color.finan_text_secondary);
+    typeIncome.setTextColor(colorIncome);
+    typeIncome.setCompoundDrawableTintList(ColorStateList.valueOf(colorIncome));
 
-    typeExpense.setTextColor(requireContext().getColor(expense ? R.color.finan_chip_text_selected : R.color.finan_text_secondary));
-    typeIncome.setTextColor(requireContext().getColor(income ? R.color.finan_chip_text_selected : R.color.finan_text_secondary));
-    typeTransfer.setTextColor(requireContext().getColor(transfer ? R.color.finan_chip_text_selected : R.color.finan_text_secondary));
+    int colorTransfer = requireContext().getColor(transfer ? R.color.finan_chip_text_selected : R.color.finan_text_secondary);
+    typeTransfer.setTextColor(colorTransfer);
+    typeTransfer.setCompoundDrawableTintList(ColorStateList.valueOf(colorTransfer));
 
     if (transfer) {
         sentenceFor.setText("to ");

@@ -10,52 +10,81 @@
     <LinearLayout
         android:id="@+id/capture_type_group"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="24dp"
-        android:background="@drawable/bg_control_surface"
+        android:background="@drawable/bg_tab_container"
         android:orientation="horizontal"
         android:padding="4dp">
 
-        <TextView
-            android:id="@+id/capture_type_expense"
+        <FrameLayout
+            android:id="@+id/capture_type_expense_wrapper"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_selected"
-            android:gravity="center"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="12dp"
-            android:text="↓ Expense"
-            android:textColor="@color/finan_text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:clickable="true"
+            android:focusable="true">
 
-        <TextView
-            android:id="@+id/capture_type_income"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="12dp"
-            android:text="↑ Income"
-            android:textColor="@color/finan_text_secondary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            <TextView
+                android:id="@+id/capture_type_expense"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:drawableStart="@drawable/ic_arrow_down"
+                android:drawablePadding="8dp"
+                android:text="@string/capture_type_expense"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:duplicateParentState="true" />
+        </FrameLayout>
 
-        <TextView
-            android:id="@+id/capture_type_transfer"
+        <FrameLayout
+            android:id="@+id/capture_type_income_wrapper"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="12dp"
-            android:text="⇄ Transfer"
-            android:textColor="@color/finan_text_secondary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/capture_type_income"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:drawableStart="@drawable/ic_arrow_up"
+                android:drawablePadding="8dp"
+                android:text="@string/capture_type_income"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:duplicateParentState="true" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/capture_type_transfer_wrapper"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/capture_type_transfer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:drawableStart="@drawable/ic_transfer"
+                android:drawablePadding="8dp"
+                android:text="@string/capture_type_transfer"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:duplicateParentState="true" />
+        </FrameLayout>
     </LinearLayout>
 
     <!-- Main Card -->
