@@ -13,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -36,6 +37,7 @@ import com.dwlhm.finan.util.money.MoneyFormatter;
 import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
 import android.widget.ViewFlipper;
+import android.transition.TransitionManager;
 import com.dwlhm.finan.ui.components.DonutChartView;
 
 import java.time.LocalDate;
@@ -78,6 +80,11 @@ public final class SummaryFragment extends ScreenFragment {
   private ImageView adviceIcon;
   private TextView adviceTitle;
   private TextView adviceMessage;
+  private TextView modeNominal;
+  private TextView modePersentase;
+  private boolean showPercentageMode;
+  private ViewGroup contentContainer;
+  private SummaryLoadData cachedData;
 
   @Override
   protected int getLayoutResId() {
@@ -119,6 +126,14 @@ public final class SummaryFragment extends ScreenFragment {
     adviceMessage = view.findViewById(R.id.summary_advice_message);
     periodLabel.setOnClickListener(v -> showDateRangePicker());
     filterButton.setOnClickListener(v -> showSummaryFilterDialog());
+    contentContainer = view.findViewById(R.id.summary_content);
+    modeNominal = view.findViewById(R.id.summary_mode_nominal);
+    modePersentase = view.findViewById(R.id.summary_mode_persentase);
+    showPercentageMode = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+        .getBoolean("summary_percentage_mode", false);
+    modeNominal.setOnClickListener(v -> setPercentageMode(false));
+    modePersentase.setOnClickListener(v -> setPercentageMode(true));
+    updateModeToggle();
     updateFilterButton();
   }
 
@@ -179,6 +194,7 @@ public final class SummaryFragment extends ScreenFragment {
           categoriesById = data.categoriesById;
           selectedWalletId = data.walletId;
           selectedCategoryId = data.categoryId;
+          cachedData = data;
           bindSummary(data.summary, data.prevSummary, data.prevPrevSummary, requestedStartDate, requestedEndDate);
           updateFilterButton();
           loading.setVisibility(View.GONE);
@@ -193,13 +209,21 @@ public final class SummaryFragment extends ScreenFragment {
       LocalDate endDate) {
     periodLabel.setText(formatRangeLabel(startDate, endDate));
     
+    long totalIncome = summary.getMonthIncomeMinor();
+    long totalExpense = summary.getMonthExpenseMinor();
     long net = summary.getNetFlowMinor();
-    netFlow.setText((net >= 0 ? "+" : "") + format(net));
-    netFlow.setTextColor(ContextCompat.getColor(requireContext(), net >= 0 ? R.color.finan_summary_net_income : R.color.finan_summary_net_expense));
     
-    monthExpense.setText(format(summary.getMonthExpenseMinor()));
-    monthIncome.setText(format(summary.getMonthIncomeMinor()));
-    walletTotal.setText(format(totalWalletBalance(summary)));
+    if (showPercentageMode) {
+      long base = totalIncome > 0 ? totalIncome : (totalExpense > 0 ? totalExpense : 1);
+      netFlow.setText(fmtPct(net, base, true));
+      monthIncome.setText(fmtPct(totalIncome, base, false));
+      monthExpense.setText(fmtPct(totalExpense, base, false));
+    } else {
+      netFlow.setText((net >= 0 ? "+" : "") + format(net));
+      monthExpense.setText(format(totalExpense));
+      monthIncome.setText(format(totalIncome));
+    }
+    netFlow.setTextColor(ContextCompat.getColor(requireContext(), net >= 0 ? R.color.finan_summary_net_income : R.color.finan_summary_net_expense));
 
     FinancialAdvisor.Advice advice = FinancialAdvisor.getAdvice(requireContext(), summary, prevSummary, prevPrevSummary);
     if (advice != null) {
@@ -227,12 +251,15 @@ public final class SummaryFragment extends ScreenFragment {
       }
     }
 
+    long totalBalance = totalWalletBalance(summary);
+    walletTotal.setText(showPercentageMode ? "100%" : format(totalBalance));
+
     walletList.removeAllViews();
     for (WalletBalance wallet : summary.getWalletBalances()) {
       if (walletList.getChildCount() > 0) {
         walletList.addView(createDivider(requireContext()));
       }
-      walletList.addView(createWalletRow(wallet));
+      walletList.addView(createWalletRow(wallet, totalBalance));
     }
   }
 
@@ -251,11 +278,20 @@ public final class SummaryFragment extends ScreenFragment {
     title.setText(getActivityTitle(actSummary.getActivity()));
     
     long net = actSummary.getNetFlowMinor();
-    netText.setText((net >= 0 ? "+" : "") + format(net));
-    netText.setTextColor(ContextCompat.getColor(context, net >= 0 ? R.color.finan_income : R.color.finan_expense));
+    long inflow = actSummary.getInflowMinor();
+    long outflow = actSummary.getOutflowMinor();
 
-    inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + format(actSummary.getInflowMinor()));
-    outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + format(actSummary.getOutflowMinor()));
+    if (showPercentageMode) {
+      long base = inflow > 0 ? inflow : (outflow > 0 ? outflow : 1);
+      netText.setText(fmtPct(net, base, true));
+      inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + fmtPct(inflow, base, false));
+      outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + fmtPct(outflow, base, false));
+    } else {
+      netText.setText((net >= 0 ? "+" : "") + format(net));
+      inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + format(inflow));
+      outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + format(outflow));
+    }
+    netText.setTextColor(ContextCompat.getColor(context, net >= 0 ? R.color.finan_income : R.color.finan_expense));
 
     List<CategoryTotal> categories = actSummary.getTopCategories();
     if (categories.isEmpty()) {
@@ -276,16 +312,14 @@ public final class SummaryFragment extends ScreenFragment {
         }
       }
 
-      long totalInflow = actSummary.getInflowMinor();
-      long totalOutflow = actSummary.getOutflowMinor();
+      long legendBase = inflow > 0 ? inflow : (outflow > 0 ? outflow : 1);
 
       // Configure central status label text
-      if (totalInflow > 0) {
-        long remaining = totalInflow - totalOutflow;
-        double sisaPercent = Math.max(0.0, (remaining * 100.0) / totalInflow);
-        donutChart.setCenterText("Sisa", String.format(Locale.getDefault(), "%.0f%%", sisaPercent));
-      } else {
-        donutChart.setCenterText("Keluar", formatCompact(totalOutflow));
+      if (inflow > 0) {
+        long remaining = inflow - outflow;
+        donutChart.setCenterText("Sisa", String.format(Locale.getDefault(), "%.0f%%", Math.max(0.0, remaining * 100.0 / inflow)));
+      } else if (outflow > 0) {
+        donutChart.setCenterText("Keluar", showPercentageMode ? "100%" : formatCompact(outflow));
       }
 
       // Chart View (Concentric Donut & Legend)
@@ -299,7 +333,7 @@ public final class SummaryFragment extends ScreenFragment {
         for (CategoryTotal cat : inflowCategories) {
           int color = getCategoryColor(context, cat.getCategoryId());
           inflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
-          double percentage = totalInflow > 0 ? (cat.getTotalMinor() * 100.0 / totalInflow) : 0.0;
+          double percentage = cat.getTotalMinor() * 100.0 / legendBase;
           legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
         }
       }
@@ -310,7 +344,7 @@ public final class SummaryFragment extends ScreenFragment {
         for (CategoryTotal cat : outflowCategories) {
           int color = getCategoryColor(context, cat.getCategoryId());
           outflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
-          double percentage = totalOutflow > 0 ? (cat.getTotalMinor() * 100.0 / totalOutflow) : 0.0;
+          double percentage = cat.getTotalMinor() * 100.0 / legendBase;
           legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
         }
       }
@@ -342,7 +376,11 @@ public final class SummaryFragment extends ScreenFragment {
     TextView labelView = new TextView(context);
     LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
     labelView.setLayoutParams(labelParams);
-    labelView.setText(String.format(Locale.getDefault(), "%s (%.0f%%)", label, percentage));
+    if (showPercentageMode) {
+      labelView.setText(label);
+    } else {
+      labelView.setText(String.format(Locale.getDefault(), "%s (%.0f%%)", label, percentage));
+    }
     labelView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
     labelView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
     labelView.setEllipsize(TextUtils.TruncateAt.END);
@@ -350,7 +388,7 @@ public final class SummaryFragment extends ScreenFragment {
 
     // Amount
     TextView amountView = new TextView(context);
-    amountView.setText(format(amount));
+    amountView.setText(showPercentageMode ? String.format(Locale.getDefault(), "%.0f%%", percentage) : format(amount));
     amountView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
     amountView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
     amountView.setTypeface(amountView.getTypeface(), Typeface.BOLD);
@@ -422,7 +460,7 @@ public final class SummaryFragment extends ScreenFragment {
     return rowView;
   }
 
-  private View createWalletRow(WalletBalance wallet) {
+  private View createWalletRow(WalletBalance wallet, long totalBalance) {
     Context context = requireContext();
     LinearLayout row = new LinearLayout(context);
     row.setGravity(Gravity.CENTER_VERTICAL);
@@ -439,7 +477,11 @@ public final class SummaryFragment extends ScreenFragment {
 
     TextView balance = new TextView(context);
     balance.setMaxLines(1);
-    balance.setText(format(wallet.getBalanceMinor()));
+    if (showPercentageMode && totalBalance > 0) {
+      balance.setText(fmtPct(wallet.getBalanceMinor(), totalBalance, false));
+    } else {
+      balance.setText(format(wallet.getBalanceMinor()));
+    }
     balance.setTextColor(
         ContextCompat.getColor(
             context,
@@ -902,6 +944,34 @@ public final class SummaryFragment extends ScreenFragment {
       return String.format(Locale.getDefault(), "%.1fRb", amount / 1_000.0);
     }
     return String.valueOf(amount);
+  }
+
+  private void setPercentageMode(boolean enabled) {
+    if (showPercentageMode == enabled) return;
+    showPercentageMode = enabled;
+    requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+        .edit().putBoolean("summary_percentage_mode", showPercentageMode).apply();
+    updateModeToggle();
+    if (cachedData != null) {
+      TransitionManager.beginDelayedTransition(contentContainer);
+      bindSummary(cachedData.summary, cachedData.prevSummary, cachedData.prevPrevSummary, selectedStartDate, selectedEndDate);
+    } else {
+      loadSummaryAsync();
+    }
+  }
+
+  private void updateModeToggle() {
+    boolean pct = showPercentageMode;
+    modeNominal.setBackgroundResource(pct ? android.R.color.transparent : R.drawable.bg_toggle_active);
+    modeNominal.setTextColor(pct ? 0xFF4A9E7F : 0xFFFFFFFF);
+    modePersentase.setBackgroundResource(pct ? R.drawable.bg_toggle_active : android.R.color.transparent);
+    modePersentase.setTextColor(pct ? 0xFFFFFFFF : 0xFF4A9E7F);
+  }
+
+  private String fmtPct(long amount, long total, boolean signed) {
+    if (total <= 0) return "0%";
+    double pct = (amount * 100.0) / total;
+    return (signed && amount >= 0 ? "+" : "") + String.format(Locale.getDefault(), "%.1f%%", pct);
   }
 
   private interface DateSelectionListener {
