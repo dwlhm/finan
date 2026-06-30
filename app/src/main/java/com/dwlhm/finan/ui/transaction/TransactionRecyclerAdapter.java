@@ -47,6 +47,7 @@ public final class TransactionRecyclerAdapter
   };
 
   private final Context context;
+  private boolean masked;
   private Map<Long, Category> categoriesById = Collections.emptyMap();
   private Map<Long, Wallet> walletsById = Collections.emptyMap();
   private Map<Long, Tag> tagsById = Collections.emptyMap();
@@ -80,6 +81,11 @@ public final class TransactionRecyclerAdapter
 
   public void setOnTransactionClickListener(OnTransactionClickListener clickListener) {
     this.clickListener = clickListener;
+  }
+
+  public void setMaskedMode(boolean masked) {
+    this.masked = masked;
+    notifyItemRangeChanged(0, getContentItemCount());
   }
 
   public Transaction getTransactionAt(int position) {
@@ -120,11 +126,17 @@ public final class TransactionRecyclerAdapter
       holder.emoji.setVisibility(View.GONE);
     }
 
-    String formatted = MoneyFormatter.format(transaction.getAmountMinor());
-    holder.amount.setText(
-        context.getString(TransactionRowLabels.amountFormat(transaction.getType()), formatted));
-    holder.amount.setTextColor(
-        ContextCompat.getColor(context, TransactionRowLabels.amountColor(transaction.getType())));
+    if (masked) {
+      holder.amount.setText("Rp ***");
+      holder.amount.setTextColor(
+          ContextCompat.getColor(context, R.color.finan_text_secondary));
+    } else {
+      String formatted = MoneyFormatter.format(transaction.getAmountMinor());
+      holder.amount.setText(
+          context.getString(TransactionRowLabels.amountFormat(transaction.getType()), formatted));
+      holder.amount.setTextColor(
+          ContextCompat.getColor(context, TransactionRowLabels.amountColor(transaction.getType())));
+    }
 
     String walletName = wallet != null ? wallet.getName() : "";
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));

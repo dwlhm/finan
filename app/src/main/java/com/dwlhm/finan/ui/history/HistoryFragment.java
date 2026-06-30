@@ -53,6 +53,7 @@ import java.util.Objects;
 
 public final class HistoryFragment extends ScreenFragment {
 
+  private static final String MASKED_MODE_PREFS_KEY = "history_masked_mode";
   private static final String START_DATE_STATE_KEY = "history_start_date";
   private static final String END_DATE_STATE_KEY = "history_end_date";
   private static final String DATE_RANGE_ALL_STATE_KEY = "history_date_range_all";
@@ -81,6 +82,10 @@ public final class HistoryFragment extends ScreenFragment {
   private TextView expenseTotalView;
   private TextView emptyTitleView;
   private TextView emptyHintView;
+  private boolean maskedMode;
+  private TextView modeNominal;
+  private TextView modeMasked;
+  private HistoryTotals cachedTotals;
   private LocalDate selectedStartDate;
   private LocalDate selectedEndDate;
   private Long selectedWalletId;
@@ -152,6 +157,14 @@ public final class HistoryFragment extends ScreenFragment {
         updateDateRangeView();
         reload();
     });
+    
+    modeNominal = view.findViewById(R.id.history_mode_nominal);
+    modeMasked = view.findViewById(R.id.history_mode_masked);
+    maskedMode = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+        .getBoolean(MASKED_MODE_PREFS_KEY, false);
+    updateModeToggle();
+    modeNominal.setOnClickListener(v -> setMaskedMode(false));
+    modeMasked.setOnClickListener(v -> setMaskedMode(true));
     
     searchInput.setText(searchQuery);
     searchInput.setSelection(searchInput.length());
@@ -503,15 +516,49 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private void renderSummary(HistoryTotals totals) {
+    cachedTotals = totals;
     int count = totals.getCount();
     countView.setText(
         getResources().getQuantityString(R.plurals.history_count, count, count));
     
-    long netBalance = totals.getIncomeMinor() - totals.getExpenseMinor();
-    totalBalanceView.setText(MoneyFormatter.format(netBalance));
-    
-    incomeTotalView.setText(MoneyFormatter.format(totals.getIncomeMinor()));
-    expenseTotalView.setText(MoneyFormatter.format(totals.getExpenseMinor()));
+    if (maskedMode) {
+      totalBalanceView.setText("Rp ***");
+      incomeTotalView.setText("Rp ***");
+      expenseTotalView.setText("Rp ***");
+    } else {
+      long netBalance = totals.getIncomeMinor() - totals.getExpenseMinor();
+      totalBalanceView.setText(MoneyFormatter.format(netBalance));
+      incomeTotalView.setText(MoneyFormatter.format(totals.getIncomeMinor()));
+      expenseTotalView.setText(MoneyFormatter.format(totals.getExpenseMinor()));
+    }
+  }
+
+  private void setMaskedMode(boolean masked) {
+    maskedMode = masked;
+    requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(MASKED_MODE_PREFS_KEY, masked)
+        .apply();
+    updateModeToggle();
+    if (cachedTotals != null) {
+      renderSummary(cachedTotals);
+    }
+    adapter.setMaskedMode(masked);
+  }
+
+  private void updateModeToggle() {
+    if (modeNominal == null || modeMasked == null) return;
+    if (maskedMode) {
+      modeNominal.setBackground(null);
+      modeNominal.setTextColor(0xFF4A9E7F);
+      modeMasked.setBackgroundResource(R.drawable.bg_toggle_active);
+      modeMasked.setTextColor(0xFFFFFFFF);
+    } else {
+      modeNominal.setBackgroundResource(R.drawable.bg_toggle_active);
+      modeNominal.setTextColor(0xFFFFFFFF);
+      modeMasked.setBackground(null);
+      modeMasked.setTextColor(0xFF4A9E7F);
+    }
   }
 
   private List<FilterDialog.Option> walletFilterOptions(List<Wallet> wallets) {
