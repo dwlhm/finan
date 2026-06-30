@@ -297,6 +297,12 @@
     <string name="transaction_system_category">Tidak berkategori</string>
 
     <!-- Financial Advice -->
+    <string name="advice_early_title">Awal Periode</string>
+    <string name="advice_early_msg">Masih awal periode, yuk pantau terus pengeluaranmu agar tetap sesuai rencana. Catat setiap transaksi di tab &lt;b&gt;Catat&lt;/b&gt; untuk memudahkan evaluasi di akhir bulan nanti!&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Gunakan fitur &lt;b&gt;Ringkasan&lt;/b&gt; secara berkala untuk melihat pola pengeluaranmu seiring bertambahnya data transaksi.</string>
+    <string name="advice_onethird_title">Sudah 1/3 Jalan</string>
+    <string name="advice_onethird_msg">Kamu sudah melewati sepertiga periode ini. Pantau terus pengeluaranmu agar tetap sesuai target. Catat setiap transaksi di tab &lt;b&gt;Catat&lt;/b&gt; untuk menjaga konsistensi catatan keuanganmu!&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Gunakan fitur &lt;b&gt;Ringkasan&lt;/b&gt; secara berkala untuk melihat pola pengeluaranmu seiring bertambahnya data transaksi.</string>
+    <string name="advice_halfway_title">Sudah Setengah Jalan</string>
+    <string name="advice_halfway_msg">Sudah setengah periode berlalu. Evaluasi pengeluaranmu sejauh ini agar di sisa periode bisa lebih optimal. Jangan lupa catat transaksi yang belum tercatat di tab &lt;b&gt;Catat&lt;/b&gt;!&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Buka menu &lt;b&gt;Dompet&lt;/b&gt; di tab &lt;b&gt;Pengaturan&lt;/b&gt; untuk memantau sisa saldo di setiap rekening dan menjaga disiplin anggaran.</string>
     <string name="advice_no_data_title">Mulai Perjalanan Finansialmu</string>
     <string name="advice_no_data_msg">Catat pemasukan dan pengeluaran pertamamu untuk mendapatkan analisis finansial pribadi.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Aplikasi:&lt;/b&gt;&lt;br/&gt;Mulai catat transaksi harianmu di tab &lt;b&gt;Catat&lt;/b&gt; agar data keuanganmu mulai terbentuk!</string>
     <string name="advice_overspending_title">Bulan yang Menantang</string>

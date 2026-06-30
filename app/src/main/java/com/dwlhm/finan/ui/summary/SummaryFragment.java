@@ -225,7 +225,7 @@ public final class SummaryFragment extends ScreenFragment {
     }
     netFlow.setTextColor(ContextCompat.getColor(requireContext(), net >= 0 ? R.color.finan_summary_net_income : R.color.finan_summary_net_expense));
 
-    FinancialAdvisor.Advice advice = FinancialAdvisor.getAdvice(requireContext(), summary, prevSummary, prevPrevSummary);
+    FinancialAdvisor.Advice advice = FinancialAdvisor.getAdvice(requireContext(), summary, prevSummary, prevPrevSummary, startDate, endDate);
     if (advice != null) {
       adviceCard.setVisibility(View.VISIBLE);
       adviceCard.setBackgroundResource(advice.bgRes);

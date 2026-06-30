@@ -4,10 +4,16 @@ import android.content.Context;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+
 public final class FinancialAdvisor {
 
   public enum AdviceType {
     NO_DATA,
+    EARLY_PERIOD,
+    ONE_THIRD,
+    HALFWAY,
     OVERSPENDING,
     OVERSPENDING_CONSECUTIVE,
     HIGH_SPENDING,
@@ -42,13 +48,21 @@ public final class FinancialAdvisor {
   }
 
   public static AdviceDetails calculateAdviceDetails(MonthlySummary summary) {
-    return calculateAdviceDetails(summary, null, null);
+    return calculateAdviceDetails(summary, null, null, 1.0);
   }
 
   public static AdviceDetails calculateAdviceDetails(
       MonthlySummary summary,
       MonthlySummary prevSummary,
       MonthlySummary prevPrevSummary) {
+    return calculateAdviceDetails(summary, prevSummary, prevPrevSummary, 1.0);
+  }
+
+  public static AdviceDetails calculateAdviceDetails(
+      MonthlySummary summary,
+      MonthlySummary prevSummary,
+      MonthlySummary prevPrevSummary,
+      double dayProgress) {
     if (summary == null) {
       return new AdviceDetails(AdviceType.NO_DATA, 0);
     }
@@ -72,20 +86,138 @@ public final class FinancialAdvisor {
       return new AdviceDetails(AdviceType.OVERSPENDING, 0);
     }
 
+    double effectiveProgress = Math.max(dayProgress, 0.05);
     double expensePercent = (expense * 100.0) / income;
-    int percentage = (int) Math.round(expensePercent);
+    double normalizedPercent = Math.min(100.0, expensePercent / effectiveProgress);
+    int percentage = (int) Math.round(normalizedPercent);
 
+    int savings = Math.max(0, 100 - percentage);
     if (percentage > 80) {
       return new AdviceDetails(AdviceType.HIGH_SPENDING, percentage);
+    } else if (dayProgress < 0.33) {
+      return new AdviceDetails(AdviceType.EARLY_PERIOD, 0);
+    } else if (dayProgress < 0.50) {
+      return new AdviceDetails(AdviceType.ONE_THIRD, 0);
+    } else if (dayProgress < 0.67) {
+      return new AdviceDetails(AdviceType.HALFWAY, 0);
     } else if (percentage > 20) {
-      return new AdviceDetails(AdviceType.HEALTHY_SAVINGS, 100 - percentage);
+      return new AdviceDetails(AdviceType.HEALTHY_SAVINGS, savings);
     } else {
-      return new AdviceDetails(AdviceType.EXCELLENT_SAVINGS, 100 - percentage);
+      return new AdviceDetails(AdviceType.EXCELLENT_SAVINGS, savings);
     }
   }
 
   public static Advice getAdvice(Context context, MonthlySummary summary) {
-    return getAdvice(context, summary, null, null);
+    return getAdvice(context, summary, null, null, null, null);
+  }
+
+  public static Advice getAdvice(
+      Context context,
+      MonthlySummary summary,
+      MonthlySummary prevSummary,
+      MonthlySummary prevPrevSummary) {
+    return getAdvice(context, summary, prevSummary, prevPrevSummary, null, null);
+  }
+
+  public static Advice getAdvice(
+      Context context,
+      MonthlySummary summary,
+      MonthlySummary prevSummary,
+      MonthlySummary prevPrevSummary,
+      LocalDate startDate,
+      LocalDate endDate) {
+    if (summary == null) {
+      return null;
+    }
+
+    double dayProgress = 1.0;
+    if (startDate != null && endDate != null) {
+      long totalDays = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+      LocalDate today = LocalDate.now();
+      long elapsed = ChronoUnit.DAYS.between(startDate, today) + 1;
+      if (elapsed < 0) elapsed = 0;
+      if (elapsed > totalDays) elapsed = totalDays;
+      dayProgress = totalDays > 0 ? (double) elapsed / totalDays : 1.0;
+    }
+
+    AdviceDetails details = calculateAdviceDetails(summary, prevSummary, prevPrevSummary, dayProgress);
+    String baseMessage;
+    int iconRes;
+    int colorRes;
+    int bgRes;
+    String title;
+
+    switch (details.type) {
+      case OVERSPENDING_CONSECUTIVE:
+        title = context.getString(R.string.advice_overspending_consecutive_title);
+        baseMessage = context.getString(R.string.advice_overspending_consecutive_msg);
+        iconRes = R.drawable.ic_error;
+        colorRes = R.color.finan_error;
+        bgRes = R.drawable.bg_panel_emphasis_error;
+        break;
+      case OVERSPENDING:
+        title = context.getString(R.string.advice_overspending_title);
+        baseMessage = context.getString(R.string.advice_overspending_msg);
+        iconRes = R.drawable.ic_error;
+        colorRes = R.color.finan_error;
+        bgRes = R.drawable.bg_panel_emphasis_error;
+        break;
+      case HIGH_SPENDING:
+        title = context.getString(R.string.advice_high_spending_title);
+        baseMessage = context.getString(R.string.advice_high_spending_msg, details.percentage);
+        iconRes = R.drawable.ic_error;
+        colorRes = R.color.finan_warm_accent;
+        bgRes = R.drawable.bg_panel_emphasis;
+        break;
+      case HEALTHY_SAVINGS:
+        title = context.getString(R.string.advice_healthy_title);
+        baseMessage = context.getString(R.string.advice_healthy_msg, details.percentage);
+        iconRes = R.drawable.ic_check;
+        colorRes = R.color.finan_income;
+        bgRes = R.drawable.bg_panel_emphasis_success;
+        break;
+      case EXCELLENT_SAVINGS:
+        title = context.getString(R.string.advice_excellent_title);
+        baseMessage = context.getString(R.string.advice_excellent_msg, details.percentage);
+        iconRes = R.drawable.ic_check;
+        colorRes = R.color.finan_income;
+        bgRes = R.drawable.bg_panel_emphasis_success;
+        break;
+      case EARLY_PERIOD:
+        title = context.getString(R.string.advice_early_title);
+        baseMessage = context.getString(R.string.advice_early_msg);
+        iconRes = R.drawable.ic_schedule;
+        colorRes = R.color.finan_text_secondary;
+        bgRes = R.drawable.bg_card;
+        break;
+      case ONE_THIRD:
+        title = context.getString(R.string.advice_onethird_title);
+        baseMessage = context.getString(R.string.advice_onethird_msg);
+        iconRes = R.drawable.ic_schedule;
+        colorRes = R.color.finan_text_secondary;
+        bgRes = R.drawable.bg_card;
+        break;
+      case HALFWAY:
+        title = context.getString(R.string.advice_halfway_title);
+        baseMessage = context.getString(R.string.advice_halfway_msg);
+        iconRes = R.drawable.ic_schedule;
+        colorRes = R.color.finan_text_secondary;
+        bgRes = R.drawable.bg_card;
+        break;
+      case NO_DATA:
+      default:
+        title = context.getString(R.string.advice_no_data_title);
+        baseMessage = context.getString(R.string.advice_no_data_msg);
+        iconRes = R.drawable.ic_schedule;
+        colorRes = R.color.finan_text_secondary;
+        bgRes = R.drawable.bg_card;
+        break;
+    }
+
+    String riseMessage = getHighestRiseCategoryMessage(context, summary, prevSummary);
+    String fullMessage = baseMessage + (riseMessage.isEmpty() ? "" : riseMessage);
+
+    return new Advice(title, fullMessage, iconRes, colorRes, bgRes);
   }
 
   public static String getHighestRiseCategoryMessage(Context context, MonthlySummary summary, MonthlySummary prevSummary) {
@@ -129,71 +261,4 @@ public final class FinancialAdvisor {
     return "";
   }
 
-  public static Advice getAdvice(
-      Context context,
-      MonthlySummary summary,
-      MonthlySummary prevSummary,
-      MonthlySummary prevPrevSummary) {
-    if (summary == null) {
-      return null;
-    }
-
-    AdviceDetails details = calculateAdviceDetails(summary, prevSummary, prevPrevSummary);
-    String baseMessage;
-    int iconRes;
-    int colorRes;
-    int bgRes;
-    String title;
-
-    switch (details.type) {
-      case OVERSPENDING_CONSECUTIVE:
-        title = context.getString(R.string.advice_overspending_consecutive_title);
-        baseMessage = context.getString(R.string.advice_overspending_consecutive_msg);
-        iconRes = R.drawable.ic_error;
-        colorRes = R.color.finan_error;
-        bgRes = R.drawable.bg_panel_emphasis_error;
-        break;
-      case OVERSPENDING:
-        title = context.getString(R.string.advice_overspending_title);
-        baseMessage = context.getString(R.string.advice_overspending_msg);
-        iconRes = R.drawable.ic_error;
-        colorRes = R.color.finan_error;
-        bgRes = R.drawable.bg_panel_emphasis_error;
-        break;
-      case HIGH_SPENDING:
-        title = context.getString(R.string.advice_high_spending_title);
-        baseMessage = context.getString(R.string.advice_high_spending_msg, details.percentage);
-        iconRes = R.drawable.ic_error;
-        colorRes = R.color.finan_warm_accent;
-        bgRes = R.drawable.bg_panel_emphasis;
-        break;
-      case HEALTHY_SAVINGS:
-        title = context.getString(R.string.advice_healthy_title);
-        baseMessage = context.getString(R.string.advice_healthy_msg, details.percentage);
-        iconRes = R.drawable.ic_check;
-        colorRes = R.color.finan_income;
-        bgRes = R.drawable.bg_panel_emphasis_success;
-        break;
-      case EXCELLENT_SAVINGS:
-        title = context.getString(R.string.advice_excellent_title);
-        baseMessage = context.getString(R.string.advice_excellent_msg, details.percentage);
-        iconRes = R.drawable.ic_check;
-        colorRes = R.color.finan_income;
-        bgRes = R.drawable.bg_panel_emphasis_success;
-        break;
-      case NO_DATA:
-      default:
-        title = context.getString(R.string.advice_no_data_title);
-        baseMessage = context.getString(R.string.advice_no_data_msg);
-        iconRes = R.drawable.ic_schedule;
-        colorRes = R.color.finan_text_secondary;
-        bgRes = R.drawable.bg_card;
-        break;
-    }
-
-    String riseMessage = getHighestRiseCategoryMessage(context, summary, prevSummary);
-    String fullMessage = baseMessage + (riseMessage.isEmpty() ? "" : riseMessage);
-
-    return new Advice(title, fullMessage, iconRes, colorRes, bgRes);
-  }
 }
