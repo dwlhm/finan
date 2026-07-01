@@ -40,7 +40,7 @@ import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.common.EntitySearchBottomSheet;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
-import com.dwlhm.finan.ui.common.TransactionOccurredAtPicker;
+import com.dwlhm.finan.ui.common.DateTimeBottomSheet;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
@@ -82,7 +82,7 @@ public final class CaptureFragment extends ScreenFragment {
   private Wallet destinationWallet;
   private Category selectedCategory;
   private TransactionType selectedType = TransactionType.EXPENSE;
-  private TransactionOccurredAtPicker occurredAtPicker;
+  private long occurredAtMillis;
 
   private FinanToast activeToast;
   @Nullable private PendingSaveUndo pendingUndo;
@@ -127,8 +127,17 @@ public final class CaptureFragment extends ScreenFragment {
     noteInput = view.findViewById(R.id.capture_note);
     saveButton = view.findViewById(R.id.capture_save);
 
-    occurredAtPicker = new TransactionOccurredAtPicker(
-            requireContext(), dateText, null, System.currentTimeMillis());
+    occurredAtMillis = System.currentTimeMillis();
+    updateDateLabel();
+    dateText.setOnClickListener(v -> {
+        expireAmountAutoFocus();
+        new DateTimeBottomSheet(
+            requireContext(), occurredAtMillis,
+            millis -> {
+                occurredAtMillis = millis;
+                updateDateLabel();
+            }).show();
+    });
 
     validationBanner = view.findViewById(R.id.capture_validation_banner);
     formValidation = new CaptureFormValidation(view, validationBanner);
@@ -215,9 +224,9 @@ public final class CaptureFragment extends ScreenFragment {
           wallets = state.wallets;
           activeWallet = state.activeWallet;
           allCategoriesForType = state.categoriesForType;
-          if (!keepSelectedCategory) {
+          if (!keepSelectedCategory || selectedCategory == null) {
             selectedCategory = state.selectedCategory;
-          } else if (selectedCategory != null && !isCategoryInList(selectedCategory, allCategoriesForType)) {
+          } else if (!isCategoryInList(selectedCategory, allCategoriesForType)) {
             selectedCategory = null;
           }
           tryRestoreCaptureDraft();
@@ -412,6 +421,19 @@ public final class CaptureFragment extends ScreenFragment {
       applySelectionBackground(walletText, activeWallet != null);
   }
 
+  private void updateDateLabel() {
+    java.time.LocalDateTime dt = java.time.LocalDateTime.ofInstant(
+        java.time.Instant.ofEpochMilli(occurredAtMillis), java.time.ZoneId.systemDefault());
+    java.time.LocalDate today = java.time.LocalDate.now();
+    java.time.LocalDate d = dt.toLocalDate();
+    String datePart;
+    if (d.equals(today)) datePart = "@hari ini";
+    else if (d.equals(today.minusDays(1))) datePart = "@kemarin";
+    else if (d.equals(today.plusDays(1))) datePart = "@besok";
+    else datePart = "@" + dt.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy", new java.util.Locale("id", "ID")));
+    dateText.setText(datePart + ", " + dt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
+  }
+
   private void openCategorySearchDialog() {
       EntitySearchBottomSheet<Category> bottomSheet = new EntitySearchBottomSheet<>(
           requireContext(),
@@ -506,7 +528,7 @@ public final class CaptureFragment extends ScreenFragment {
             selectedType,
             activeWallet.getId(),
             selectedCategory.getId(),
-            occurredAtPicker.getOccurredAtMillis(),
+            occurredAtMillis,
             null);
     String note = noteInput.getText().toString().trim();
     if (!TextUtils.isEmpty(note)) {
@@ -548,7 +570,7 @@ public final class CaptureFragment extends ScreenFragment {
   private void saveTransfer(long amountMinor) {
     Wallet source = activeWallet;
     Wallet destination = destinationWallet;
-    long occurredAt = occurredAtPicker.getOccurredAtMillis();
+    long occurredAt = occurredAtMillis;
     String note = noteInput.getText().toString().trim();
     String savedNote = TextUtils.isEmpty(note) ? null : note;
     services.dbWorker.compute(
@@ -597,7 +619,8 @@ public final class CaptureFragment extends ScreenFragment {
     validationBanner.setVisibility(View.GONE);
     amountInput.setText("");
     noteInput.setText("");
-    occurredAtPicker.resetToNow();
+    occurredAtMillis = System.currentTimeMillis();
+    updateDateLabel();
     selectedCategory = null;
     updateCategoryLabel();
   }
@@ -673,7 +696,7 @@ public final class CaptureFragment extends ScreenFragment {
         activeWallet.getId(),
         selectedCategory.getId(),
         null,
-        occurredAtPicker.getOccurredAtMillis(),
+        occurredAtMillis,
         note,
         merchantId,
         tagIds);
@@ -725,7 +748,8 @@ public final class CaptureFragment extends ScreenFragment {
       setAmountInput(draft.getAmountMinor());
     }
     noteInput.setText(draft.getNote() != null ? draft.getNote() : "");
-    occurredAtPicker.setOccurredAtMillis(draft.getOccurredAtMillis());
+    occurredAtMillis = draft.getOccurredAtMillis();
+    updateDateLabel();
 
     Long walletId = draft.getWalletId();
     if (walletId != null) {
@@ -778,7 +802,7 @@ public final class CaptureFragment extends ScreenFragment {
   private TransactionFormDraft buildCaptureDraft() {
     TransactionFormDraft draft = new TransactionFormDraft();
     draft.setType(selectedType);
-    draft.setOccurredAtMillis(occurredAtPicker.getOccurredAtMillis());
+    draft.setOccurredAtMillis(occurredAtMillis);
     if (activeWallet != null) {
       draft.setWalletId(activeWallet.getId());
     }

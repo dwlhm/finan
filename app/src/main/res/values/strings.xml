@@ -116,6 +116,7 @@
     <string name="transaction_date_label">Tanggal</string>
     <string name="transaction_datetime_label">Tanggal &amp; waktu</string>
     <string name="transaction_date_picker_title">Pilih tanggal</string>
+    <string name="date_picker_today">Hari ini</string>
     <string name="transaction_time_picker_title">Pilih waktu</string>
     <string name="transaction_note_label">Catatan</string>
     <string name="transaction_note_empty">Tidak ada catatan</string>
