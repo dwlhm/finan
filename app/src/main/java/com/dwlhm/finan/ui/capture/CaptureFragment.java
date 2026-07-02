@@ -38,6 +38,7 @@ import com.dwlhm.finan.ui.common.LabeledEditTextView;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.common.EntitySearchBottomSheet;
+import com.dwlhm.finan.ui.wallet.WalletInputDialog;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.DateTimeBottomSheet;
@@ -475,6 +476,7 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void openWalletSearchDialog(boolean isDestination) {
+      boolean isTransfer = selectedType.isTransfer();
       EntitySearchBottomSheet<Wallet> bottomSheet = new EntitySearchBottomSheet<>(
           requireContext(),
           wallets,
@@ -489,16 +491,28 @@ public final class CaptureFragment extends ScreenFragment {
               if (isDestination) {
                   destinationWallet = item;
                   formValidation.clear(CaptureFormValidation.Field.DESTINATION);
-                  updateCategoryLabel(); // Update "to Wallet" text
+                  updateCategoryLabel();
               } else {
                   activeWallet = item;
                   formValidation.clear(CaptureFormValidation.Field.WALLET);
                   ensureDestinationWallet();
                   updateWalletLabel();
-                  if (selectedType.isTransfer()) {
+                  if (isTransfer) {
                       updateCategoryLabel();
                   }
               }
+          },
+          getString(R.string.wallet_add),
+          () -> {
+              AppServices s = ServicesProvider.get(requireContext());
+              new WalletInputDialog(requireContext(), s, () ->
+                  services.dbWorker.compute(
+                      () -> s.walletDao.findAll(),
+                      newWallets -> {
+                          if (!isAdded() || newWallets == null) return;
+                          wallets = newWallets;
+                          openWalletSearchDialog(isDestination);
+                      }));
           }
       );
       bottomSheet.show();

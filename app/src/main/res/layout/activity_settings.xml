@@ -12,12 +12,54 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="@string/settings_title"
-            android:textAppearance="@style/Finan.Text.Title" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_title"
+                android:textAppearance="@style/Finan.Text.Title" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_toggle_frame"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/settings_mode_nominal"
+                    android:layout_width="32dp"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_toggle_active"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:text="Rp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settings_mode_masked"
+                    android:layout_width="32dp"
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:gravity="center"
+                    android:text="***"
+                    android:textColor="#4A9E7F"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
 
         <!-- Category Card (Top Categories) -->
         <LinearLayout
@@ -98,20 +140,87 @@
             android:padding="16dp"
             android:layout_marginBottom="16dp">
 
-            <TextView
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:text="Dompet &amp; Rekening"
+                    android:textAppearance="@style/Finan.Text.SectionLabel"
+                    android:textColor="@color/finan_primary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settings_create_wallet_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="+ Tambah Baru"
+                    android:textColor="@color/finan_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </RelativeLayout>
+
+            <LinearLayout
+                android:id="@+id/settings_wallets_balance_row"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Dompet &amp; Rekening"
-                android:textAppearance="@style/Finan.Text.SectionLabel"
-                android:textColor="@color/finan_primary"
-                android:textStyle="bold" />
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Total Saldo"
+                    android:textColor="@color/finan_text_secondary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/settings_wallets_total_balance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/finan_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <GridLayout
+                android:id="@+id/settings_wallets_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:alignmentMode="alignBounds"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/settings_wallets_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="16dp"
+                android:text="Belum ada data dompet"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="14sp"
+                android:visibility="gone" />
 
             <Button
                 android:id="@+id/settings_wallets"
                 style="@style/Finan.Button.Nav"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_chip"
                 android:textColor="@color/finan_text_primary"
                 android:padding="12dp"

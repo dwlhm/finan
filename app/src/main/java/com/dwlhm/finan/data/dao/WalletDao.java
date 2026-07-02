@@ -19,6 +19,12 @@ public final class WalletDao {
 
   public long insert(
       String name, String currencyCode, boolean isDefault, long openingBalanceMinor, long createdAt) {
+    return insert(name, currencyCode, isDefault, openingBalanceMinor, createdAt, null);
+  }
+
+  public long insert(
+      String name, String currencyCode, boolean isDefault, long openingBalanceMinor, long createdAt,
+      String icon) {
     ContentValues values = new ContentValues();
     values.put("name", name);
     values.put("currency_code", currencyCode);
@@ -26,6 +32,7 @@ public final class WalletDao {
     values.put("opening_balance_minor", openingBalanceMinor);
     values.put("cached_balance_minor", openingBalanceMinor);
     values.put("created_at", createdAt);
+    values.put("icon", icon);
     return db.insert("wallets", null, values);
   }
 
@@ -58,6 +65,37 @@ public final class WalletDao {
     try {
       ContentValues nameValues = new ContentValues();
       nameValues.put("name", name);
+      int updatedRows =
+          db.update("wallets", nameValues, "id = ?", new String[]{String.valueOf(id)});
+      if (updatedRows <= 0) {
+        return false;
+      }
+      if (makeDefault) {
+        ContentValues clearValues = new ContentValues();
+        clearValues.put("is_default", 0);
+        db.update("wallets", clearValues, "id <> ?", new String[]{String.valueOf(id)});
+
+        ContentValues defaultValues = new ContentValues();
+        defaultValues.put("is_default", 1);
+        int defaultRows =
+            db.update("wallets", defaultValues, "id = ?", new String[]{String.valueOf(id)});
+        if (defaultRows <= 0) {
+          return false;
+        }
+      }
+      db.setTransactionSuccessful();
+      return true;
+    } finally {
+      db.endTransaction();
+    }
+  }
+
+  public boolean updateNameDefaultAndIcon(long id, String name, boolean makeDefault, String icon) {
+    db.beginTransaction();
+    try {
+      ContentValues nameValues = new ContentValues();
+      nameValues.put("name", name);
+      nameValues.put("icon", icon);
       int updatedRows =
           db.update("wallets", nameValues, "id = ?", new String[]{String.valueOf(id)});
       if (updatedRows <= 0) {
@@ -132,6 +170,23 @@ public final class WalletDao {
     return wallets;
   }
 
+  public List<Wallet> findTopUsed(int limit) {
+    List<Wallet> wallets = new ArrayList<>();
+    String sql =
+        "SELECT w.*, COUNT(t.id) AS tx_count"
+            + " FROM wallets w"
+            + " LEFT JOIN transactions t ON t.wallet_id = w.id"
+            + " GROUP BY w.id"
+            + " ORDER BY tx_count DESC, w.id ASC"
+            + " LIMIT ?";
+    try (Cursor c = db.rawQuery(sql, new String[]{String.valueOf(limit)})) {
+      while (c.moveToNext()) {
+        wallets.add(mapWithUsage(c));
+      }
+    }
+    return wallets;
+  }
+
   private static Wallet map(Cursor c) {
     return new Wallet(
         c.getLong(c.getColumnIndexOrThrow("id")),
@@ -140,6 +195,21 @@ public final class WalletDao {
         c.getInt(c.getColumnIndexOrThrow("is_default")) == 1,
         c.getLong(c.getColumnIndexOrThrow("opening_balance_minor")),
         c.getLong(c.getColumnIndexOrThrow("cached_balance_minor")),
-        c.getLong(c.getColumnIndexOrThrow("created_at")));
+        c.getLong(c.getColumnIndexOrThrow("created_at")),
+        0,
+        c.getString(c.getColumnIndexOrThrow("icon")));
+  }
+
+  private static Wallet mapWithUsage(Cursor c) {
+    return new Wallet(
+        c.getLong(c.getColumnIndexOrThrow("id")),
+        c.getString(c.getColumnIndexOrThrow("name")),
+        c.getString(c.getColumnIndexOrThrow("currency_code")),
+        c.getInt(c.getColumnIndexOrThrow("is_default")) == 1,
+        c.getLong(c.getColumnIndexOrThrow("opening_balance_minor")),
+        c.getLong(c.getColumnIndexOrThrow("cached_balance_minor")),
+        c.getLong(c.getColumnIndexOrThrow("created_at")),
+        c.getInt(c.getColumnIndexOrThrow("tx_count")),
+        c.getString(c.getColumnIndexOrThrow("icon")));
   }
 }

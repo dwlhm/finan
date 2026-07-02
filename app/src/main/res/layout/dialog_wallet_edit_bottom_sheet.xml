@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="20dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_bottom_sheet_handle" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/wallet_edit_dialog_title"
+                android:textAppearance="@style/Finan.Text.Title" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <com.dwlhm.finan.ui.common.LabeledEditTextView
+                    android:id="@+id/wallet_icon_field"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
+                    app:labelText="Ikon" />
+
+                <com.dwlhm.finan.ui.common.LabeledEditTextView
+                    android:id="@+id/wallet_name_field"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:inputType="textCapWords"
+                    app:fieldHint="@string/wallet_name_example"
+                    app:labelText="@string/wallet_name_hint" />
+            </LinearLayout>
+
+            <CheckBox
+                android:id="@+id/wallet_default_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:buttonTint="@color/checkbox_default_tint"
+                android:minHeight="40dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:text="@string/wallet_make_default"
+                android:textColor="@color/finan_text_primary" />
+
+            <com.dwlhm.finan.ui.common.DialogActionsView
+                android:id="@+id/wallet_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                app:primaryText="@string/wallet_save_name" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

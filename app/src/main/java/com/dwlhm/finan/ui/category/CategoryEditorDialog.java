@@ -2,11 +2,7 @@ package com.dwlhm.finan.ui.category;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -24,6 +20,7 @@ import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.DialogActionsView;
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
 
 import java.util.function.Consumer;
@@ -128,24 +125,10 @@ public final class CategoryEditorDialog extends Dialog {
           return false;
         });
 
-    showEditorWindow();
+    BottomSheetHelper.show(this);
     if (!editing) {
       nameInput.requestFocus();
       getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-    }
-  }
-
-  private void showEditorWindow() {
-    show();
-    Window window = getWindow();
-    if (window != null) {
-      window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-      WindowManager.LayoutParams params = window.getAttributes();
-      params.width = WindowManager.LayoutParams.MATCH_PARENT;
-      params.height = WindowManager.LayoutParams.WRAP_CONTENT;
-      params.gravity = Gravity.BOTTOM;
-      window.setAttributes(params);
-      window.setWindowAnimations(android.R.style.Animation_InputMethod);
     }
   }
 
