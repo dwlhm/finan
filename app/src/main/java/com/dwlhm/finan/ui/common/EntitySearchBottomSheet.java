@@ -25,6 +25,7 @@ import com.dwlhm.finan.util.search.FuzzySearch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class EntitySearchBottomSheet<T> extends Dialog {
 
@@ -44,6 +45,7 @@ public class EntitySearchBottomSheet<T> extends Dialog {
   private final FuzzySearch.Index<T> searchIndex;
   private final String actionText;
   private final Runnable actionListener;
+  @Nullable private final Predicate<T> isDefaultCheck;
 
   private EditText searchInput;
   private SearchListAdapter listAdapter;
@@ -54,7 +56,7 @@ public class EntitySearchBottomSheet<T> extends Dialog {
       @Nullable Long selectedId,
       @NonNull ItemMapper<T> mapper,
       @NonNull Listener<T> listener) {
-    this(context, items, selectedId, mapper, listener, null, null);
+    this(context, items, selectedId, mapper, listener, null, null, null);
   }
 
   public EntitySearchBottomSheet(
@@ -65,6 +67,18 @@ public class EntitySearchBottomSheet<T> extends Dialog {
       @NonNull Listener<T> listener,
       @Nullable String actionText,
       @Nullable Runnable actionListener) {
+    this(context, items, selectedId, mapper, listener, actionText, actionListener, null);
+  }
+
+  public EntitySearchBottomSheet(
+      @NonNull Context context,
+      @NonNull List<T> items,
+      @Nullable Long selectedId,
+      @NonNull ItemMapper<T> mapper,
+      @NonNull Listener<T> listener,
+      @Nullable String actionText,
+      @Nullable Runnable actionListener,
+      @Nullable Predicate<T> isDefaultCheck) {
     super(context, R.style.Finan_BottomSheetDialog);
     this.allItems = items;
     this.mapper = mapper;
@@ -73,6 +87,7 @@ public class EntitySearchBottomSheet<T> extends Dialog {
     this.searchIndex = buildSearchIndex(items, mapper);
     this.actionText = actionText;
     this.actionListener = actionListener;
+    this.isDefaultCheck = isDefaultCheck;
   }
 
   private FuzzySearch.Index<T> buildSearchIndex(List<T> items, ItemMapper<T> mapper) {
@@ -172,9 +187,13 @@ public class EntitySearchBottomSheet<T> extends Dialog {
       
       T item = getItem(position);
       TextView nameView = convertView.findViewById(R.id.item_name);
+      TextView defaultBadge = convertView.findViewById(R.id.item_default_badge);
       ImageView checkView = convertView.findViewById(R.id.item_check);
       
       nameView.setText(mapper.getName(item));
+      
+      boolean isDefault = isDefaultCheck != null && isDefaultCheck.test(item);
+      defaultBadge.setVisibility(isDefault ? View.VISIBLE : View.GONE);
       
       boolean isSelected = selectedId != null && selectedId == mapper.getId(item);
       checkView.setVisibility(isSelected ? View.VISIBLE : View.GONE);

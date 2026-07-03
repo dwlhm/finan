@@ -436,7 +436,8 @@ public final class CaptureFragment extends ScreenFragment {
               updateCategoryLabel();
           },
           getString(R.string.capture_category_add_new),
-          this::openCategoryCreator
+          this::openCategoryCreator,
+          Category::isDefault
       );
       bottomSheet.show();
   }

@@ -47,6 +47,7 @@ public final class CategoryOverviewBottomSheet extends Dialog {
 
     TextView iconView = findViewById(R.id.category_overview_icon);
     TextView nameView = findViewById(R.id.category_overview_name);
+    TextView defaultBadge = findViewById(R.id.category_overview_default_badge);
     TextView typeBadge = findViewById(R.id.category_overview_type_badge);
     TextView usageView = findViewById(R.id.category_overview_usage);
     TextView lastUsedView = findViewById(R.id.category_overview_last_used);
@@ -56,6 +57,7 @@ public final class CategoryOverviewBottomSheet extends Dialog {
     String icon = category.getIcon();
     iconView.setText(icon == null || icon.trim().isEmpty() ? "📂" : icon);
     nameView.setText(category.getName());
+    defaultBadge.setVisibility(category.isDefault() ? View.VISIBLE : View.GONE);
 
     String typeFilter = category.getTypeFilter();
     if ("EXPENSE".equals(typeFilter)) {

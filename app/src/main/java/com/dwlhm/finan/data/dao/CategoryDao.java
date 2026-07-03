@@ -8,7 +8,9 @@ import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class CategoryDao {
 
@@ -278,6 +280,19 @@ public final class CategoryDao {
     db.execSQL(
         "UPDATE categories SET usage_count = usage_count + 1, last_used_at = ? WHERE id = ?",
         new Object[]{usedAt, id});
+  }
+
+  public Map<Long, Long> getTotalExpenseByCategory() {
+    Map<Long, Long> totals = new HashMap<>();
+    try (Cursor c =
+        db.rawQuery(
+            "SELECT category_id, SUM(amount_minor) FROM transactions WHERE type = 'EXPENSE' AND category_id IS NOT NULL GROUP BY category_id",
+            null)) {
+      while (c.moveToNext()) {
+        totals.put(c.getLong(0), c.getLong(1));
+      }
+    }
+    return totals;
   }
 
   private static Category map(Cursor c) {

@@ -475,6 +475,7 @@ public final class CategoryListFragment extends ScreenFragment {
       TextView metadata = convertView.findViewById(R.id.item_category_type);
       ImageView icon = convertView.findViewById(R.id.item_category_icon);
       TextView emoji = convertView.findViewById(R.id.item_category_emoji);
+      TextView defaultBadge = convertView.findViewById(R.id.item_category_default_badge);
       
       Category category = item.category;
       
@@ -502,6 +503,10 @@ public final class CategoryListFragment extends ScreenFragment {
               isUnclassified(category)
                   ? R.color.finan_warm_accent
                   : R.color.finan_text_secondary));
+      defaultBadge.setVisibility(category.isDefault() ? View.VISIBLE : View.GONE);
+      convertView.setBackgroundResource(category.isDefault()
+          ? R.drawable.bg_card_wallet_default
+          : R.drawable.bg_card);
       convertView.setContentDescription(
           category.getName() + ". " + type + ". " + activity + ".");
       return convertView;

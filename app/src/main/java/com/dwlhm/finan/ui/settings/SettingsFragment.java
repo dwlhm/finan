@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class SettingsFragment extends ScreenFragment {
 
@@ -150,16 +151,20 @@ public final class SettingsFragment extends ScreenFragment {
   private void loadTopCategories() {
     AppServices services = ServicesProvider.get(requireContext());
     services.dbWorker.compute(
-        () -> services.categoryDao.findAllForManage(),
-        categories -> {
-          if (!isAdded() || categories == null) {
+        () -> {
+          List<Category> cats = services.categoryDao.findAllForManage();
+          Map<Long, Long> totals = services.categoryDao.getTotalExpenseByCategory();
+          return new CategoriesWithTotals(cats, totals);
+        },
+        result -> {
+          if (!isAdded() || result == null) {
             return;
           }
-          renderTopCategories(categories);
+          renderTopCategories(result.categories, result.totals);
         });
   }
 
-  private void renderTopCategories(List<Category> allCategories) {
+  private void renderTopCategories(List<Category> allCategories, Map<Long, Long> totals) {
     View view = getView();
     if (view == null) return;
 
@@ -179,12 +184,17 @@ public final class SettingsFragment extends ScreenFragment {
     LayoutInflater inflater = LayoutInflater.from(requireContext());
     float density = getResources().getDisplayMetrics().density;
     int margin = (int) (4 * density + 0.5f);
+    String currencyCode = cachedCurrencyCode != null ? cachedCurrencyCode : "IDR";
     int limit = Math.min(allCategories.size(), 6);
 
     for (int i = 0; i < limit; i++) {
       Category category = allCategories.get(i);
       View item = inflater.inflate(R.layout.item_settings_category_grid, categoriesGrid, false);
-      
+
+      if (category.isDefault()) {
+        item.setBackgroundResource(R.drawable.bg_card_wallet_default);
+      }
+
       TextView emojiView = item.findViewById(R.id.grid_category_emoji);
       TextView nameView = item.findViewById(R.id.grid_category_name);
       TextView usageView = item.findViewById(R.id.grid_category_usage);
@@ -192,9 +202,9 @@ public final class SettingsFragment extends ScreenFragment {
       String icon = category.getIcon();
       emojiView.setText(icon == null || icon.trim().isEmpty() ? "📂" : icon);
       nameView.setText(category.getName());
-      
-      int usage = category.getUsageCount();
-      usageView.setText(usage + "x");
+
+      long total = totals.getOrDefault(category.getId(), 0L);
+      usageView.setText(maskedMode ? "***" : MoneyFormatter.format(total));
 
       item.setOnClickListener(v -> openCategoryOverview(category));
 
@@ -208,6 +218,16 @@ public final class SettingsFragment extends ScreenFragment {
       item.setLayoutParams(params);
 
       categoriesGrid.addView(item);
+    }
+  }
+
+  private static final class CategoriesWithTotals {
+    private final List<Category> categories;
+    private final Map<Long, Long> totals;
+
+    private CategoriesWithTotals(List<Category> categories, Map<Long, Long> totals) {
+      this.categories = categories;
+      this.totals = totals;
     }
   }
 
@@ -288,7 +308,7 @@ public final class SettingsFragment extends ScreenFragment {
         iconView.setText(wallet.isDefault() ? "⭐" : "💳");
       }
       nameView.setText(wallet.getName());
-      usageView.setText(wallet.getUsageCount() + "x");
+      usageView.setText(maskedMode ? "***" : MoneyFormatter.format(wallet.getCachedBalanceMinor()));
 
       item.setOnClickListener(v ->
           openWalletOverview(wallet, allWallets));
@@ -325,6 +345,8 @@ public final class SettingsFragment extends ScreenFragment {
     if (view != null) {
       updateTotalBalanceView(view.findViewById(R.id.settings_wallets_total_balance));
     }
+    loadTopCategories();
+    loadTopWallets();
   }
 
   private void updateModeToggle() {

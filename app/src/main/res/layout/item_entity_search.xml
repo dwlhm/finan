@@ -17,6 +17,22 @@
         android:ellipsize="end"
         android:maxLines="1" />
 
+    <TextView
+        android:id="@+id/item_default_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_chip_selected"
+        android:paddingStart="8dp"
+        android:paddingTop="3dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="3dp"
+        android:text="@string/wallet_default_badge"
+        android:textColor="@color/finan_chip_text_selected"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
     <ImageView
         android:id="@+id/item_check"
         android:layout_width="24dp"
