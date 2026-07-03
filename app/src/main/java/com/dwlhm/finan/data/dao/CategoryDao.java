@@ -27,7 +27,8 @@ public final class CategoryDao {
         sortOrder,
         usageCount,
         lastUsedAt,
-        CashFlowActivity.UNCLASSIFIED.name());
+        CashFlowActivity.UNCLASSIFIED.name(),
+        false);
   }
 
   public long insert(
@@ -38,6 +39,18 @@ public final class CategoryDao {
       int usageCount,
       Long lastUsedAt,
       String cashFlowActivity) {
+    return insert(name, icon, typeFilter, sortOrder, usageCount, lastUsedAt, cashFlowActivity, false);
+  }
+
+  public long insert(
+      String name,
+      String icon,
+      String typeFilter,
+      int sortOrder,
+      int usageCount,
+      Long lastUsedAt,
+      String cashFlowActivity,
+      boolean isDefault) {
     ContentValues values = new ContentValues();
     values.put("name", name);
     values.put("icon", icon);
@@ -50,6 +63,7 @@ public final class CategoryDao {
       values.put("last_used_at", lastUsedAt);
     }
     values.put("cash_flow_activity", cashFlowActivity);
+    values.put("is_default", isDefault ? 1 : 0);
     return db.insert("categories", null, values);
   }
 
@@ -201,12 +215,50 @@ public final class CategoryDao {
   }
 
   public boolean update(long id, String name, String icon, String typeFilter, String cashFlowActivity) {
+    return update(id, name, icon, typeFilter, cashFlowActivity, false);
+  }
+
+  public boolean update(long id, String name, String icon, String typeFilter, String cashFlowActivity, boolean isDefault) {
     ContentValues values = new ContentValues();
     values.put("name", name);
     values.put("icon", icon);
     values.put("type_filter", typeFilter);
     values.put("cash_flow_activity", cashFlowActivity);
+    values.put("is_default", isDefault ? 1 : 0);
     return db.update("categories", values, "id = ?", new String[] {String.valueOf(id)}) > 0;
+  }
+
+  public Category findDefault() {
+    try (Cursor c =
+        db.query(
+            "categories",
+            null,
+            "is_default = 1",
+            null,
+            null,
+            null,
+            null,
+            "1")) {
+      if (!c.moveToFirst()) {
+        return null;
+      }
+      return map(c);
+    }
+  }
+
+  public void setDefault(long id) {
+    db.beginTransaction();
+    try {
+      ContentValues clearValues = new ContentValues();
+      clearValues.put("is_default", 0);
+      db.update("categories", clearValues, null, null);
+      ContentValues setValues = new ContentValues();
+      setValues.put("is_default", 1);
+      db.update("categories", setValues, "id = ?", new String[]{String.valueOf(id)});
+      db.setTransactionSuccessful();
+    } finally {
+      db.endTransaction();
+    }
   }
 
   public int countTransactions(long categoryId) {
@@ -236,6 +288,8 @@ public final class CategoryDao {
     }
     int iconIndex = c.getColumnIndex("icon");
     String icon = iconIndex >= 0 ? c.getString(iconIndex) : null;
+    int isDefaultIndex = c.getColumnIndex("is_default");
+    boolean isDefault = isDefaultIndex >= 0 && c.getInt(isDefaultIndex) == 1;
     return new Category(
         c.getLong(c.getColumnIndexOrThrow("id")),
         c.getString(c.getColumnIndexOrThrow("name")),
@@ -244,6 +298,7 @@ public final class CategoryDao {
         c.getInt(c.getColumnIndexOrThrow("sort_order")),
         c.getInt(c.getColumnIndexOrThrow("usage_count")),
         lastUsedAt,
-        c.getString(c.getColumnIndexOrThrow("cash_flow_activity")));
+        c.getString(c.getColumnIndexOrThrow("cash_flow_activity")),
+        isDefault);
   }
 }

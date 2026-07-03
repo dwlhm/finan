@@ -10,6 +10,7 @@ public final class Category {
   private final int usageCount;
   private final Long lastUsedAt;
   private final String cashFlowActivity;
+  private final boolean isDefault;
 
   public Category(
       long id,
@@ -20,6 +21,19 @@ public final class Category {
       int usageCount,
       Long lastUsedAt,
       String cashFlowActivity) {
+    this(id, name, icon, typeFilter, sortOrder, usageCount, lastUsedAt, cashFlowActivity, false);
+  }
+
+  public Category(
+      long id,
+      String name,
+      String icon,
+      String typeFilter,
+      int sortOrder,
+      int usageCount,
+      Long lastUsedAt,
+      String cashFlowActivity,
+      boolean isDefault) {
     this.id = id;
     this.name = name;
     this.icon = icon;
@@ -28,6 +42,7 @@ public final class Category {
     this.usageCount = usageCount;
     this.lastUsedAt = lastUsedAt;
     this.cashFlowActivity = cashFlowActivity;
+    this.isDefault = isDefault;
   }
 
   public long getId() {
@@ -60,5 +75,9 @@ public final class Category {
 
   public String getCashFlowActivity() {
     return cashFlowActivity;
+  }
+
+  public boolean isDefault() {
+    return isDefault;
   }
 }

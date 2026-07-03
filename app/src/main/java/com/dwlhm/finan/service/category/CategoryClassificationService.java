@@ -30,6 +30,10 @@ public final class CategoryClassificationService {
   }
 
   public Category create(String name, String icon, String typeFilter, CashFlowActivity activity) {
+    return create(name, icon, typeFilter, activity, false);
+  }
+
+  public Category create(String name, String icon, String typeFilter, CashFlowActivity activity, boolean isDefault) {
     String normalizedName = requireName(name, 0L);
     String finalIcon = (icon == null || icon.trim().isEmpty()) ? getRandomEmoji() : icon.trim();
     db.beginTransaction();
@@ -46,6 +50,9 @@ public final class CategoryClassificationService {
       if (id <= 0L) {
         throw new IllegalStateException("Failed to create category");
       }
+      if (isDefault) {
+        categories.setDefault(id);
+      }
       Category category = categories.findById(id);
       db.setTransactionSuccessful();
       return category;
@@ -61,6 +68,17 @@ public final class CategoryClassificationService {
       String typeFilter,
       CashFlowActivity activity,
       boolean includeHistory) {
+    return update(id, name, icon, typeFilter, activity, includeHistory, false);
+  }
+
+  public Category update(
+      long id,
+      String name,
+      String icon,
+      String typeFilter,
+      CashFlowActivity activity,
+      boolean includeHistory,
+      boolean isDefault) {
     Category existing = categories.findById(id);
     if (existing == null) {
       throw new IllegalArgumentException("Category not found");
@@ -72,6 +90,9 @@ public final class CategoryClassificationService {
     try {
       if (!categories.update(id, normalizedName, finalIcon, requireType(typeFilter), normalizedActivity.name())) {
         throw new IllegalStateException("Failed to update category");
+      }
+      if (isDefault) {
+        categories.setDefault(id);
       }
       if (includeHistory && !existing.getCashFlowActivity().equals(normalizedActivity.name())) {
         transactions.updateCashFlowActivityForCategory(id, normalizedActivity.name());
