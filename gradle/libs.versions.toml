@@ -1,7 +1,7 @@
 [versions]
 activity = "1.13.0"
 agp = "9.1.1"
-appcompat = "1.7.1"
+core = "1.15.0"
 fragment = "1.8.9"
 gradle-toolchains-foojay-resolver-convention = "1.0.0"
 junit = "4.13.2"
@@ -11,9 +11,9 @@ test = "1.7.0"
 
 [libraries]
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-androidx-core = { group = "androidx.test", name = "core", version.ref = "test" }
+androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "test" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junit-version" }
 androidx-recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 androidx-rules = { group = "androidx.test", name = "rules", version.ref = "test" }
@@ -22,4 +22,3 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-foojay = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "gradle-toolchains-foojay-resolver-convention" }

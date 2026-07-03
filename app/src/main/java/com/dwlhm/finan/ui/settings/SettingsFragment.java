@@ -23,10 +23,12 @@ import androidx.annotation.Nullable;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
+import com.dwlhm.finan.service.export.ImportService;
 import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.category.CategoryOverviewBottomSheet;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.ScreenFragment;
+import com.dwlhm.finan.ui.export.ExportDateRangeBottomSheet;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.wallet.WalletInputDialog;
@@ -34,6 +36,7 @@ import com.dwlhm.finan.ui.wallet.WalletOverviewBottomSheet;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,11 +46,16 @@ public final class SettingsFragment extends ScreenFragment {
   private static final String MASKED_MODE_PREFS_KEY = "settings_wallet_masked_mode";
 
   private ActivityResultLauncher<Intent> exportLauncher;
+  private ActivityResultLauncher<Intent> importLauncher;
   private Button exportButton;
+  private Button importButton;
   private ProgressBar exportProgress;
   private TextView exportStatus;
   private boolean exportInProgress;
+  private boolean importInProgress;
   private boolean maskedMode;
+  @Nullable private Long exportStartDate;
+  @Nullable private Long exportEndDate;
   private TextView modeNominal;
   private TextView modeMasked;
   private long cachedTotalBalanceMinor;
@@ -72,6 +80,22 @@ public final class SettingsFragment extends ScreenFragment {
               }
               writeCsvExportAsync(uri);
             });
+    importLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+              if (result.getResultCode() != Activity.RESULT_OK
+                  || result.getData() == null) {
+                return;
+              }
+              Uri uri = result.getData().getData();
+              if (uri == null) {
+                Toast.makeText(requireContext(), R.string.settings_import_failed, Toast.LENGTH_SHORT)
+                    .show();
+                return;
+              }
+              readCsvImportAsync(uri);
+            });
   }
 
   @Override
@@ -82,6 +106,7 @@ public final class SettingsFragment extends ScreenFragment {
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     exportButton = view.findViewById(R.id.settings_export);
+    importButton = view.findViewById(R.id.settings_import);
     exportProgress = view.findViewById(R.id.settings_export_progress);
     exportStatus = view.findViewById(R.id.settings_export_status);
     Button walletsButton = view.findViewById(R.id.settings_wallets);
@@ -91,6 +116,7 @@ public final class SettingsFragment extends ScreenFragment {
     AppServices services = ServicesProvider.get(requireContext());
 
     exportButton.setOnClickListener(v -> launchExportPicker());
+    importButton.setOnClickListener(v -> launchImportPicker());
     walletsButton.setOnClickListener(v -> openWallets());
     categoriesButton.setOnClickListener(v -> openCategories());
     createCategoryText.setOnClickListener(
@@ -328,14 +354,33 @@ public final class SettingsFragment extends ScreenFragment {
   }
 
   private void launchExportPicker() {
-    if (exportInProgress) {
-      return;
-    }
+    if (exportInProgress) return;
+    new ExportDateRangeBottomSheet(
+        requireContext(), exportStartDate, exportEndDate,
+        (start, end) -> {
+          exportStartDate = start;
+          exportEndDate = end;
+          launchExportFilePicker();
+        }).show();
+  }
+
+  private void launchExportFilePicker() {
     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
     intent.addCategory(Intent.CATEGORY_OPENABLE);
     intent.setType("text/csv");
     intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.settings_export_filename));
     exportLauncher.launch(intent);
+  }
+
+  private void launchImportPicker() {
+    if (importInProgress) {
+      return;
+    }
+    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    intent.addCategory(Intent.CATEGORY_OPENABLE);
+    intent.setType("text/csv");
+    intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.settings_export_filename));
+    importLauncher.launch(intent);
   }
 
   private void openCategories() {
@@ -356,13 +401,25 @@ public final class SettingsFragment extends ScreenFragment {
       return;
     }
     exportButton.setEnabled(!inProgress);
+    importButton.setEnabled(!inProgress);
+    exportProgress.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+    exportStatus.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+  }
+
+  private void setImportInProgress(boolean inProgress) {
+    importInProgress = inProgress;
+    if (importButton == null) {
+      return;
+    }
+    importButton.setEnabled(!inProgress);
+    exportButton.setEnabled(!inProgress);
     exportProgress.setVisibility(inProgress ? View.VISIBLE : View.GONE);
     exportStatus.setVisibility(inProgress ? View.VISIBLE : View.GONE);
   }
 
   private void writeCsvExportAsync(Uri destination) {
     AppServices services = ServicesProvider.get(requireContext());
-    android.content.ContentResolver resolver = requireContext().getContentResolver();
+    android.content.ContentResolver resolver = requireActivity().getContentResolver();
     setExportInProgress(true);
     services.dbWorker.compute(
         () -> {
@@ -371,7 +428,13 @@ public final class SettingsFragment extends ScreenFragment {
               return Boolean.FALSE;
             }
             services.exportService.exportTo(
-                out, services.walletDao.findAll(), services.transactionGateway);
+                out,
+                services.walletDao.findAll(),
+                services.categoryDao.findAllOrdered(),
+                services.transferDao.findAll(),
+                exportStartDate,
+                exportEndDate,
+                services.transactionGateway);
             return Boolean.TRUE;
           } catch (IOException e) {
             return Boolean.FALSE;
@@ -388,6 +451,43 @@ public final class SettingsFragment extends ScreenFragment {
           } else {
             Toast.makeText(requireContext(), R.string.settings_export_failed, Toast.LENGTH_SHORT)
                 .show();
+          }
+        });
+  }
+
+  private void readCsvImportAsync(Uri source) {
+    AppServices services = ServicesProvider.get(requireContext());
+    android.content.ContentResolver resolver = requireActivity().getContentResolver();
+    setImportInProgress(true);
+    services.dbWorker.compute(
+        () -> {
+          try (InputStream in = resolver.openInputStream(source)) {
+            if (in == null) {
+              return ImportService.ImportResult.failure("Cannot open file");
+            }
+            return services.importService.importFrom(in);
+          } catch (IOException e) {
+            return ImportService.ImportResult.failure(e.getMessage());
+          }
+        },
+        result -> {
+          if (!isAdded()) {
+            return;
+          }
+          setImportInProgress(false);
+          if (result != null && result.isSuccess()) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.settings_import_success, result.getTotalImported()),
+                Toast.LENGTH_SHORT).show();
+            loadTopCategories();
+            loadTopWallets();
+          } else {
+            String error = result != null ? result.getError() : null;
+            Toast.makeText(
+                requireContext(),
+                error != null ? error : getString(R.string.settings_import_failed),
+                Toast.LENGTH_SHORT).show();
           }
         });
   }

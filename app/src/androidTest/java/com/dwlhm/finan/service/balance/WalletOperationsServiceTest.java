@@ -13,7 +13,6 @@ import com.dwlhm.finan.data.dao.SqliteWalletBalanceDao;
 import com.dwlhm.finan.data.dao.SummaryDao;
 import com.dwlhm.finan.data.dao.TransactionDao;
 import com.dwlhm.finan.data.dao.TransactionGateway;
-import com.dwlhm.finan.data.dao.TransactionTagDao;
 import com.dwlhm.finan.data.dao.TransferDao;
 import com.dwlhm.finan.data.dao.WalletBalanceDao;
 import com.dwlhm.finan.data.dao.WalletDao;
@@ -50,7 +49,7 @@ public class WalletOperationsServiceTest {
     SQLiteDatabase db = helper.getWritableDatabase();
     WalletDao wallets = new WalletDao(db);
     transactions =
-        new SqliteTransactionDao(new TransactionDao(db), new TransactionTagDao(db));
+        new SqliteTransactionDao(new TransactionDao(db));
     balances = new SqliteWalletBalanceDao(wallets);
     BalanceService balanceService = new BalanceService(transactions, balances);
     TimeProvider time = () -> 1_700_000_000_000L;

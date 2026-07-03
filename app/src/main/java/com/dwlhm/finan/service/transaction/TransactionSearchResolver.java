@@ -1,8 +1,6 @@
 package com.dwlhm.finan.service.transaction;
 
 import com.dwlhm.finan.data.entity.Category;
-import com.dwlhm.finan.data.entity.Merchant;
-import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.HistorySearch;
 import com.dwlhm.finan.util.search.FuzzySearch;
@@ -19,18 +17,12 @@ public final class TransactionSearchResolver {
 
   private final FuzzySearch.Index<Wallet> wallets;
   private final FuzzySearch.Index<Category> categories;
-  private final FuzzySearch.Index<Merchant> merchants;
-  private final FuzzySearch.Index<Tag> tags;
 
   public TransactionSearchResolver(
       List<Wallet> wallets,
-      List<Category> categories,
-      List<Merchant> merchants,
-      List<Tag> tags) {
+      List<Category> categories) {
     this.wallets = FuzzySearch.index(wallets, Wallet::getName);
     this.categories = FuzzySearch.index(categories, Category::getName);
-    this.merchants = FuzzySearch.index(merchants, Merchant::getName);
-    this.tags = FuzzySearch.index(tags, Tag::getName);
   }
 
   public HistorySearch resolve(String query) {
@@ -42,9 +34,7 @@ public final class TransactionSearchResolver {
         text,
         parseAmount(text),
         matchingIds(wallets, text, Wallet::getId),
-        matchingIds(categories, text, Category::getId),
-        matchingIds(merchants, text, Merchant::getId),
-        matchingIds(tags, text, Tag::getId));
+        matchingIds(categories, text, Category::getId));
   }
 
   private static <T> List<Long> matchingIds(

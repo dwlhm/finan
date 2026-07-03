@@ -47,7 +47,7 @@ public class CategoryClassificationServiceTest {
   @Test
   public void updateWithHistory_doesNotReplaceOverrides() {
     Category category =
-        service.create("Deposito", "INCOME", CashFlowActivity.UNCLASSIFIED);
+        service.create("Deposito", null, "INCOME", CashFlowActivity.UNCLASSIFIED);
     long walletId = scalar("SELECT id FROM wallets LIMIT 1");
     long now = System.currentTimeMillis();
     long regular =
@@ -57,7 +57,6 @@ public class CategoryClassificationServiceTest {
             walletId,
             category.getId(),
             now,
-            null,
             null,
             null,
             CashFlowActivity.UNCLASSIFIED.name(),
@@ -73,14 +72,13 @@ public class CategoryClassificationServiceTest {
             now,
             null,
             null,
-            null,
             CashFlowActivity.FINANCING.name(),
             true,
             now,
             now);
 
     service.update(
-        category.getId(), "Deposito", "INCOME", CashFlowActivity.INVESTING, true);
+        category.getId(), "Deposito", null, "INCOME", CashFlowActivity.INVESTING, true);
 
     assertEquals(
         CashFlowActivity.INVESTING.name(),
@@ -93,7 +91,7 @@ public class CategoryClassificationServiceTest {
   @Test
   public void updateFutureOnly_keepsHistoricalSnapshot() {
     Category category =
-        service.create("Aset", "EXPENSE", CashFlowActivity.UNCLASSIFIED);
+        service.create("Aset", null, "EXPENSE", CashFlowActivity.UNCLASSIFIED);
     long walletId = scalar("SELECT id FROM wallets LIMIT 1");
     long now = System.currentTimeMillis();
     long transactionId =
@@ -105,14 +103,13 @@ public class CategoryClassificationServiceTest {
             now,
             null,
             null,
-            null,
             CashFlowActivity.UNCLASSIFIED.name(),
             false,
             now,
             now);
 
     service.update(
-        category.getId(), "Aset", "EXPENSE", CashFlowActivity.INVESTING, false);
+        category.getId(), "Aset", null, "EXPENSE", CashFlowActivity.INVESTING, false);
 
     assertEquals(
         CashFlowActivity.UNCLASSIFIED.name(),

@@ -13,7 +13,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
+import android.app.AlertDialog;
+import android.widget.Switch;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
@@ -80,10 +81,11 @@ public final class CategoryEditorDialog extends Dialog {
     TextView countView = findViewById(R.id.category_transaction_count);
     Button transactionsButton = findViewById(R.id.category_view_transactions);
     Button deleteButton = findViewById(R.id.category_delete);
+    Switch defaultSwitch = findViewById(R.id.category_default_switch);
     DialogActionsView actions = findViewById(R.id.category_editor_actions);
 
     EditorDraft draft =
-        new EditorDraft(category, nameInput, iconInput, expenseInput, incomeInput, activityGroup);
+        new EditorDraft(category, nameInput, iconInput, expenseInput, incomeInput, activityGroup, defaultSwitch);
 
     boolean editing = category != null;
     title.setText(editing ? R.string.category_editor_edit_title : R.string.category_editor_create_title);
@@ -187,6 +189,7 @@ public final class CategoryEditorDialog extends Dialog {
       iconValue = DEFAULT_EMOJIS[randomIndex];
     }
     final String finalIcon = iconValue;
+    final boolean isDefault = draft.isDefault();
 
     services.dbWorker.compute(
         () -> {
@@ -199,14 +202,15 @@ public final class CategoryEditorDialog extends Dialog {
             Category saved =
                 draft.original == null
                     ? services.categoryClassificationService.create(
-                        draft.name(), finalIcon, draft.type(), draft.activity())
+                        draft.name(), finalIcon, draft.type(), draft.activity(), isDefault)
                     : services.categoryClassificationService.update(
                         draft.original.getId(),
                         draft.name(),
                         finalIcon,
                         draft.type(),
                         draft.activity(),
-                        includeHistory);
+                        includeHistory,
+                        isDefault);
             return SaveResult.success(saved);
           } catch (RuntimeException e) {
             return SaveResult.failed();
@@ -262,6 +266,7 @@ public final class CategoryEditorDialog extends Dialog {
     private final CheckBox expenseInput;
     private final CheckBox incomeInput;
     private final RadioGroup activityGroup;
+    private final Switch defaultSwitch;
 
     private EditorDraft(
         Category original,
@@ -269,13 +274,15 @@ public final class CategoryEditorDialog extends Dialog {
         EditText iconInput,
         CheckBox expenseInput,
         CheckBox incomeInput,
-        RadioGroup activityGroup) {
+        RadioGroup activityGroup,
+        Switch defaultSwitch) {
       this.original = original;
       this.nameInput = nameInput;
       this.iconInput = iconInput;
       this.expenseInput = expenseInput;
       this.incomeInput = incomeInput;
       this.activityGroup = activityGroup;
+      this.defaultSwitch = defaultSwitch;
     }
 
     private void bindOriginal() {
@@ -285,6 +292,7 @@ public final class CategoryEditorDialog extends Dialog {
       expenseInput.setChecked(!"INCOME".equals(original.getTypeFilter()));
       incomeInput.setChecked(!"EXPENSE".equals(original.getTypeFilter()));
       activityGroup.check(activityId(CashFlowActivity.valueOf(original.getCashFlowActivity())));
+      defaultSwitch.setChecked(original.isDefault());
     }
 
     private String name() {
@@ -319,6 +327,10 @@ public final class CategoryEditorDialog extends Dialog {
           : CashFlowActivity.UNCLASSIFIED;
     }
 
+    private boolean isDefault() {
+      return defaultSwitch.isChecked();
+    }
+
     private boolean activityChanged() {
       return original != null && !original.getCashFlowActivity().equals(activity().name());
     }
@@ -329,10 +341,12 @@ public final class CategoryEditorDialog extends Dialog {
               || !icon().isEmpty()
               || !"EXPENSE".equals(type())
               || activity() != CashFlowActivity.UNCLASSIFIED
+              || defaultSwitch.isChecked()
           : !original.getName().equals(name())
               || !java.util.Objects.equals(original.getIcon(), icon())
               || !original.getTypeFilter().equals(type())
-              || activityChanged();
+              || activityChanged()
+              || original.isDefault() != defaultSwitch.isChecked();
     }
 
     private static int activityId(CashFlowActivity activity) {

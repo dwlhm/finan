@@ -1,40 +1,27 @@
 package com.dwlhm.finan.ui.category;
 
-import android.app.Dialog;
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.RadioGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
-import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.DebouncedTextWatcher;
-import com.dwlhm.finan.ui.common.DialogActionsView;
-import com.dwlhm.finan.ui.common.LabeledEditTextView;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ScreenHeaderView;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
@@ -538,16 +525,12 @@ public final class CategoryListFragment extends ScreenFragment {
 
     private static String activityLabel(Context context, String activity) {
       CashFlowActivity value = CashFlowActivity.valueOf(activity);
-      switch (value) {
-        case OPERATING:
-          return context.getString(R.string.category_activity_operating_short);
-        case INVESTING:
-          return context.getString(R.string.category_activity_investing_short);
-        case FINANCING:
-          return context.getString(R.string.category_activity_financing_short);
-        default:
-          return context.getString(R.string.category_activity_unclassified_short);
-      }
+        return switch (value) {
+            case OPERATING -> context.getString(R.string.category_activity_operating_short);
+            case INVESTING -> context.getString(R.string.category_activity_investing_short);
+            case FINANCING -> context.getString(R.string.category_activity_financing_short);
+            default -> context.getString(R.string.category_activity_unclassified_short);
+        };
     }
   }
 }

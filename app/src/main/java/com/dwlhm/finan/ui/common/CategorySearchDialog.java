@@ -17,7 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
+import android.app.AlertDialog;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.dao.CategoryDao;

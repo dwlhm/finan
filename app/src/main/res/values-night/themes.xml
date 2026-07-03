@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Finan" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.Finan" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:colorPrimary">@color/finan_primary</item>
         <item name="android:colorPrimaryDark">@color/finan_primary_dark</item>
         <item name="android:colorAccent">@color/finan_accent</item>
@@ -9,7 +9,7 @@
         <item name="android:textColorSecondary">@color/finan_text_secondary</item>
     </style>
 
-    <style name="Finan.BottomSheetDialog" parent="@android:style/Theme.Material.Light.Dialog">
+    <style name="Finan.BottomSheetDialog" parent="@android:style/Theme.Material.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsFloating">true</item>
         <item name="android:windowIsTranslucent">true</item>

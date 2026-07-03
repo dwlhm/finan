@@ -275,16 +275,31 @@
     <string name="category_history_scope_unclassified_hint">Transaksi yang pernah diubah satu per satu tidak akan diganti.</string>
     <string name="category_history_scope_classified_hint">Memperbarui transaksi lama dapat mengubah Ringkasan periode sebelumnya.</string>
     <string name="category_history_scope_apply">Terapkan &amp; simpan</string>
+    <string name="category_default_label">Jadikan kategori default</string>
+    <string name="category_default_hint">Kategori default akan otomatis terpilih di halaman Catat</string>
 
     <string name="settings_title">Pengaturan</string>
     <string name="settings_export">Ekspor data</string>
-    <string name="settings_export_hint">Ekspor dompet dan transaksi ke file CSV (format Finan v3)</string>
+    <string name="settings_export_hint">Ekspor dompet, kategori, dan transaksi ke file CSV (format Finan v4)</string>
     <string name="settings_export_success">Ekspor berhasil</string>
     <string name="settings_export_failed">Ekspor gagal</string>
     <string name="settings_export_in_progress">Mengekspor…</string>
+    <string name="settings_import">Impor data</string>
+    <string name="settings_import_hint">Impor dari file CSV yang sudah diekspor sebelumnya</string>
+    <string name="settings_import_success">Impor berhasil: %1$d data dimasukkan</string>
+    <string name="settings_import_failed">Impor gagal</string>
+    <string name="settings_import_in_progress">Mengimpor…</string>
+    <string name="settings_import_error_format">Format file tidak didukung</string>
     <string name="settings_manage_wallets">Kelola dompet</string>
     <string name="settings_manage_categories">Kelola kategori</string>
     <string name="settings_export_filename">finan_export.csv</string>
+    <string name="export_date_range_title">Rentang Tanggal</string>
+    <string name="export_date_start">Dari tanggal</string>
+    <string name="export_date_end">Sampai tanggal</string>
+    <string name="export_date_reset">Semua waktu</string>
+    <string name="export_date_apply">Ekspor</string>
+    <string name="export_date_cancel">Batal</string>
+    <string name="export_date_all_time">Semua waktu</string>
 
     <string name="common_back">Kembali</string>
     <string name="common_search_hint">Cari…</string>
@@ -317,5 +332,6 @@
     <string name="advice_excellent_title">Luar Biasa!</string>
     <string name="advice_excellent_msg">Pengeluaranmu sangat hemat dan kamu bisa menabung %1$d%% dari pemasukan. Kamu punya ruang gerak keuangan yang sangat luas bulan ini. Pertimbangkan untuk mulai menginvestasikan sebagian tabunganmu.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Tips Keuangan:&lt;/b&gt;&lt;br/&gt;Buat dompet terpisah (misalnya \&apos;Tabungan Investasi\&apos;) di menu &lt;b&gt;Dompet&lt;/b&gt; (tab &lt;b&gt;Pengaturan&lt;/b&gt;) untuk memisahkan dana investasi dari dana operasional harian.</string>
     <string name="advice_category_rise_template">&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Sorotan Pengeluaran:&lt;/b&gt;&lt;br/&gt;• Pengeluaran kategori &lt;b&gt;%1$s&lt;/b&gt; naik %2$d%% (+%3$s) dibanding bulan lalu.</string>
+    <string name="desc_btn_summary_filter">button to filter the summary data</string>
 </resources>
 

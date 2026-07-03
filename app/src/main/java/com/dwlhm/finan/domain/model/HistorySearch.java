@@ -7,20 +7,16 @@ public record HistorySearch(
     String text,
     Long amountMinor,
     List<Long> walletIds,
-    List<Long> categoryIds,
-    List<Long> merchantIds,
-    List<Long> tagIds) {
+    List<Long> categoryIds) {
 
   public HistorySearch {
     text = text == null ? "" : text.trim();
     walletIds = immutable(walletIds);
     categoryIds = immutable(categoryIds);
-    merchantIds = immutable(merchantIds);
-    tagIds = immutable(tagIds);
   }
 
   public static HistorySearch empty() {
-    return new HistorySearch("", null, null, null, null, null);
+    return new HistorySearch("", null, null, null);
   }
 
   public boolean isEmpty() {

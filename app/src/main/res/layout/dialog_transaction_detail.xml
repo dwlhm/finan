@@ -229,10 +229,6 @@
             android:textColor="@color/finan_text_primary"
             android:textColorHint="@color/finan_text_hint" />
 
-        <include
-            layout="@layout/include_transaction_tags_merchant_fields"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
     </LinearLayout>
 
     <LinearLayout

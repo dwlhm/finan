@@ -19,7 +19,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-import androidx.appcompat.app.AlertDialog;
+import android.app.AlertDialog;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.util.search.FuzzySearch;

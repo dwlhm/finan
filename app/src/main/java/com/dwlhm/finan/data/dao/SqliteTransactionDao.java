@@ -9,17 +9,14 @@ import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public final class SqliteTransactionDao implements TransactionGateway {
 
   private final TransactionDao table;
-  private final TransactionTagDao transactionTags;
 
-  public SqliteTransactionDao(TransactionDao table, TransactionTagDao transactionTags) {
+  public SqliteTransactionDao(TransactionDao table) {
     this.table = table;
-    this.transactionTags = transactionTags;
   }
 
   @Override
@@ -34,13 +31,11 @@ public final class SqliteTransactionDao implements TransactionGateway {
             transaction.getCategoryId(),
             occurredAt,
             transaction.getNote(),
-            transaction.getMerchantId(),
             transaction.getTransferId(),
             transaction.getCashFlowActivity().name(),
             transaction.isCashFlowActivityOverridden(),
             now,
             now);
-    transactionTags.replaceAll(id, transaction.getTagIds());
     return id;
   }
 
@@ -59,13 +54,11 @@ public final class SqliteTransactionDao implements TransactionGateway {
         transaction.getCategoryId(),
         transaction.getOccurredAt(),
         transaction.getNote(),
-        transaction.getMerchantId(),
         transaction.getTransferId(),
         transaction.getCashFlowActivity().name(),
         transaction.isCashFlowActivityOverridden(),
         existing.getCreatedAt(),
         now);
-    transactionTags.replaceAll(transaction.getId(), transaction.getTagIds());
   }
 
   @Override
@@ -107,11 +100,13 @@ public final class SqliteTransactionDao implements TransactionGateway {
 
   @Override
   public void forEachTransaction(Consumer<com.dwlhm.finan.domain.model.Transaction> consumer) {
-    List<Transaction> entities = table.findAll();
-    List<com.dwlhm.finan.domain.model.Transaction> domain = toDomainList(entities);
-    for (com.dwlhm.finan.domain.model.Transaction transaction : domain) {
-      consumer.accept(transaction);
-    }
+    table.forEachOrdered(entity -> consumer.accept(map(entity)));
+  }
+
+  @Override
+  public void forEachTransaction(Long startDate, Long endDate,
+      Consumer<com.dwlhm.finan.domain.model.Transaction> consumer) {
+    table.forEachOrdered(startDate, endDate, entity -> consumer.accept(map(entity)));
   }
 
   @Override
@@ -131,24 +126,9 @@ public final class SqliteTransactionDao implements TransactionGateway {
 
   private List<com.dwlhm.finan.domain.model.Transaction> toDomainList(List<Transaction> entities) {
     List<com.dwlhm.finan.domain.model.Transaction> result = new ArrayList<>();
-    if (entities.isEmpty()) {
-      return result;
-    }
-    List<Long> transactionIds = new ArrayList<>();
-    for (Transaction entity : entities) {
-      if (entity != null) {
-        transactionIds.add(entity.getId());
-      }
-    }
-    Map<Long, List<Long>> tagIdsByTransaction =
-        transactionTags.findTagIdsByTransactions(transactionIds);
     for (Transaction entity : entities) {
       com.dwlhm.finan.domain.model.Transaction domain = map(entity);
       if (domain != null) {
-        List<Long> tagIds = tagIdsByTransaction.get(entity.getId());
-        if (tagIds != null) {
-          domain.setTagIds(tagIds);
-        }
         result.add(domain);
       }
     }
@@ -156,11 +136,7 @@ public final class SqliteTransactionDao implements TransactionGateway {
   }
 
   private com.dwlhm.finan.domain.model.Transaction toDomain(Transaction entity) {
-    com.dwlhm.finan.domain.model.Transaction domain = map(entity);
-    if (domain != null) {
-      domain.setTagIds(transactionTags.findTagIdsByTransaction(entity.getId()));
-    }
-    return domain;
+    return map(entity);
   }
 
   private static com.dwlhm.finan.domain.model.Transaction map(Transaction entity) {
@@ -176,7 +152,6 @@ public final class SqliteTransactionDao implements TransactionGateway {
             entity.getCategoryId(),
             entity.getOccurredAt(),
             entity.getNote());
-    domain.setMerchantId(entity.getMerchantId());
     domain.setTransferId(entity.getTransferId());
     domain.setCashFlowActivity(
         com.dwlhm.finan.domain.model.CashFlowActivity.valueOf(entity.getCashFlowActivity()));

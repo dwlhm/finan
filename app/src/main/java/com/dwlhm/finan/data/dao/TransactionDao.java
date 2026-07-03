@@ -27,7 +27,6 @@ public final class TransactionDao {
       long categoryId,
       long occurredAt,
       String note,
-      Long merchantId,
       long createdAt,
       long updatedAt) {
     return insert(
@@ -37,7 +36,6 @@ public final class TransactionDao {
         categoryId,
         occurredAt,
         note,
-        merchantId,
         null,
         "UNCLASSIFIED",
         false,
@@ -52,7 +50,6 @@ public final class TransactionDao {
       long categoryId,
       long occurredAt,
       String note,
-      Long merchantId,
       Long transferId,
       String cashFlowActivity,
       boolean cashFlowActivityOverridden,
@@ -65,7 +62,6 @@ public final class TransactionDao {
     putCategoryId(values, categoryId);
     values.put("occurred_at", occurredAt);
     putNote(values, note);
-    putMerchantId(values, merchantId);
     putTransferId(values, transferId);
     values.put("cash_flow_activity", cashFlowActivity);
     values.put("cash_flow_activity_overridden", cashFlowActivityOverridden ? 1 : 0);
@@ -82,7 +78,6 @@ public final class TransactionDao {
       long categoryId,
       long occurredAt,
       String note,
-      Long merchantId,
       long createdAt,
       long updatedAt) {
     return update(
@@ -93,7 +88,6 @@ public final class TransactionDao {
         categoryId,
         occurredAt,
         note,
-        merchantId,
         null,
         "UNCLASSIFIED",
         false,
@@ -109,7 +103,6 @@ public final class TransactionDao {
       long categoryId,
       long occurredAt,
       String note,
-      Long merchantId,
       Long transferId,
       String cashFlowActivity,
       boolean cashFlowActivityOverridden,
@@ -122,7 +115,6 @@ public final class TransactionDao {
     putCategoryId(values, categoryId);
     values.put("occurred_at", occurredAt);
     putNote(values, note);
-    putMerchantId(values, merchantId);
     putTransferId(values, transferId);
     values.put("cash_flow_activity", cashFlowActivity);
     values.put("cash_flow_activity_overridden", cashFlowActivityOverridden ? 1 : 0);
@@ -159,12 +151,27 @@ public final class TransactionDao {
   }
 
   public void forEachOrdered(Consumer<Transaction> consumer) {
+    forEachOrdered(null, null, consumer);
+  }
+
+  public void forEachOrdered(Long startInclusive, Long endExclusive,
+      Consumer<Transaction> consumer) {
+    List<String> args = new ArrayList<>();
+    StringBuilder where = new StringBuilder();
+    if (startInclusive != null) {
+      appendCondition(where, "occurred_at >= ?");
+      args.add(String.valueOf(startInclusive));
+    }
+    if (endExclusive != null) {
+      appendCondition(where, "occurred_at < ?");
+      args.add(String.valueOf(endExclusive));
+    }
     try (Cursor c =
         db.query(
             "transactions",
             null,
-            null,
-            null,
+            where.length() > 0 ? where.toString() : null,
+            args.isEmpty() ? null : args.toArray(new String[0]),
             null,
             null,
             "occurred_at DESC, id DESC")) {
@@ -347,14 +354,6 @@ public final class TransactionDao {
     }
   }
 
-  private static void putMerchantId(ContentValues values, Long merchantId) {
-    if (merchantId == null) {
-      values.putNull("merchant_id");
-    } else {
-      values.put("merchant_id", merchantId);
-    }
-  }
-
   private static void putTransferId(ContentValues values, Long transferId) {
     if (transferId == null) {
       values.putNull("transfer_id");
@@ -430,20 +429,6 @@ public final class TransactionDao {
     }
     appendInSearchClause(clauses, "wallet_id", search.walletIds());
     appendInSearchClause(clauses, "category_id", search.categoryIds());
-    appendInSearchClause(clauses, "merchant_id", search.merchantIds());
-    if (!search.tagIds().isEmpty()) {
-      String tagIds = idLiterals(search.tagIds());
-      if (tagIds.isEmpty()) {
-        appendCondition(selection, "(" + clauses + ")");
-        return;
-      }
-      appendSearchOr(clauses);
-      clauses
-          .append("EXISTS (SELECT 1 FROM transaction_tags tt WHERE tt.transaction_id = ")
-          .append("transactions.id AND tt.tag_id IN (")
-          .append(tagIds)
-          .append("))");
-    }
     appendCondition(selection, "(" + clauses + ")");
   }
 
@@ -506,11 +491,6 @@ public final class TransactionDao {
   }
 
   private static Transaction map(Cursor c) {
-    int merchantIndex = c.getColumnIndex("merchant_id");
-    Long merchantId = null;
-    if (merchantIndex >= 0 && !c.isNull(merchantIndex)) {
-      merchantId = c.getLong(merchantIndex);
-    }
     int transferIndex = c.getColumnIndex("transfer_id");
     Long transferId = null;
     if (transferIndex >= 0 && !c.isNull(transferIndex)) {
@@ -524,7 +504,6 @@ public final class TransactionDao {
         c.getLong(c.getColumnIndexOrThrow("category_id")),
         c.getLong(c.getColumnIndexOrThrow("occurred_at")),
         c.getString(c.getColumnIndexOrThrow("note")),
-        merchantId,
         transferId,
         c.getString(c.getColumnIndexOrThrow("cash_flow_activity")),
         c.getInt(c.getColumnIndexOrThrow("cash_flow_activity_overridden")) != 0,

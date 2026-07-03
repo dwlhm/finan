@@ -4,8 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.MotionEvent;
@@ -28,13 +26,7 @@ import com.dwlhm.finan.data.prefs.DefaultsStore;
 import com.dwlhm.finan.data.prefs.TransactionFormDraft;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
-import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.service.transaction.TransactionService;
-import android.app.Dialog;
-import android.widget.CheckBox;
-import android.widget.RadioGroup;
-import com.dwlhm.finan.ui.common.DialogActionsView;
-import com.dwlhm.finan.ui.common.LabeledEditTextView;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.common.EntitySearchBottomSheet;
@@ -54,8 +46,7 @@ import java.util.List;
 
 public final class CaptureFragment extends ScreenFragment {
 
-  private static final long WALLET_PRESELECTION_DELAY_MS = 250L;
-  private AppServices services;
+    private AppServices services;
   private TransactionService transactionService;
   private DefaultsStore defaultsStore;
 
@@ -74,8 +65,7 @@ public final class CaptureFragment extends ScreenFragment {
   private TextView walletText;
   private TextView dateText;
   private EditText noteInput;
-  private Button saveButton;
-  private TextView validationBanner;
+    private TextView validationBanner;
   private CaptureFormValidation formValidation;
   
 
@@ -90,8 +80,7 @@ public final class CaptureFragment extends ScreenFragment {
 
   private List<Wallet> wallets = new ArrayList<>();
   private List<Category> allCategoriesForType = new ArrayList<>();
-  private boolean amountAutoFocusExpired;
-  private boolean captureDraftRestored;
+    private boolean captureDraftRestored;
   private int refreshGeneration;
 
   @Override
@@ -126,7 +115,7 @@ public final class CaptureFragment extends ScreenFragment {
     walletText = view.findViewById(R.id.capture_wallet_text);
     dateText = view.findViewById(R.id.capture_date_text);
     noteInput = view.findViewById(R.id.capture_note);
-    saveButton = view.findViewById(R.id.capture_save);
+      Button saveButton = view.findViewById(R.id.capture_save);
 
     occurredAtMillis = System.currentTimeMillis();
     updateDateLabel();
@@ -249,15 +238,10 @@ public final class CaptureFragment extends ScreenFragment {
             : null;
             
     if (selected == null && !categoriesForType.isEmpty()) {
-      for (Category category : categoriesForType) {
-        String catName = category.getName().toLowerCase();
-        if (catName.contains("makan") || catName.contains("food") || catName.contains("eat")) {
-          selected = category;
-          break;
-        }
-      }
-      // Fallback to the first category if "Makan" is not found in the DB
-      if (selected == null) {
+      Category defaultCat = services.categoryDao.findDefault();
+      if (defaultCat != null && isCategoryInList(defaultCat, categoriesForType)) {
+        selected = defaultCat;
+      } else {
         selected = categoriesForType.get(0);
       }
     }
@@ -391,7 +375,7 @@ public final class CaptureFragment extends ScreenFragment {
 
       if (isSelected) {
           TypedValue outValue = new TypedValue();
-          requireContext().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+          requireActivity().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
           view.setBackgroundResource(outValue.resourceId);
       } else {
           view.setBackgroundResource(R.drawable.bg_unselected_field);
@@ -573,7 +557,7 @@ public final class CaptureFragment extends ScreenFragment {
           dismissUndoBar();
           pendingUndo =
               snapshotPendingSaveUndo(
-                  savedId, amountMinor, savedNote, null, new ArrayList<>());
+                  savedId, amountMinor, savedNote);
           clearSavedForm();
           showUndoBar();
           refreshCaptureData(false);
@@ -699,9 +683,7 @@ public final class CaptureFragment extends ScreenFragment {
   private PendingSaveUndo snapshotPendingSaveUndo(
       long transactionId,
       long amountMinor,
-      @Nullable String note,
-      @Nullable Long merchantId,
-      @NonNull List<Long> tagIds) {
+      @Nullable String note) {
     return new PendingSaveUndo(
         transactionId,
         false,
@@ -711,9 +693,7 @@ public final class CaptureFragment extends ScreenFragment {
         selectedCategory.getId(),
         null,
         occurredAtMillis,
-        note,
-        merchantId,
-        tagIds);
+        note);
   }
 
   private void restoreDraft(@NonNull PendingSaveUndo draft) {
@@ -726,9 +706,7 @@ public final class CaptureFragment extends ScreenFragment {
                 draft.walletId,
                 draft.categoryId,
                 draft.occurredAtMillis,
-                draft.note,
-                draft.merchantId,
-                draft.tagIds);
+                draft.note);
     applyFormDraft(formDraft);
     bindWallets();
   }
@@ -828,8 +806,6 @@ public final class CaptureFragment extends ScreenFragment {
       if (selectedCategory != null) {
         draft.setCategoryId(selectedCategory.getId());
       }
-      draft.setMerchantId(null);
-      draft.setTagIds(new ArrayList<>());
     }
     String note = noteInput.getText().toString().trim();
     if (!TextUtils.isEmpty(note)) {
@@ -859,8 +835,6 @@ public final class CaptureFragment extends ScreenFragment {
     @Nullable private final Long destinationWalletId;
     private final long occurredAtMillis;
     @Nullable private final String note;
-    @Nullable private final Long merchantId;
-    @NonNull private final List<Long> tagIds;
 
     private PendingSaveUndo(
         long recordId,
@@ -871,9 +845,7 @@ public final class CaptureFragment extends ScreenFragment {
         long categoryId,
         @Nullable Long destinationWalletId,
         long occurredAtMillis,
-        @Nullable String note,
-        @Nullable Long merchantId,
-        @NonNull List<Long> tagIds) {
+        @Nullable String note) {
       this.recordId = recordId;
       this.transfer = transfer;
       this.amountMinor = amountMinor;
@@ -883,8 +855,6 @@ public final class CaptureFragment extends ScreenFragment {
       this.destinationWalletId = destinationWalletId;
       this.occurredAtMillis = occurredAtMillis;
       this.note = note;
-      this.merchantId = merchantId;
-      this.tagIds = tagIds;
     }
 
     private static PendingSaveUndo transfer(
@@ -903,9 +873,7 @@ public final class CaptureFragment extends ScreenFragment {
           0L,
           destinationWalletId,
           occurredAtMillis,
-          note,
-          null,
-          new ArrayList<>());
+          note);
     }
   }
 
@@ -949,9 +917,7 @@ public final class CaptureFragment extends ScreenFragment {
       if (keypadView != null && keypadView.getVisibility() == View.VISIBLE) {
         Rect keypadBounds = new Rect();
         keypadView.getGlobalVisibleRect(keypadBounds);
-        if (keypadBounds.contains(rawX, rawY)) {
-          return false;
-        }
+          return !keypadBounds.contains(rawX, rawY);
       }
     }
 
@@ -959,8 +925,7 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void expireAmountAutoFocus() {
-    amountAutoFocusExpired = true;
-    amountInput.clearFocus();
+      amountInput.clearFocus();
     InputMethodManager imm =
         (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
     if (imm != null) {

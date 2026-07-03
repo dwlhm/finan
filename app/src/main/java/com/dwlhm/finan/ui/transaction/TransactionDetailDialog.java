@@ -23,18 +23,13 @@ import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
-import com.dwlhm.finan.data.entity.Merchant;
-import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.data.prefs.TransactionFormDraft;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.CategorySearchDialog;
-import com.dwlhm.finan.ui.common.EntityLookup;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
-import com.dwlhm.finan.ui.common.MerchantSelectionController;
-import com.dwlhm.finan.ui.common.TagSelectionController;
 import com.dwlhm.finan.ui.common.TransactionOccurredAtPicker;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
 import com.dwlhm.finan.util.money.MoneyFormatter;
@@ -71,8 +66,6 @@ public final class TransactionDetailDialog extends Dialog {
   private TextView categoryView;
   private TextView dateView;
   private TextView noteView;
-  private TextView merchantView;
-  private TextView tagsView;
   private android.view.View detailPanel;
   private android.view.View editPanel;
   private EditText amountInput;
@@ -83,8 +76,6 @@ public final class TransactionDetailDialog extends Dialog {
   private Button secondaryButton;
   private Button primaryButton;
   private TransactionOccurredAtPicker occurredAtPicker;
-  private TagSelectionController tagSelection;
-  private MerchantSelectionController merchantSelection;
 
   private List<Wallet> wallets = new ArrayList<>();
   private List<Category> allCategoriesForType = new ArrayList<>();
@@ -150,8 +141,6 @@ public final class TransactionDetailDialog extends Dialog {
     categoryView = findViewById(R.id.transaction_detail_category);
     dateView = findViewById(R.id.transaction_detail_date);
     noteView = findViewById(R.id.transaction_detail_note);
-    merchantView = findViewById(R.id.transaction_detail_merchant);
-    tagsView = findViewById(R.id.transaction_detail_tags);
     LabeledEditTextView amountField = findViewById(R.id.transaction_edit_amount_field);
     amountInput = amountField.getEditText();
     typeGroup = findViewById(R.id.transaction_edit_type_group);
@@ -166,20 +155,6 @@ public final class TransactionDetailDialog extends Dialog {
             findViewById(R.id.transaction_occurred_date),
             findViewById(R.id.transaction_occurred_time),
             System.currentTimeMillis());
-    tagSelection =
-        new TagSelectionController(
-            getContext(),
-            services.tagDao,
-            services.dbWorker,
-            findViewById(R.id.transaction_tag_chips),
-            findViewById(R.id.transaction_tag_add));
-    merchantSelection =
-        new MerchantSelectionController(
-            getContext(),
-            services.merchantDao,
-            services.dbWorker,
-            findViewById(R.id.transaction_merchant_pick),
-            findViewById(R.id.transaction_merchant_clear));
   }
 
   private void loadDetail() {
@@ -192,16 +167,7 @@ public final class TransactionDetailDialog extends Dialog {
           }
           Category category = services.categoryDao.findById(refreshed.getCategoryId());
           Wallet wallet = services.walletDao.findById(refreshed.getWalletId());
-          Merchant merchant =
-              refreshed.getMerchantId() == null
-                  ? null
-                  : services.merchantDao.findById(refreshed.getMerchantId());
-          Map<Long, Tag> tagsById =
-              EntityLookup.tagLookupForTransactions(
-                  services.tagDao.findAllOrderByUsage(),
-                  java.util.Collections.singletonList(refreshed),
-                  services.tagDao::findById);
-          return new DetailData(refreshed, category, wallet, merchant, tagsById);
+          return new DetailData(refreshed, category, wallet);
         },
         data -> {
           if (generation != loadGeneration) {
@@ -216,16 +182,14 @@ public final class TransactionDetailDialog extends Dialog {
           if (editing) {
             bindEdit();
           } else {
-            bindDetail(data.category, data.wallet, data.merchant, data.tagsById);
+            bindDetail(data.category, data.wallet);
           }
         });
   }
 
   private void bindDetail(
       @Nullable Category category,
-      @Nullable Wallet wallet,
-      @Nullable Merchant merchant,
-      @NonNull Map<Long, Tag> tagsById) {
+      @Nullable Wallet wallet) {
     titleView.setText(R.string.transaction_detail_title);
     detailPanel.setVisibility(android.view.View.VISIBLE);
     editPanel.setVisibility(android.view.View.GONE);
@@ -250,21 +214,6 @@ public final class TransactionDetailDialog extends Dialog {
     noteView.setTextColor(
         ContextCompat.getColor(
             getContext(), hasNote ? R.color.finan_text_primary : R.color.finan_text_hint));
-
-    boolean hasMerchant = merchant != null;
-    merchantView.setText(
-        hasMerchant ? merchant.getName() : getContext().getString(R.string.transaction_merchant_empty));
-    merchantView.setTextColor(
-        ContextCompat.getColor(
-            getContext(), hasMerchant ? R.color.finan_text_primary : R.color.finan_text_hint));
-
-    String tagLine = TransactionRowLabels.formatTagLine(transaction, tagsById);
-    boolean hasTags = !TextUtils.isEmpty(tagLine);
-    tagsView.setText(
-        hasTags ? tagLine : getContext().getString(R.string.transaction_tags_empty));
-    tagsView.setTextColor(
-        ContextCompat.getColor(
-            getContext(), hasTags ? R.color.finan_text_primary : R.color.finan_text_hint));
 
     secondaryButton.setText(android.R.string.cancel);
     secondaryButton.setOnClickListener(v -> dismiss());
@@ -380,8 +329,6 @@ public final class TransactionDetailDialog extends Dialog {
     bindWalletSpinner();
     updateCategoryButton();
     occurredAtPicker.setOccurredAtMillis(transaction.getOccurredAt());
-    merchantSelection.setMerchantId(transaction.getMerchantId());
-    tagSelection.setSelectedTagIds(transaction.getTagIds());
 
     tryRestoreEditDraft();
 
@@ -530,8 +477,6 @@ public final class TransactionDetailDialog extends Dialog {
             selectedCategory.getId(),
             occurredAtPicker.getOccurredAtMillis(),
             TextUtils.isEmpty(note) ? null : note);
-    updated.setMerchantId(merchantSelection.getMerchantId());
-    updated.setTagIds(tagSelection.getSelectedTagIds());
     services.dbWorker.compute(
         () -> {
           try {
@@ -596,8 +541,6 @@ public final class TransactionDetailDialog extends Dialog {
       amountInput.setSelection(formatted.length());
     }
     noteInput.setText(draft.getNote() != null ? draft.getNote() : "");
-    merchantSelection.setMerchantId(draft.getMerchantId());
-    tagSelection.setSelectedTagIds(draft.getTagIds());
     occurredAtPicker.setOccurredAtMillis(draft.getOccurredAtMillis());
 
     Long walletId = draft.getWalletId();
@@ -664,8 +607,6 @@ public final class TransactionDetailDialog extends Dialog {
     if (!TextUtils.isEmpty(note)) {
       draft.setNote(note);
     }
-    draft.setMerchantId(merchantSelection.getMerchantId());
-    draft.setTagIds(tagSelection.getSelectedTagIds());
     try {
       long amountMinor = MoneyParser.parse(amountInput.getText().toString());
       if (amountMinor > 0L) {
@@ -681,20 +622,14 @@ public final class TransactionDetailDialog extends Dialog {
     private final Transaction transaction;
     private final Category category;
     private final Wallet wallet;
-    private final Merchant merchant;
-    private final Map<Long, Tag> tagsById;
 
     private DetailData(
         Transaction transaction,
         Category category,
-        Wallet wallet,
-        Merchant merchant,
-        Map<Long, Tag> tagsById) {
+        Wallet wallet) {
       this.transaction = transaction;
       this.category = category;
       this.wallet = wallet;
-      this.merchant = merchant;
-      this.tagsById = tagsById;
     }
   }
 

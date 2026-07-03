@@ -15,8 +15,6 @@ import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
-import com.dwlhm.finan.data.entity.Merchant;
-import com.dwlhm.finan.data.entity.Tag;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.util.money.MoneyFormatter;
@@ -52,8 +50,6 @@ public class TransactionListAdapter extends BaseAdapter {
   private final LayoutInflater inflater;
   private Map<Long, Category> categoriesById = Collections.emptyMap();
   private Map<Long, Wallet> walletsById = Collections.emptyMap();
-  private Map<Long, Tag> tagsById = Collections.emptyMap();
-  private Map<Long, Merchant> merchantsById = Collections.emptyMap();
   private final List<Transaction> items = new ArrayList<>();
   private final SimpleDateFormat dateFormat =
       new SimpleDateFormat("d MMM yyyy, HH:mm", Locale.forLanguageTag("id-ID"));
@@ -67,13 +63,9 @@ public class TransactionListAdapter extends BaseAdapter {
 
   public void setEntityLookups(
       Map<Long, Category> categoriesById,
-      Map<Long, Wallet> walletsById,
-      Map<Long, Tag> tagsById,
-      Map<Long, Merchant> merchantsById) {
+      Map<Long, Wallet> walletsById) {
     this.categoriesById = categoriesById != null ? categoriesById : Collections.emptyMap();
     this.walletsById = walletsById != null ? walletsById : Collections.emptyMap();
-    this.tagsById = tagsById != null ? tagsById : Collections.emptyMap();
-    this.merchantsById = merchantsById != null ? merchantsById : Collections.emptyMap();
     notifyDataSetChanged();
   }
 
@@ -122,10 +114,6 @@ public class TransactionListAdapter extends BaseAdapter {
     Transaction transaction = getItem(position);
     Category category = categoriesById.get(transaction.getCategoryId());
     Wallet wallet = walletsById.get(transaction.getWalletId());
-    Merchant merchant =
-        transaction.getMerchantId() == null
-            ? null
-            : merchantsById.get(transaction.getMerchantId());
 
     holder.category.setText(TransactionRowLabels.title(context, transaction, category));
     if (category != null && category.getIcon() != null && !category.getIcon().trim().isEmpty()) {
@@ -154,22 +142,17 @@ public class TransactionListAdapter extends BaseAdapter {
     String when = dateFormat.format(new Date(transaction.getOccurredAt()));
     
     StringBuilder subtitle = new StringBuilder();
-    if (merchant != null) {
-      subtitle.append(merchant.getName());
-      if (!TextUtils.isEmpty(walletName)) subtitle.append(" · ");
-    }
     subtitle.append(walletName);
     
     holder.wallet.setText(subtitle.toString());
     holder.wallet.setVisibility(TextUtils.isEmpty(subtitle.toString()) ? View.GONE : View.VISIBLE);
     holder.meta.setText(when);
 
-    String tagLine = TransactionRowLabels.formatTagLine(transaction, tagsById);
-    String secondary = TransactionRowLabels.formatSecondaryLine(transaction, tagLine);
-    boolean hasSecondary = !TextUtils.isEmpty(secondary);
-    holder.note.setVisibility(hasSecondary ? View.VISIBLE : View.GONE);
-    if (hasSecondary) {
-      holder.note.setText(secondary);
+    String note = transaction.getNote();
+    boolean hasNote = !TextUtils.isEmpty(note) && !TextUtils.isEmpty(note.trim());
+    holder.note.setVisibility(hasNote ? View.VISIBLE : View.GONE);
+    if (hasNote) {
+      holder.note.setText(note.trim());
     }
     
     boolean showHeader = false;

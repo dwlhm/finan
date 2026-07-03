@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
@@ -22,32 +21,32 @@
         android:id="@+id/amount_shortcut_move_up"
         android:layout_width="34dp"
         android:layout_height="34dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/capture_amount_shortcut_move_up"
         android:padding="5dp"
         android:scaleType="center"
         android:src="@drawable/ic_arrow_up"
-        app:tint="@color/finan_primary" />
+        android:tint="@color/finan_primary" />
 
     <ImageButton
         android:id="@+id/amount_shortcut_move_down"
         android:layout_width="34dp"
         android:layout_height="34dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/capture_amount_shortcut_move_down"
         android:padding="5dp"
         android:scaleType="center"
         android:src="@drawable/ic_arrow_down"
-        app:tint="@color/finan_primary" />
+        android:tint="@color/finan_primary" />
 
     <ImageButton
         android:id="@+id/amount_shortcut_delete"
         android:layout_width="34dp"
         android:layout_height="34dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/capture_amount_shortcut_delete"
         android:padding="5dp"
         android:scaleType="center"
         android:src="@drawable/ic_delete"
-        app:tint="@color/finan_expense" />
+        android:tint="@color/finan_expense" />
 </LinearLayout>

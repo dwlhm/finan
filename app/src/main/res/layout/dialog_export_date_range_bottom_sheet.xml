@@ -18,36 +18,56 @@
         android:background="@drawable/bg_bottom_sheet_handle" />
 
     <TextView
-        android:id="@+id/date_time_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/transaction_datetime_label"
+        android:text="@string/export_date_range_title"
         android:textAppearance="@style/Finan.Text.Title" />
 
     <TextView
-        android:id="@+id/date_time_preview"
+        style="@style/Finan.Text.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/export_date_start" />
+
+    <TextView
+        android:id="@+id/export_date_start_value"
         style="@style/Finan.Control.OccurredAtValue"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="4dp"
         android:drawableStart="@drawable/ic_schedule" />
 
-    <com.dwlhm.finan.ui.common.CustomDatePickerView
-        android:id="@+id/date_picker_custom"
+    <TextView
+        style="@style/Finan.Text.SectionLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="12dp"
+        android:text="@string/export_date_end" />
 
-    <com.dwlhm.finan.ui.common.CustomTimePickerView
-        android:id="@+id/time_picker_custom"
+    <TextView
+        android:id="@+id/export_date_end_value"
+        style="@style/Finan.Control.OccurredAtValue"
         android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:drawableStart="@drawable/ic_schedule" />
+
+    <TextView
+        android:id="@+id/export_date_reset"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="8dp"
+        android:padding="4dp"
+        android:text="@string/export_date_reset"
+        android:textColor="@color/finan_primary"
+        android:textSize="14sp" />
 
     <com.dwlhm.finan.ui.common.DialogActionsView
-        android:id="@+id/date_time_actions"
+        android:id="@+id/export_date_actions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        app:primaryText="@string/capture_save" />
+        android:layout_marginTop="16dp"
+        app:primaryText="@string/export_date_apply"
+        app:secondaryText="@string/export_date_cancel" />
 </LinearLayout>

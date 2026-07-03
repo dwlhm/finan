@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -39,7 +38,7 @@
                     android:background="@drawable/bg_toggle_active"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
                     android:text="Rp"
                     android:textColor="#FFFFFF"
@@ -52,7 +51,7 @@
                     android:layout_height="match_parent"
                     android:clickable="true"
                     android:focusable="true"
-                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
                     android:text="***"
                     android:textColor="#4A9E7F"
@@ -227,7 +226,7 @@
                 android:text="@string/settings_manage_wallets" />
         </LinearLayout>
 
-        <!-- Export CSV Card -->
+        <!-- Data Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -239,7 +238,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Data &amp; Ekspor"
+                android:text="Data"
                 android:textAppearance="@style/Finan.Text.SectionLabel"
                 android:textColor="@color/finan_primary"
                 android:textStyle="bold" />
@@ -251,6 +250,17 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:text="@string/settings_export" />
+
+            <Button
+                android:id="@+id/settings_import"
+                style="@style/Finan.Button.Nav"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_chip"
+                android:textColor="@color/finan_text_primary"
+                android:padding="12dp"
+                android:text="@string/settings_import" />
 
             <ProgressBar
                 android:id="@+id/settings_export_progress"

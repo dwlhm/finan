@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/bottom_nav"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -13,43 +12,43 @@
     android:paddingEnd="8dp"
     android:paddingBottom="6dp">
 
-    <androidx.appcompat.widget.AppCompatTextView
+    <TextView
         android:id="@+id/nav_capture"
         style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
         android:layout_height="52dp"
         android:layout_weight="1"
         android:text="@string/nav_capture"
-        app:drawableTint="@color/bottom_nav_icon"
-        app:drawableTopCompat="@drawable/ic_nav_capture" />
+        android:drawableTint="@color/bottom_nav_icon"
+        android:drawableTop="@drawable/ic_nav_capture" />
 
-    <androidx.appcompat.widget.AppCompatTextView
+    <TextView
         android:id="@+id/nav_history"
         style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
         android:layout_height="52dp"
         android:layout_weight="1"
         android:text="@string/nav_history"
-        app:drawableTint="@color/bottom_nav_icon"
-        app:drawableTopCompat="@drawable/ic_nav_history" />
+        android:drawableTint="@color/bottom_nav_icon"
+        android:drawableTop="@drawable/ic_nav_history" />
 
-    <androidx.appcompat.widget.AppCompatTextView
+    <TextView
         android:id="@+id/nav_summary"
         style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
         android:layout_height="52dp"
         android:layout_weight="1"
         android:text="@string/nav_summary"
-        app:drawableTint="@color/bottom_nav_icon"
-        app:drawableTopCompat="@drawable/ic_nav_summary" />
+        android:drawableTint="@color/bottom_nav_icon"
+        android:drawableTop="@drawable/ic_nav_summary" />
 
-    <androidx.appcompat.widget.AppCompatTextView
+    <TextView
         android:id="@+id/nav_settings"
         style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
         android:layout_height="52dp"
         android:layout_weight="1"
         android:text="@string/nav_settings"
-        app:drawableTint="@color/bottom_nav_icon"
-        app:drawableTopCompat="@drawable/ic_nav_settings" />
+        android:drawableTint="@color/bottom_nav_icon"
+        android:drawableTop="@drawable/ic_nav_settings" />
 </LinearLayout>

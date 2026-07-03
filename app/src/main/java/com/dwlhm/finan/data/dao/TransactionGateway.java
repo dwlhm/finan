@@ -35,5 +35,9 @@ public interface TransactionGateway {
 
     void forEachTransaction(Consumer<Transaction> consumer);
 
+    default void forEachTransaction(Long startDate, Long endDate, Consumer<Transaction> consumer) {
+        forEachTransaction(consumer);
+    }
+
     List<Transaction> findAll();
 }

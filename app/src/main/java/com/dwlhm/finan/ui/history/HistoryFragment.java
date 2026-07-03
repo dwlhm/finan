@@ -311,9 +311,7 @@ public final class HistoryFragment extends ScreenFragment {
           activeQuery = data.query;
           adapter.setEntityLookups(
               categoriesById,
-              walletsById,
-              data.sources.tagsById,
-              data.sources.merchantsById);
+              walletsById);
           renderSummary(data.totals);
           historyList.reload();
           updateEmptyState(data.totals.getCount() == 0);
@@ -324,15 +322,10 @@ public final class HistoryFragment extends ScreenFragment {
   private HistorySources loadHistorySources() {
     List<Wallet> wallets = services.walletDao.findAll();
     List<Category> categories = services.categoryDao.findAllOrdered();
-    List<com.dwlhm.finan.data.entity.Tag> tags = services.tagDao.findAllOrderByUsage();
-    List<com.dwlhm.finan.data.entity.Merchant> merchants =
-        services.merchantDao.findAllOrderByUsage();
     return new HistorySources(
         EntityLookup.indexWallets(wallets),
         EntityLookup.indexCategories(categories),
-        EntityLookup.indexTags(tags),
-        EntityLookup.indexMerchants(merchants),
-        new TransactionSearchResolver(wallets, categories, merchants, tags));
+        new TransactionSearchResolver(wallets, categories));
   }
 
   private PageResult<Transaction, HistoryPageCursor> loadHistoryPage(
@@ -899,20 +892,14 @@ public final class HistoryFragment extends ScreenFragment {
   private static final class HistorySources {
     private final Map<Long, Wallet> walletsById;
     private final Map<Long, Category> categoriesById;
-    private final Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById;
-    private final Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById;
     private final TransactionSearchResolver searchResolver;
 
     private HistorySources(
         Map<Long, Wallet> walletsById,
         Map<Long, Category> categoriesById,
-        Map<Long, com.dwlhm.finan.data.entity.Tag> tagsById,
-        Map<Long, com.dwlhm.finan.data.entity.Merchant> merchantsById,
         TransactionSearchResolver searchResolver) {
       this.walletsById = walletsById;
       this.categoriesById = categoriesById;
-      this.tagsById = tagsById;
-      this.merchantsById = merchantsById;
       this.searchResolver = searchResolver;
     }
   }

@@ -6,6 +6,9 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.dwlhm.finan.domain.model.Transfer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class TransferDao {
 
   private final SQLiteDatabase db;
@@ -82,6 +85,16 @@ public final class TransferDao {
       values.put("note", note);
     }
     return values;
+  }
+
+  public List<Transfer> findAll() {
+    List<Transfer> transfers = new ArrayList<>();
+    try (Cursor c = db.query("transfers", null, null, null, null, null, "id ASC")) {
+      while (c.moveToNext()) {
+        transfers.add(map(c));
+      }
+    }
+    return transfers;
   }
 
   private static Transfer map(Cursor c) {

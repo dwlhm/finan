@@ -24,7 +24,13 @@ public class ExportServiceTest {
     public void csv_includes_format_version_header() {
         List<Transaction> transactions = List.of(sampleTransaction());
         String csv = exportService.toCsv(transactions);
-        assertTrue(csv.startsWith("FINAN_CSV_VERSION,3"));
+        assertTrue("Version header must be present", csv.startsWith("FINAN_CSV_VERSION,4"));
+    }
+
+    @Test
+    public void csv_includes_section_headers() {
+        String csv = exportService.toCsv(List.of());
+        assertTrue(csv.contains("TRANSACTIONS"));
     }
 
     @Test
@@ -32,14 +38,14 @@ public class ExportServiceTest {
         String csv = exportService.toCsv(List.of());
         assertTrue(
             csv.contains(
-                "id,amount_minor,type,wallet_id,category_id,occurred_at,note,merchant_id,tag_ids,transfer_id"));
+                "id,amount_minor,type,wallet_id,category_id,occurred_at,note,transfer_id,cash_flow_activity,cash_flow_activity_overridden"));
     }
 
     @Test
     public void csv_includes_transaction_row() {
         Transaction t = sampleTransaction();
         String csv = exportService.toCsv(List.of(t));
-        assertTrue(csv.contains("42,25000,EXPENSE,1,2,1700000000000,lunch,7,10;11"));
+        assertTrue(csv.contains("42,25000,EXPENSE,1,2,1700000000000,lunch,,UNCLASSIFIED,0"));
     }
 
     @Test
@@ -55,17 +61,13 @@ public class ExportServiceTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         exportService.exportTo(out, singleTransactionGateway(t));
         String csv = out.toString(StandardCharsets.UTF_8);
-        assertTrue(csv.startsWith("FINAN_CSV_VERSION,3"));
-        assertTrue(csv.contains("42,25000,EXPENSE,1,2,1700000000000,lunch,7,10;11"));
+        assertTrue(csv.startsWith("FINAN_CSV_VERSION,4"));
+        assertTrue(csv.contains("42,25000,EXPENSE,1,2,1700000000000,lunch,,"));
     }
 
     private static Transaction sampleTransaction() {
-        Transaction transaction =
-            new Transaction(
-                42L, 25_000L, TransactionType.EXPENSE, 1L, 2L, 1_700_000_000_000L, "lunch");
-        transaction.setMerchantId(7L);
-        transaction.setTagIds(List.of(10L, 11L));
-        return transaction;
+        return new Transaction(
+            42L, 25_000L, TransactionType.EXPENSE, 1L, 2L, 1_700_000_000_000L, "lunch");
     }
 
     private static TransactionGateway singleTransactionGateway(Transaction transaction) {

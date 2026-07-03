@@ -170,6 +170,24 @@ public final class WalletDao {
     return wallets;
   }
 
+  public Wallet findByName(String name) {
+    try (Cursor c =
+        db.query(
+            "wallets",
+            null,
+            "name = ?",
+            new String[]{name},
+            null,
+            null,
+            null,
+            "1")) {
+      if (!c.moveToFirst()) {
+        return null;
+      }
+      return map(c);
+    }
+  }
+
   public List<Wallet> findTopUsed(int limit) {
     List<Wallet> wallets = new ArrayList<>();
     String sql =

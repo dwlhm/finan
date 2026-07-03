@@ -70,7 +70,7 @@ public class CategoryDaoTest {
 
     @Test
     public void insertAndFindById_roundTrip() {
-        long id = dao.insert("Hobi", "EXPENSE", 99, 0, null);
+        long id = dao.insert("Hobi", null, "EXPENSE", 99, 0, null);
         Category category = dao.findById(id);
         assertEquals("Hobi", category.getName());
         assertEquals("EXPENSE", category.getTypeFilter());

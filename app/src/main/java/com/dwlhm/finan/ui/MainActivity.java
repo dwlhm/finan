@@ -6,8 +6,8 @@ import android.view.View;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.Lifecycle;
@@ -21,7 +21,7 @@ import com.dwlhm.finan.ui.settings.SettingsFragment;
 import com.dwlhm.finan.ui.summary.SummaryFragment;
 import com.dwlhm.finan.ui.wallet.WalletListFragment;
 
-public final class MainActivity extends AppCompatActivity implements ScreenNavigator {
+public final class MainActivity extends FragmentActivity implements ScreenNavigator {
 
   private static final String KEY_SELECTED_SCREEN = "selected_screen";
   private static final String BACK_STACK_CATEGORY = "category";
