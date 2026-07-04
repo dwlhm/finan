@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.summary;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -11,6 +12,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -25,6 +27,9 @@ import com.dwlhm.finan.domain.model.CashFlowActivityTotal;
 import com.dwlhm.finan.domain.model.CashFlowReport;
 import com.dwlhm.finan.domain.model.CashFlowReportResult;
 import com.dwlhm.finan.domain.model.CategoryTotal;
+import com.dwlhm.finan.domain.model.HistoryQuery;
+import com.dwlhm.finan.domain.model.Transaction;
+import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.WalletBalance;
 import com.dwlhm.finan.ui.common.AppServices;
@@ -32,8 +37,8 @@ import com.dwlhm.finan.ui.common.EntityLookup;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
 import com.dwlhm.finan.ui.common.ServicesProvider;
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
-import com.dwlhm.finan.ui.summary.SummaryFilterBottomSheet;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
@@ -399,26 +404,27 @@ public final class SummaryFragment extends ScreenFragment {
         continue;
       }
       reconciliationCard.setVisibility(View.VISIBLE);
-      addReconciliationLine("Saldo awal", report.getOpeningBalanceMinor(), false, false, null);
+      long base = report.getIncomeMinor() > 0 ? report.getIncomeMinor() : (report.getExpenseMinor() > 0 ? report.getExpenseMinor() : 1);
+      addReconciliationLine("Saldo awal", report.getOpeningBalanceMinor(), false, false, null, base);
       addReconciliationLine("Pemasukan", report.getIncomeMinor(), true, false, v -> {
         if (requireActivity() instanceof ScreenNavigator) {
           long start = report.getStartDate().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
           long end = report.getEndDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
           ((ScreenNavigator) requireActivity()).openHistoryWithFilter("INCOME", start, end, report.getWalletId(), null);
         }
-      });
+      }, base);
       addReconciliationLine("Pengeluaran", report.getExpenseMinor(), false, false, v -> {
         if (requireActivity() instanceof ScreenNavigator) {
           long start = report.getStartDate().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
           long end = report.getEndDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
           ((ScreenNavigator) requireActivity()).openHistoryWithFilter("EXPENSE", start, end, report.getWalletId(), null);
         }
-      });
+      }, base);
       if (report.getNetTransferMinor() != 0) {
-        addReconciliationLine("Transfer bersih", report.getNetTransferMinor(), true, false, null);
+        addReconciliationLine("Transfer bersih", report.getNetTransferMinor(), true, false, null, base);
       }
       if (report.getNetAdjustmentMinor() != 0) {
-        addReconciliationLine("Koreksi saldo", report.getNetAdjustmentMinor(), true, true, null);
+        addReconciliationLine("Koreksi saldo", report.getNetAdjustmentMinor(), true, true, null, base);
       }
 
       View divider = new View(requireContext());
@@ -427,7 +433,7 @@ public final class SummaryFragment extends ScreenFragment {
           LinearLayout.LayoutParams.MATCH_PARENT, UiComponentStyles.dp(requireContext(), 1)));
       reconciliationLines.addView(divider);
 
-      addReconciliationLine("Saldo akhir", report.getClosingBalanceMinor(), false, false, null);
+      addReconciliationLine("Saldo akhir", report.getClosingBalanceMinor(), false, false, null, base);
 
       if (!reportResult.isSingleCurrency()) {
         TextView currencyLabel = new TextView(requireContext());
@@ -440,7 +446,7 @@ public final class SummaryFragment extends ScreenFragment {
     }
   }
 
-  private void addReconciliationLine(String label, long amount, boolean signed, boolean isAdjustment, View.OnClickListener clickListener) {
+  private void addReconciliationLine(String label, long amount, boolean signed, boolean isAdjustment, View.OnClickListener clickListener, long base) {
     Context context = requireContext();
     LinearLayout row = new LinearLayout(context);
     row.setOrientation(LinearLayout.HORIZONTAL);
@@ -462,7 +468,11 @@ public final class SummaryFragment extends ScreenFragment {
     row.addView(labelView);
 
     TextView amountView = new TextView(context);
-    amountView.setText(signed && amount >= 0 ? ("+" + format(amount)) : format(amount));
+    if (showPercentageMode) {
+      amountView.setText(fmtPct(amount, base, signed));
+    } else {
+      amountView.setText(signed && amount >= 0 ? ("+" + format(amount)) : format(amount));
+    }
     amountView.setPadding(UiComponentStyles.dp(context, 8), 0, 0, 0);
     amountView.setTextColor(ContextCompat.getColor(context, amount >= 0 ? R.color.finan_primary : R.color.finan_expense));
     amountView.setTextSize(14f);
@@ -493,8 +503,15 @@ public final class SummaryFragment extends ScreenFragment {
     chartWeeksContainer.removeAllViews();
 
     int totalDays = 0;
+    long maxWeekTotal = 0;
+    long totalAmount = 0;
     for (CashFlowReport report : reportResult.getAllReports()) {
       totalDays += report.getWeekSummaries().size() * 7;
+      for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
+        long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
+        totalAmount += weekTotal;
+        if (weekTotal > maxWeekTotal) maxWeekTotal = weekTotal;
+      }
     }
 
     if (totalDays == 0) {
@@ -508,14 +525,15 @@ public final class SummaryFragment extends ScreenFragment {
       for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
         long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
         if (weekTotal > 0) {
-          chartWeeksContainer.addView(createWeekRow(week));
+          chartWeeksContainer.addView(createWeekRow(week, maxWeekTotal, totalAmount));
         }
       }
     }
   }
 
-  private View createWeekRow(CashFlowReport.WeekSummary week) {
+  private View createWeekRow(CashFlowReport.WeekSummary week, long maxWeekTotal, long totalAmount) {
     Context context = requireContext();
+    long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
     LinearLayout row = new LinearLayout(context);
     row.setOrientation(LinearLayout.HORIZONTAL);
     row.setGravity(Gravity.CENTER_VERTICAL);
@@ -571,11 +589,237 @@ public final class SummaryFragment extends ScreenFragment {
     }
 
     row.addView(bar);
+
+    row.setClickable(true);
+    row.setFocusable(true);
+    row.setForeground(ContextCompat.getDrawable(context, UiComponentStyles.selectableItemBackground(context)));
+    row.setOnClickListener(v -> showWeekDetailDialog(week, totalAmount));
+
+    row.post(() -> {
+      int availableWidth = row.getWidth() - UiComponentStyles.dp(context, 72) - UiComponentStyles.dp(context, 8);
+      if (availableWidth > 0 && maxWeekTotal > 0) {
+        int barWidth = (int) (availableWidth * (float) weekTotal / maxWeekTotal);
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) bar.getLayoutParams();
+        lp.width = Math.max(barWidth, barHeight);
+        lp.weight = 0;
+        bar.setLayoutParams(lp);
+      }
+    });
+
     return row;
   }
 
   private String formatShortDate(LocalDate date) {
     return date.format(java.time.format.DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("id-ID")));
+  }
+
+  private void showWeekDetailDialog(CashFlowReport.WeekSummary week, long totalAmount) {
+    Context context = requireContext();
+    Dialog dialog = new Dialog(context, R.style.Finan_BottomSheetDialog);
+
+    LinearLayout root = new LinearLayout(context);
+    root.setOrientation(LinearLayout.VERTICAL);
+    root.setBackgroundResource(R.drawable.bg_bottom_sheet);
+    root.setPadding(UiComponentStyles.dp(context, 20), UiComponentStyles.dp(context, 16),
+        UiComponentStyles.dp(context, 20), UiComponentStyles.dp(context, 16));
+
+    long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
+
+    TextView titleView = new TextView(context);
+    titleView.setText(formatShortDate(week.getStartDate()) + " - " + formatShortDate(week.getEndDate()));
+    titleView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
+    titleView.setTextSize(16f);
+    titleView.setTypeface(titleView.getTypeface(), Typeface.BOLD);
+    root.addView(titleView);
+
+    TextView totalView = new TextView(context);
+    totalView.setTextColor(ContextCompat.getColor(context, weekTotal >= 0 ? R.color.finan_primary : R.color.finan_expense));
+    totalView.setTextSize(14f);
+    totalView.setTypeface(totalView.getTypeface(), Typeface.BOLD);
+    if (showPercentageMode) {
+      totalView.setText(fmtPct(weekTotal, totalAmount, false));
+    } else {
+      totalView.setText(format(weekTotal));
+    }
+    root.addView(totalView);
+
+    View divider = new View(context);
+    divider.setBackgroundColor(ContextCompat.getColor(context, R.color.finan_divider));
+    LinearLayout.LayoutParams divLp = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, UiComponentStyles.dp(context, 1));
+    divLp.topMargin = UiComponentStyles.dp(context, 12);
+    divLp.bottomMargin = UiComponentStyles.dp(context, 8);
+    divider.setLayoutParams(divLp);
+    root.addView(divider);
+
+    ScrollView scrollView = new ScrollView(context);
+    LinearLayout content = new LinearLayout(context);
+    content.setOrientation(LinearLayout.VERTICAL);
+
+    TextView loadingView = new TextView(context);
+    loadingView.setText("Memuat transaksi...");
+    loadingView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+    loadingView.setTextSize(13f);
+    loadingView.setPadding(0, UiComponentStyles.dp(context, 12), 0, UiComponentStyles.dp(context, 12));
+    content.addView(loadingView);
+
+    scrollView.addView(content);
+    root.addView(scrollView);
+
+    dialog.setContentView(root);
+    dialog.setCancelable(true);
+    BottomSheetHelper.show(dialog);
+
+    long startMillis = week.getStartDate().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+    long endMillis = week.getEndDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+    TransactionType filterType = showWeeklyChartIncome ? TransactionType.INCOME : TransactionType.EXPENSE;
+
+    services.dbWorker.compute(
+        () -> {
+          HistoryQuery query = new HistoryQuery(null, null, filterType, startMillis, endMillis, true, null);
+          return services.transactionGateway.findHistoryPage(query, null, 10000).getItems();
+        },
+        transactions -> {
+          if (!dialog.isShowing()) return;
+
+          content.removeAllViews();
+
+          java.text.SimpleDateFormat dayHeaderFmt = new java.text.SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("id-ID"));
+          java.text.SimpleDateFormat timeFmt = new java.text.SimpleDateFormat("HH:mm", Locale.forLanguageTag("id-ID"));
+          String[] dayNames = {"Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"};
+
+          Map<Long, List<Transaction>> byDay = new java.util.LinkedHashMap<>();
+          for (Transaction tx : transactions) {
+            long dayKey = tx.getOccurredAt() / 86400000;
+            byDay.computeIfAbsent(dayKey, k -> new ArrayList<>()).add(tx);
+          }
+
+          for (CashFlowReport.DailyTotal day : week.getDays()) {
+            long dayKey = day.getDateMillis() / 86400000;
+            List<Transaction> dayTxs = byDay.get(dayKey);
+            if (dayTxs == null || dayTxs.isEmpty()) continue;
+
+            long dayVal = showWeeklyChartIncome ? day.getIncomeMinor() : day.getExpenseMinor();
+
+            LinearLayout dayHeader = new LinearLayout(context);
+            dayHeader.setOrientation(LinearLayout.HORIZONTAL);
+            dayHeader.setGravity(Gravity.CENTER_VERTICAL);
+            dayHeader.setPadding(0, UiComponentStyles.dp(context, 8), 0, UiComponentStyles.dp(context, 4));
+
+            View dot = new View(context);
+            int dotSize = UiComponentStyles.dp(context, 8);
+            GradientDrawable dotShape = new GradientDrawable();
+            dotShape.setShape(GradientDrawable.OVAL);
+            dotShape.setColor(DAY_COLORS[dayOfWeekIndex(day.getDateMillis())]);
+            dot.setBackground(dotShape);
+            LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dotSize, dotSize);
+            dotLp.rightMargin = UiComponentStyles.dp(context, 6);
+            dot.setLayoutParams(dotLp);
+            dayHeader.addView(dot);
+
+            LinearLayout textCol = new LinearLayout(context);
+            textCol.setOrientation(LinearLayout.VERTICAL);
+            textCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            TextView dayNameView = new TextView(context);
+            dayNameView.setText(dayNames[dayOfWeekIndex(day.getDateMillis())]);
+            dayNameView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
+            dayNameView.setTextSize(13f);
+            dayNameView.setTypeface(dayNameView.getTypeface(), Typeface.BOLD);
+            textCol.addView(dayNameView);
+
+            TextView dateView = new TextView(context);
+            dateView.setText(dayHeaderFmt.format(new java.util.Date(day.getDateMillis())));
+            dateView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+            dateView.setTextSize(11f);
+            textCol.addView(dateView);
+
+            dayHeader.addView(textCol);
+
+            TextView dayAmount = new TextView(context);
+            dayAmount.setTextColor(ContextCompat.getColor(context, dayVal >= 0 ? R.color.finan_primary : R.color.finan_expense));
+            dayAmount.setTextSize(13f);
+            dayAmount.setTypeface(dayAmount.getTypeface(), Typeface.BOLD);
+            if (showPercentageMode) {
+              dayAmount.setText(fmtPct(dayVal, totalAmount, false));
+            } else {
+              dayAmount.setText(dayVal >= 0 ? format(dayVal) : "-" + format(-dayVal));
+            }
+            dayHeader.addView(dayAmount);
+
+            content.addView(dayHeader);
+
+            for (Transaction tx : dayTxs) {
+              LinearLayout txRow = new LinearLayout(context);
+              txRow.setOrientation(LinearLayout.HORIZONTAL);
+              txRow.setGravity(Gravity.CENTER_VERTICAL);
+              txRow.setPadding(UiComponentStyles.dp(context, 14), UiComponentStyles.dp(context, 6),
+                  0, UiComponentStyles.dp(context, 6));
+
+              Category cat = categoriesById.get(tx.getCategoryId());
+              String emoji = cat != null ? cat.getIcon() : null;
+              String catName = cat != null ? cat.getName() : "Lainnya";
+
+              TextView emojiView = new TextView(context);
+              emojiView.setText(emoji != null && !emoji.trim().isEmpty() ? emoji : "\uD83D\uDCB1");
+              emojiView.setTextSize(18f);
+              LinearLayout.LayoutParams emojiLp = new LinearLayout.LayoutParams(
+                  UiComponentStyles.dp(context, 32), UiComponentStyles.dp(context, 32));
+              emojiLp.rightMargin = UiComponentStyles.dp(context, 8);
+              emojiView.setGravity(Gravity.CENTER);
+              emojiView.setLayoutParams(emojiLp);
+              txRow.addView(emojiView);
+
+              LinearLayout txTextCol = new LinearLayout(context);
+              txTextCol.setOrientation(LinearLayout.VERTICAL);
+              txTextCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+              TextView catNameView = new TextView(context);
+              catNameView.setText(catName);
+              catNameView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
+              catNameView.setTextSize(13f);
+              txTextCol.addView(catNameView);
+
+              Wallet wallet = walletsById.get(tx.getWalletId());
+              String walletName = wallet != null ? wallet.getName() : "";
+              String note = tx.getNote();
+              StringBuilder metaStr = new StringBuilder();
+              if (walletName != null && !walletName.isEmpty()) {
+                metaStr.append(walletName);
+              }
+              if (note != null && !note.isEmpty()) {
+                if (metaStr.length() > 0) metaStr.append(" \u2022 ");
+                metaStr.append(note);
+              }
+              if (metaStr.length() > 0 || true) {
+                TextView metaView = new TextView(context);
+                String metaText = metaStr.toString();
+                if (metaText.isEmpty()) {
+                  metaText = timeFmt.format(new java.util.Date(tx.getOccurredAt()));
+                }
+                metaView.setText(metaText);
+                metaView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+                metaView.setTextSize(11f);
+                txTextCol.addView(metaView);
+              }
+
+              txRow.addView(txTextCol);
+
+              String amountStr = MoneyFormatter.format(tx.getAmountMinor());
+              boolean isPositive = tx.getType().increasesBalance();
+              String signedAmount = isPositive ? "+" + amountStr : "-" + amountStr;
+
+              TextView txAmount = new TextView(context);
+              txAmount.setText(signedAmount);
+              txAmount.setTextColor(ContextCompat.getColor(context, isPositive ? R.color.finan_income : R.color.finan_expense));
+              txAmount.setTextSize(13f);
+              txAmount.setTypeface(txAmount.getTypeface(), Typeface.BOLD);
+              txRow.addView(txAmount);
+
+              content.addView(txRow);
+            }
+          }
+        });
   }
 
   private View createActivityCard(CashFlowActivityTotal actTotal) {
