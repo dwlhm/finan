@@ -24,16 +24,22 @@ public class FinancialKeypadView extends ViewGroup {
     private OnKeypadActionListener listener;
 
     private static final int ROWS = 4;
-    private static final int COLS = 3;
+    private static final int COLS = 4;
 
     private final String[] keyLabels = {
-            "1", "2", "3",
-            "4", "5", "6",
-            "7", "8", "9",
-            "000", "0", "⌫"
+            "1", "2", "3", "+",
+            "4", "5", "6", "-",
+            "7", "8", "9", "×",
+            "000", "0", "⌫", "÷"
     };
 
-    private boolean showDecimal = true;
+    private final boolean[] isOperator = {
+            false, false, false, true,
+            false, false, false, true,
+            false, false, false, true,
+            false, false, false, true
+    };
+
     private final View[] keyViews = new View[ROWS * COLS];
     private Paint borderPaint;
 
@@ -62,7 +68,7 @@ public class FinancialKeypadView extends ViewGroup {
         borderPaint.setColor(ContextCompat.getColor(context, R.color.finan_key_border));
         borderPaint.setStrokeWidth(dpToPx(1));
 
-        int horizontalPadding = 0; // Removed horizontal padding to make it wider
+        int horizontalPadding = 0;
         int verticalPadding = dpToPx(16);
         setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding);
 
@@ -75,7 +81,7 @@ public class FinancialKeypadView extends ViewGroup {
                 img.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
                 img.setImageResource(R.drawable.ic_keypad_backspace);
                 img.setColorFilter(ContextCompat.getColor(context, R.color.finan_key_text));
-                
+
                 int iconPadding = dpToPx(16);
                 img.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
                 key = img;
@@ -85,9 +91,10 @@ public class FinancialKeypadView extends ViewGroup {
                 TextView txt = new TextView(context);
                 txt.setText(label);
                 txt.setGravity(Gravity.CENTER);
-                txt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+                txt.setTextSize(TypedValue.COMPLEX_UNIT_SP, isOperator[i] ? 20 : 22);
                 txt.setTypeface(Typeface.DEFAULT_BOLD);
-                txt.setTextColor(ContextCompat.getColor(context, R.color.finan_key_text));
+                txt.setTextColor(ContextCompat.getColor(context,
+                        isOperator[i] ? R.color.finan_primary : R.color.finan_key_text));
                 key = txt;
             }
 
@@ -128,8 +135,8 @@ public class FinancialKeypadView extends ViewGroup {
         pressedShape.setCornerRadius(0);
         pressedShape.setColor(pressedColor);
 
-        states.addState(new int[] { android.R.attr.state_pressed }, pressedShape);
-        states.addState(new int[] {}, normalShape);
+        states.addState(new int[]{android.R.attr.state_pressed}, pressedShape);
+        states.addState(new int[]{}, normalShape);
 
         view.setBackground(states);
     }
@@ -139,8 +146,7 @@ public class FinancialKeypadView extends ViewGroup {
     }
 
     private void handleKeyClick(String label) {
-        if (listener == null)
-            return;
+        if (listener == null) return;
 
         switch (label) {
             case "⌫":
@@ -149,6 +155,14 @@ public class FinancialKeypadView extends ViewGroup {
             case "000":
             case "00":
                 listener.onShortcut(label);
+                break;
+            case "+":
+            case "-":
+            case "×":
+                listener.onOperator(label);
+                break;
+            case "÷":
+                listener.onOperator("/");
                 break;
             default:
                 try {
@@ -167,7 +181,7 @@ public class FinancialKeypadView extends ViewGroup {
 
         int spacing = 0;
         int keyWidth = (availableWidth - (COLS - 1) * spacing) / COLS;
-        int keyHeight = (int) (keyWidth * 0.65f);
+        int keyHeight = (int) (keyWidth * 0.7f);
 
         int heightSize = getPaddingTop() + getPaddingBottom() + (ROWS * keyHeight) + ((ROWS - 1) * spacing);
 
@@ -190,7 +204,7 @@ public class FinancialKeypadView extends ViewGroup {
 
         int availableWidth = getWidth() - paddingLeft - getPaddingRight();
         int keyWidth = (availableWidth - (COLS - 1) * spacing) / COLS;
-        int keyHeight = (int) (keyWidth * 0.65f);
+        int keyHeight = (int) (keyWidth * 0.7f);
 
         int childIndex = 0;
         for (int row = 0; row < ROWS; row++) {

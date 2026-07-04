@@ -233,6 +233,11 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
+    <com.dwlhm.finan.ui.components.CalculatorStripView
+        android:id="@+id/capture_calculator_strip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
     <com.dwlhm.finan.ui.components.FinancialKeypadView
         android:id="@+id/capture_financial_keypad"
         android:layout_width="match_parent"

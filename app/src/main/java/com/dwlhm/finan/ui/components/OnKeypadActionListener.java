@@ -6,5 +6,6 @@ public interface OnKeypadActionListener {
     void onClear();
     void onShortcut(String shortcut);
     void onDecimalPoint();
+    void onOperator(String op);
     void onDone();
 }

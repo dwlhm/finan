@@ -37,9 +37,11 @@ import com.dwlhm.finan.ui.common.DateTimeBottomSheet;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
+import com.dwlhm.finan.ui.components.CalculatorStripView;
 import com.dwlhm.finan.ui.components.FinancialKeypadView;
 import com.dwlhm.finan.ui.components.KeypadAmountManager;
 import com.dwlhm.finan.ui.components.FinanToast;
+import com.dwlhm.finan.util.math.ExpressionEvaluator;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -69,7 +71,10 @@ public final class CaptureFragment extends ScreenFragment {
   private EditText noteInput;
     private TextView validationBanner;
   private CaptureFormValidation formValidation;
-  
+
+  private CalculatorStripView calculatorStrip;
+  private StringBuilder exprString;
+  private StringBuilder calcOperand;
 
   private Wallet activeWallet;
   private Wallet destinationWallet;
@@ -104,6 +109,7 @@ public final class CaptureFragment extends ScreenFragment {
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     amountInput = view.findViewById(R.id.capture_amount);
     MoneyInputFormatter.attach(amountInput, false);
+    amountInput.addTextChangedListener(calcTextWatcher);
     
     typeExpenseWrapper = view.findViewById(R.id.capture_type_expense_wrapper);
     typeIncomeWrapper = view.findViewById(R.id.capture_type_income_wrapper);
@@ -140,7 +146,84 @@ public final class CaptureFragment extends ScreenFragment {
     FinancialKeypadView financialKeypad = view.findViewById(R.id.capture_financial_keypad);
     amountInput.setShowSoftInputOnFocus(false);
     KeypadAmountManager keypadManager = new KeypadAmountManager(amountInput);
-    financialKeypad.setOnKeypadActionListener(keypadManager);
+
+    financialKeypad.setOnKeypadActionListener(new com.dwlhm.finan.ui.components.OnKeypadActionListener() {
+        @Override
+        public void onDigitEntered(int digit) {
+            if (exprString != null && exprString.length() > 0) {
+                if (calcOperand == null) calcOperand = new StringBuilder();
+                calcOperand.append(digit);
+                updateCalcDisplay();
+            } else {
+                keypadManager.onDigitEntered(digit);
+            }
+        }
+
+        @Override
+        public void onBackspace() {
+            if (exprString != null && exprString.length() > 0) {
+                if (calcOperand != null && calcOperand.length() > 0) {
+                    calcOperand.deleteCharAt(calcOperand.length() - 1);
+                    updateCalcDisplay();
+                } else {
+                    popLastOperator();
+                }
+            } else {
+                keypadManager.onBackspace();
+            }
+        }
+
+        @Override
+        public void onClear() {
+            exprString = null;
+            calcOperand = null;
+            keypadManager.onClear();
+            calculatorStrip.show("");
+        }
+
+        @Override
+        public void onShortcut(String shortcut) {
+            if (exprString != null && exprString.length() > 0) {
+                for (int i = 0; i < shortcut.length(); i++) {
+                    char c = shortcut.charAt(i);
+                    if (c >= '0' && c <= '9') {
+                        onDigitEntered(c - '0');
+                    }
+                }
+            } else {
+                keypadManager.onShortcut(shortcut);
+            }
+        }
+
+        @Override
+        public void onDecimalPoint() {
+            keypadManager.onDecimalPoint();
+        }
+
+        @Override
+        public void onOperator(String op) {
+            String current = calcOperand != null ? calcOperand.toString() : getRawInput();
+            if (current.isEmpty() && (exprString == null || exprString.length() == 0)) return;
+
+            if (exprString == null) exprString = new StringBuilder();
+            if (current.isEmpty()) {
+                int len = exprString.length();
+                if (len >= 2) exprString.replace(len - 2, len, op + " ");
+                else exprString.append(op).append(" ");
+            } else {
+                exprString.append(current).append(" ").append(op).append(" ");
+                calcOperand = new StringBuilder();
+            }
+            updateCalcDisplay();
+        }
+
+        @Override
+        public void onDone() {
+            keypadManager.onDone();
+        }
+    });
+
+    calculatorStrip = view.findViewById(R.id.capture_calculator_strip);
     
 
     typeExpenseWrapper.setOnClickListener(v -> setType(TransactionType.EXPENSE));
@@ -519,6 +602,106 @@ public final class CaptureFragment extends ScreenFragment {
           }
       );
       bottomSheet.show();
+  }
+
+  private String getRawInput() {
+      return amountInput.getText().toString().replaceAll("[^0-9]", "");
+  }
+
+  private void updateCalcDisplay() {
+      if (exprString == null || exprString.length() == 0) return;
+
+      String operand = calcOperand != null ? calcOperand.toString() : "";
+      String fullExpr = exprString.toString() + operand;
+
+      try {
+          long result = ExpressionEvaluator.evaluate(ensureValidExpr(fullExpr));
+          amountInput.removeTextChangedListener(calcTextWatcher);
+          setAmountInput(result);
+          amountInput.addTextChangedListener(calcTextWatcher);
+          calculatorStrip.show(fullExpr);
+      } catch (Exception ignored) {
+      }
+  }
+
+  private void finishCalculation() {
+      if (exprString == null || exprString.length() == 0) return;
+
+      String operand = calcOperand != null ? calcOperand.toString() : "";
+      String fullExpr = exprString.toString() + operand;
+
+      try {
+          long result = ExpressionEvaluator.evaluate(ensureValidExpr(fullExpr));
+          amountInput.removeTextChangedListener(calcTextWatcher);
+          setAmountInput(result);
+          amountInput.addTextChangedListener(calcTextWatcher);
+      } catch (Exception ignored) {
+      }
+
+      exprString = null;
+      calcOperand = null;
+  }
+
+  private final android.text.TextWatcher calcTextWatcher = new android.text.TextWatcher() {
+      @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+      @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+      @Override
+      public void afterTextChanged(android.text.Editable s) {
+          if (exprString != null && exprString.length() > 0) {
+              updateCalcDisplay();
+          } else if (calculatorStrip != null) {
+              String raw = s.toString().replaceAll("[^0-9]", "");
+              calculatorStrip.show(raw.isEmpty() ? "" : raw);
+          }
+      }
+  };
+
+  private void popLastOperator() {
+      if (exprString == null || exprString.length() < 2) return;
+
+      exprString.delete(exprString.length() - 2, exprString.length());
+      String remaining = exprString.toString().trim();
+
+      if (remaining.isEmpty()) {
+          exprString = null;
+          calcOperand = null;
+          calculatorStrip.show(getRawInput());
+          return;
+      }
+
+      int lastSpace = remaining.lastIndexOf(' ');
+      if (lastSpace >= 0) {
+          String lastNum = remaining.substring(lastSpace + 1);
+          if (lastNum.matches("-?\\d+")) {
+              calcOperand = new StringBuilder(lastNum);
+              exprString.setLength(lastSpace + 1);
+          }
+      } else if (remaining.matches("-?\\d+")) {
+          calcOperand = new StringBuilder(remaining);
+          exprString.setLength(0);
+      }
+
+      if (exprString.length() == 0) {
+          exprString = null;
+          calcOperand = null;
+          calculatorStrip.show(getRawInput());
+      } else {
+          updateCalcDisplay();
+      }
+  }
+
+  private static String ensureValidExpr(String expr) {
+      expr = expr.trim();
+      while (expr.length() > 0) {
+          char last = expr.charAt(expr.length() - 1);
+          if (last == '+' || last == '-' || last == '*' || last == '/') {
+              expr = expr.substring(0, expr.length() - 1).trim();
+          } else {
+              break;
+          }
+      }
+      if (expr.isEmpty()) expr = "0";
+      return expr;
   }
 
   private void setAmountInput(long amountMinor) {
@@ -946,6 +1129,9 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void expireAmountAutoFocus() {
+      if (exprString != null && exprString.length() > 0) {
+          finishCalculation();
+      }
       amountInput.clearFocus();
     InputMethodManager imm =
         (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -956,6 +1142,10 @@ public final class CaptureFragment extends ScreenFragment {
 
   @Nullable
   private ValidatedCaptureInput validateCaptureInput() {
+    if (exprString != null && exprString.length() > 0) {
+        finishCalculation();
+    }
+
     formValidation.clearAll();
     boolean valid = true;
     long amountMinor = 0L;

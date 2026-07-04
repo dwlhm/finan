@@ -145,6 +145,18 @@
         <item name="android:paddingEnd">12dp</item>
     </style>
 
+    <style name="Finan.CalculatorOperatorButton" parent="@android:style/Widget.Material.TextView">
+        <item name="android:layout_width">44dp</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:background">@drawable/bg_calculator_operator</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/finan_key_text</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="Finan.BottomNavItem" parent="@android:style/Widget.Material.TextView">
         <item name="android:background">@drawable/bg_bottom_nav_item</item>
         <item name="android:clickable">true</item>

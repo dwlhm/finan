@@ -20,7 +20,7 @@ public class KeypadAmountManager implements OnKeypadActionListener {
     public void onBackspace() {
         int start = Math.max(editText.getSelectionStart(), 0);
         int end = Math.max(editText.getSelectionEnd(), 0);
-        
+
         if (start != end) {
             editText.getText().delete(Math.min(start, end), Math.max(start, end));
         } else if (start > 0) {
@@ -40,23 +40,25 @@ public class KeypadAmountManager implements OnKeypadActionListener {
 
     @Override
     public void onDecimalPoint() {
-        // If the text already has a decimal, don't add another (assuming localized or standard '.')
         String currentText = editText.getText().toString();
-        if (!currentText.contains(".") && !currentText.contains(",")) { // Rough check, real check depends on MoneyFormatter
+        if (!currentText.contains(".") && !currentText.contains(",")) {
             insertText(".");
         }
     }
 
     @Override
+    public void onOperator(String op) {
+    }
+
+    @Override
     public void onDone() {
-        // Can be handled by closing the keypad or moving focus
         editText.clearFocus();
     }
 
     private void insertText(String text) {
         int start = Math.max(editText.getSelectionStart(), 0);
         int end = Math.max(editText.getSelectionEnd(), 0);
-        
+
         Editable editable = editText.getText();
         editable.replace(Math.min(start, end), Math.max(start, end), text);
     }
