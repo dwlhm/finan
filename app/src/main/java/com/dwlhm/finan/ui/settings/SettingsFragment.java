@@ -191,6 +191,9 @@ public final class SettingsFragment extends ScreenFragment {
     float density = getResources().getDisplayMetrics().density;
     int margin = (int) (4 * density + 0.5f);
     String currencyCode = cachedCurrencyCode != null ? cachedCurrencyCode : "IDR";
+    allCategories.sort((a, b) -> Long.compare(
+        totals.getOrDefault(b.getId(), 0L),
+        totals.getOrDefault(a.getId(), 0L)));
     int limit = Math.min(allCategories.size(), 6);
 
     for (int i = 0; i < limit; i++) {

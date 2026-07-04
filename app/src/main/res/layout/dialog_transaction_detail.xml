@@ -95,33 +95,6 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp" />
 
-        <TextView
-            style="@style/Finan.Text.SectionLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/transaction_merchant_label" />
-
-        <TextView
-            android:id="@+id/transaction_detail_merchant"
-            style="@style/Finan.Text.Body"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            style="@style/Finan.Text.SectionLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/transaction_tags_label" />
-
-        <TextView
-            android:id="@+id/transaction_detail_tags"
-            style="@style/Finan.Text.Body"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
     </LinearLayout>
 
     <LinearLayout

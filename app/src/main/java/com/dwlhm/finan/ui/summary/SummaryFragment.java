@@ -126,6 +126,25 @@ public final class SummaryFragment extends ScreenFragment {
     adviceMessage = view.findViewById(R.id.summary_advice_message);
     periodLabel.setOnClickListener(v -> showDateRangePicker());
     filterButton.setOnClickListener(v -> showSummaryFilterDialog());
+
+    View thisMonthChip = view.findViewById(R.id.summary_chip_this_month);
+    View lastMonthChip = view.findViewById(R.id.summary_chip_last_month);
+
+    thisMonthChip.setOnClickListener(v -> {
+        LocalDate today = LocalDate.now();
+        selectedStartDate = today.withDayOfMonth(1);
+        selectedEndDate = today.withDayOfMonth(today.lengthOfMonth());
+        loadSummaryAsync();
+    });
+
+    lastMonthChip.setOnClickListener(v -> {
+        LocalDate today = LocalDate.now();
+        LocalDate lastMonth = today.minusMonths(1);
+        selectedStartDate = lastMonth.withDayOfMonth(1);
+        selectedEndDate = lastMonth.withDayOfMonth(lastMonth.lengthOfMonth());
+        loadSummaryAsync();
+    });
+
     contentContainer = view.findViewById(R.id.summary_content);
     modeNominal = view.findViewById(R.id.summary_mode_nominal);
     modePersentase = view.findViewById(R.id.summary_mode_persentase);

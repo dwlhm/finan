@@ -12,7 +12,6 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.BaseAdapter;
 import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -33,6 +32,7 @@ import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ScreenHeaderView;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.TransactionOccurredAtPicker;
+import com.dwlhm.finan.ui.components.FinanToast;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
@@ -155,25 +155,7 @@ public final class WalletListFragment extends ScreenFragment {
   }
 
   private void showEditWalletDialog(Wallet wallet) {
-    Dialog dialog = new Dialog(requireContext());
-    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    dialog.setContentView(R.layout.dialog_wallet_name_input);
-    LabeledEditTextView nameField = dialog.findViewById(R.id.wallet_name_field);
-    EditText nameInput = nameField.getEditText();
-    CheckBox defaultInput = dialog.findViewById(R.id.wallet_default_input);
-    DialogActionsView actionsView = dialog.findViewById(R.id.wallet_actions);
-
-    nameInput.setText(wallet.getName());
-    nameInput.setSelection(nameInput.getText().length());
-    defaultInput.setChecked(wallet.isDefault());
-    defaultInput.setEnabled(!wallet.isDefault());
-    defaultInput.setAlpha(wallet.isDefault() ? 0.72f : 1f);
-
-    actionsView.setOnCancelClickListener(v -> dialog.dismiss());
-    actionsView.setOnPrimaryClickListener(
-        v -> submitUpdateWallet(dialog, wallet.getId(), nameInput, defaultInput));
-    BottomSheetHelper.show(dialog);
-    nameInput.requestFocus();
+    new WalletEditBottomSheet(requireContext(), services, wallet, this::reload);
   }
 
   private void showAdjustmentDialog(Wallet wallet) {
@@ -442,27 +424,54 @@ public final class WalletListFragment extends ScreenFragment {
         });
   }
 
-  private void submitUpdateWallet(
-      Dialog dialog, long walletId, EditText nameInput, CheckBox defaultInput) {
-    String name = nameInput.getText().toString().trim();
-    if (name.isEmpty()) {
-      nameInput.setError(getString(R.string.wallet_error_name));
-      return;
-    }
-    boolean makeDefault = defaultInput.isChecked();
-    services.dbWorker.compute(
-        () -> {
-          services.walletService.updateNameAndDefault(walletId, name, makeDefault);
-          return Boolean.TRUE;
-        },
-        updated -> {
-          if (!isAdded() || !dialog.isShowing()) {
-            return;
-          }
-          Toast.makeText(requireContext(), R.string.wallet_updated, Toast.LENGTH_SHORT).show();
+  private void showDeleteWalletDialog(Wallet wallet) {
+    Dialog dialog = new Dialog(requireContext(), R.style.Finan_BottomSheetDialog);
+    dialog.setContentView(R.layout.dialog_confirm_delete);
+    ((TextView) dialog.findViewById(R.id.confirm_delete_title))
+        .setText("Hapus dompet");
+    ((TextView) dialog.findViewById(R.id.confirm_delete_message))
+        .setText(
+            "Apakah Anda yakin ingin menghapus dompet \""
+                + wallet.getName()
+                + "\"? Semua transaksi terkait juga akan dihapus.");
+    dialog.findViewById(R.id.confirm_delete_cancel)
+        .setOnClickListener(v -> dialog.dismiss());
+    dialog.findViewById(R.id.confirm_delete_confirm)
+        .setOnClickListener(v -> {
+          final long deleteWalletId = wallet.getId();
+          final String deleteName = wallet.getName();
+          final String deleteCurrencyCode = wallet.getCurrencyCode();
+          final boolean deleteIsDefault = wallet.isDefault();
+          final long deleteOpeningBalanceMinor = wallet.getOpeningBalanceMinor();
+          final long deleteCreatedAt = wallet.getCreatedAt();
+          final String deleteIcon = wallet.getIcon();
+
           dialog.dismiss();
-          reload();
+
+          services.dbWorker.compute(
+              () -> services.walletService.delete(deleteWalletId),
+              success -> {
+                if (!isAdded()) return;
+                if (Boolean.TRUE.equals(success)) {
+                  FinanToast.show(
+                      requireActivity(),
+                      "Dompet \"" + deleteName + "\" dihapus",
+                      "Urungkan",
+                      () -> {
+                        services.dbWorker.compute(
+                            () -> services.walletService.insertUndo(
+                                deleteName, deleteCurrencyCode, deleteIsDefault,
+                                deleteOpeningBalanceMinor, deleteCreatedAt, deleteIcon),
+                            id -> reload());
+                      });
+                  reload();
+                } else {
+                  Toast.makeText(requireContext(), "Gagal menghapus dompet", Toast.LENGTH_SHORT).show();
+                }
+              });
         });
+
+    BottomSheetHelper.show(dialog);
   }
 
   private final class WalletAdapter extends BaseAdapter {
@@ -510,6 +519,7 @@ public final class WalletListFragment extends ScreenFragment {
       TextView defaultBadge = convertView.findViewById(R.id.item_wallet_default_badge);
       TextView balance = convertView.findViewById(R.id.item_wallet_balance);
       View editButton = convertView.findViewById(R.id.item_wallet_edit);
+      View deleteButton = convertView.findViewById(R.id.item_wallet_delete);
       View adjustButton = convertView.findViewById(R.id.item_wallet_adjust);
       View transferButton = convertView.findViewById(R.id.item_wallet_transfer);
       Wallet wallet = getItem(position);
@@ -531,7 +541,9 @@ public final class WalletListFragment extends ScreenFragment {
                 wallet.getCachedBalanceMinor() < 0 ? R.color.finan_expense : R.color.finan_primary));
       }
       ViewPressAnimator.bindScale(editButton);
+      ViewPressAnimator.bindScale(deleteButton);
       editButton.setOnClickListener(v -> showEditWalletDialog(wallet));
+      deleteButton.setOnClickListener(v -> showDeleteWalletDialog(wallet));
       adjustButton.setOnClickListener(v -> showAdjustmentDialog(wallet));
       transferButton.setEnabled(wallets.size() > 1);
       transferButton.setAlpha(wallets.size() > 1 ? 1f : 0.5f);

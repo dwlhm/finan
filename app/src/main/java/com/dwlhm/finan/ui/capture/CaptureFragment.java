@@ -42,7 +42,9 @@ import com.dwlhm.finan.ui.components.KeypadAmountManager;
 import com.dwlhm.finan.ui.components.FinanToast;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class CaptureFragment extends ScreenFragment {
 
@@ -96,6 +98,8 @@ public final class CaptureFragment extends ScreenFragment {
     return R.layout.activity_capture;
   }
 
+  private boolean saveInProgress;
+
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     amountInput = view.findViewById(R.id.capture_amount);
@@ -145,11 +149,15 @@ public final class CaptureFragment extends ScreenFragment {
 
     categoryText.setOnClickListener(v -> {
         expireAmountAutoFocus();
+        formValidation.clear(CaptureFormValidation.Field.CATEGORY);
+        formValidation.clearErrorBackground(categoryText);
         openCategorySearchDialog();
     });
 
     walletText.setOnClickListener(v -> {
         expireAmountAutoFocus();
+        formValidation.clear(CaptureFormValidation.Field.WALLET);
+        formValidation.clearErrorBackground(walletText);
         openWalletSearchDialog(false);
     });
 
@@ -161,7 +169,6 @@ public final class CaptureFragment extends ScreenFragment {
 
     installAmountAutoFocusExpiry(view);
     updateCaptureMode();
-    requestAmountFocus();
   }
   
   private void setType(TransactionType type) {
@@ -354,12 +361,27 @@ public final class CaptureFragment extends ScreenFragment {
     }
   }
 
+  private final Set<TextView> errorBackgroundFields = new HashSet<>();
+
   private void applyErrorBackground(TextView view) {
       int paddingLeft = view.getPaddingLeft();
       int paddingTop = view.getPaddingTop();
       int paddingRight = view.getPaddingRight();
       int paddingBottom = view.getPaddingBottom();
       view.setBackgroundResource(R.drawable.bg_field_error);
+      view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+      errorBackgroundFields.add(view);
+  }
+
+  private void clearErrorBackground(TextView view) {
+      errorBackgroundFields.remove(view);
+      int paddingLeft = view.getPaddingLeft();
+      int paddingTop = view.getPaddingTop();
+      int paddingRight = view.getPaddingRight();
+      int paddingBottom = view.getPaddingBottom();
+      TypedValue outValue = new TypedValue();
+      requireActivity().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+      view.setBackgroundResource(outValue.resourceId);
       view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
   }
 
@@ -506,6 +528,7 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void saveTransaction() {
+    if (saveInProgress) return;
     ValidatedCaptureInput input = validateCaptureInput();
     if (input == null) {
       return;
@@ -532,6 +555,7 @@ public final class CaptureFragment extends ScreenFragment {
     final String savedNote = TextUtils.isEmpty(note) ? null : note;
 
     Wallet walletToRemember = activeWallet;
+    saveInProgress = true;
     services.dbWorker.compute(
         () -> {
           try {
@@ -541,6 +565,7 @@ public final class CaptureFragment extends ScreenFragment {
           }
         },
         savedId -> {
+          saveInProgress = false;
           if (!isAdded()) {
             return;
           }
@@ -558,7 +583,6 @@ public final class CaptureFragment extends ScreenFragment {
           clearSavedForm();
           showUndoBar();
           refreshCaptureData(false);
-          requestAmountFocus();
         });
   }
 
@@ -568,6 +592,7 @@ public final class CaptureFragment extends ScreenFragment {
     long occurredAt = occurredAtMillis;
     String note = noteInput.getText().toString().trim();
     String savedNote = TextUtils.isEmpty(note) ? null : note;
+    saveInProgress = true;
     services.dbWorker.compute(
         () -> {
           try {
@@ -582,6 +607,7 @@ public final class CaptureFragment extends ScreenFragment {
           }
         },
         transferId -> {
+          saveInProgress = false;
           if (!isAdded()) {
             return;
           }
@@ -605,7 +631,6 @@ public final class CaptureFragment extends ScreenFragment {
           clearSavedForm();
           showUndoBar();
           refreshCaptureData(false);
-          requestAmountFocus();
         });
   }
 
@@ -673,7 +698,6 @@ public final class CaptureFragment extends ScreenFragment {
           persistCaptureDraft();
           Toast.makeText(requireContext(), R.string.capture_undo_done, Toast.LENGTH_SHORT).show();
           refreshCaptureData(true);
-          requestAmountFocus();
         });
   }
 
@@ -928,10 +952,6 @@ public final class CaptureFragment extends ScreenFragment {
     if (imm != null) {
       imm.hideSoftInputFromWindow(amountInput.getWindowToken(), 0);
     }
-  }
-
-  private void requestAmountFocus() {
-    // Disabled auto-focus on amount input to prevent keypad from popping up automatically.
   }
 
   @Nullable

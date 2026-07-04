@@ -33,6 +33,15 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/wallet_edit_name"
             android:src="@drawable/ic_edit" />
+
+        <ImageButton
+            android:id="@+id/item_wallet_delete"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Hapus dompet"
+            android:src="@drawable/ic_delete" />
     </LinearLayout>
 
     <LinearLayout

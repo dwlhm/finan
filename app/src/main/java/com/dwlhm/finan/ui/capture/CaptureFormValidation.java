@@ -13,6 +13,9 @@ import androidx.annotation.StringRes;
 
 import com.dwlhm.finan.R;
 
+import java.util.HashMap;
+import java.util.Map;
+
 final class CaptureFormValidation {
 
   enum Field {
@@ -24,6 +27,7 @@ final class CaptureFormValidation {
 
   private final EditText amountInput;
   @Nullable private final TextView validationBanner;
+  private final Map<Field, String> activeErrors = new HashMap<>();
 
   CaptureFormValidation(@NonNull View root, @Nullable TextView validationBanner) {
     this.validationBanner = validationBanner;
@@ -48,13 +52,12 @@ final class CaptureFormValidation {
   }
 
   void clear(@NonNull Field field) {
-    if (validationBanner != null) {
-      validationBanner.setVisibility(View.GONE);
-      validationBanner.setText("");
-    }
+    activeErrors.remove(field);
+    rebuildBanner();
   }
 
   void clearAll() {
+    activeErrors.clear();
     if (validationBanner != null) {
       validationBanner.setVisibility(View.GONE);
       validationBanner.setText("");
@@ -65,9 +68,26 @@ final class CaptureFormValidation {
       @NonNull Context context,
       @NonNull Field field,
       @StringRes int errorMessageRes) {
-    
-    if (validationBanner != null) {
-      validationBanner.setText(context.getString(errorMessageRes));
+    activeErrors.put(field, context.getString(errorMessageRes));
+    rebuildBanner();
+  }
+
+  void clearErrorBackground(TextView view) {
+    view.setBackgroundResource(R.drawable.bg_unselected_field);
+  }
+
+  private void rebuildBanner() {
+    if (validationBanner == null) return;
+    if (activeErrors.isEmpty()) {
+      validationBanner.setVisibility(View.GONE);
+      validationBanner.setText("");
+    } else {
+      StringBuilder sb = new StringBuilder();
+      for (String msg : activeErrors.values()) {
+        if (sb.length() > 0) sb.append("\n");
+        sb.append(msg);
+      }
+      validationBanner.setText(sb.toString());
       validationBanner.setVisibility(View.VISIBLE);
     }
   }

@@ -121,15 +121,23 @@ public final class CategoryOverviewBottomSheet extends Dialog {
   }
 
   private void confirmDelete() {
-    new AlertDialog.Builder(getContext())
-        .setTitle("Hapus kategori")
-        .setMessage(
-            "Apakah Anda yakin ingin menghapus kategori \""
-                + category.getName()
-                + "\"?")
-        .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton("Hapus", (d, which) -> deleteCategory())
-        .show();
+    services.dbWorker.compute(
+        () -> services.categoryDao.countTransactions(category.getId()),
+        count -> {
+          if (!isShowing() || count == null) return;
+          String message;
+          if (count > 0) {
+            message = "Kategori ini digunakan dalam " + count + " transaksi. Menghapus kategori ini juga akan memengaruhi transaksi tersebut. Hapus?";
+          } else {
+            message = "Apakah Anda yakin ingin menghapus kategori \"" + category.getName() + "\"?";
+          }
+          new AlertDialog.Builder(getContext())
+              .setTitle("Hapus Kategori")
+              .setMessage(message)
+              .setNegativeButton(android.R.string.cancel, null)
+              .setPositiveButton("Hapus", (d, which) -> deleteCategory())
+              .show();
+        });
   }
 
   private void deleteCategory() {
