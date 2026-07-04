@@ -246,6 +246,46 @@ public final class HistoryFragment extends ScreenFragment {
     }
   }
 
+  public void setWalletFilter(long walletId) {
+    selectedWalletId = walletId > 0L ? walletId : null;
+    if (getView() != null) {
+      reload(true);
+    }
+  }
+
+  public void setTypeFilter(String type) {
+    if ("EXPENSE".equals(type)) {
+      selectedTypeId = TYPE_EXPENSE_ID;
+    } else if ("INCOME".equals(type)) {
+      selectedTypeId = TYPE_INCOME_ID;
+    } else {
+      selectedTypeId = null;
+    }
+    if (getView() != null) {
+      reload(true);
+    }
+  }
+
+  public void setDateRange(long startMillis, long endMillis) {
+    selectedStartDate = java.time.Instant.ofEpochMilli(startMillis)
+        .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+    selectedEndDate = java.time.Instant.ofEpochMilli(endMillis)
+        .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+    if (getView() != null) {
+      updateDateRangeView();
+      reload(true);
+    }
+  }
+
+  public void setActivityFilter(String activity) {
+    selectedCategoryId = null;
+    selectedTypeId = null;
+    if (getView() != null) {
+      updateDateRangeView();
+      reload(true);
+    }
+  }
+
   private void reload() {
     reload(false);
   }

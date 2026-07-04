@@ -24,6 +24,9 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
+import com.dwlhm.finan.domain.model.CashFlowActivityTotal;
+import com.dwlhm.finan.domain.model.CashFlowReport;
+import com.dwlhm.finan.domain.model.CashFlowReportResult;
 import com.dwlhm.finan.domain.model.CategoryTotal;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.WalletBalance;
@@ -31,6 +34,7 @@ import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.EntityLookup;
 import com.dwlhm.finan.ui.common.FilterDialog;
 import com.dwlhm.finan.ui.common.ScreenFragment;
+import com.dwlhm.finan.ui.common.ScreenNavigator;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
 import com.dwlhm.finan.util.money.MoneyFormatter;
@@ -86,6 +90,15 @@ public final class SummaryFragment extends ScreenFragment {
   private ViewGroup contentContainer;
   private SummaryLoadData cachedData;
 
+  private View inboxPrompt;
+  private TextView inboxTitle;
+  private TextView inboxMessage;
+  private LinearLayout reconciliationCard;
+  private LinearLayout reconciliationLines;
+  private LinearLayout weeklyChart;
+  private LinearLayout chartWeeksContainer;
+  private TextView headlineView;
+
   @Override
   protected int getLayoutResId() {
     return R.layout.activity_summary;
@@ -126,6 +139,21 @@ public final class SummaryFragment extends ScreenFragment {
     adviceMessage = view.findViewById(R.id.summary_advice_message);
     periodLabel.setOnClickListener(v -> showDateRangePicker());
     filterButton.setOnClickListener(v -> showSummaryFilterDialog());
+
+    inboxPrompt = view.findViewById(R.id.summary_inbox_prompt);
+    inboxTitle = view.findViewById(R.id.summary_inbox_title);
+    inboxMessage = view.findViewById(R.id.summary_inbox_message);
+    reconciliationCard = view.findViewById(R.id.summary_reconciliation_card);
+    reconciliationLines = view.findViewById(R.id.summary_reconciliation_lines);
+    weeklyChart = view.findViewById(R.id.summary_weekly_chart);
+    chartWeeksContainer = view.findViewById(R.id.summary_chart_weeks);
+    headlineView = view.findViewById(R.id.summary_net_flow_label);
+
+    inboxPrompt.setOnClickListener(v -> {
+      if (requireActivity() instanceof ScreenNavigator) {
+        ((ScreenNavigator) requireActivity()).openCategoriesFiltered("UNCLASSIFIED");
+      }
+    });
 
     View thisMonthChip = view.findViewById(R.id.summary_chip_this_month);
     View lastMonthChip = view.findViewById(R.id.summary_chip_last_month);
@@ -189,6 +217,9 @@ public final class SummaryFragment extends ScreenFragment {
           Map<Long, Category> categoryMap = EntityLookup.indexCategories(categories);
           Long walletId = validWalletIdOrNull(requestedWalletId, walletMap);
           Long categoryId = validCategoryIdOrNull(requestedCategoryId, categoryMap);
+          CashFlowReportResult reportResult =
+              services.cashFlowReportService.buildReport(
+                  requestedStartDate, requestedEndDate, walletId);
           MonthlySummary summary =
               services.summaryService.loadRange(
                   requestedStartDate, requestedEndDate, walletId, categoryId);
@@ -198,7 +229,24 @@ public final class SummaryFragment extends ScreenFragment {
           MonthlySummary prevPrevSummary =
               services.summaryService.loadRange(
                   requestedStartDate.minusMonths(2), requestedEndDate.minusMonths(2), walletId, categoryId);
-          return new SummaryLoadData(walletMap, categoryMap, walletId, categoryId, summary, prevSummary, prevPrevSummary);
+          long unclassifiedCount = 0L;
+          long unclassifiedAmount = 0L;
+          List<Category> allCats = categoryMap.isEmpty() ? services.categoryDao.findAllOrdered() : new ArrayList<>(categoryMap.values());
+          for (Category cat : allCats) {
+            if (CashFlowActivity.UNCLASSIFIED.name().equals(cat.getCashFlowActivity())) {
+              unclassifiedCount++;
+            }
+          }
+          for (CashFlowReport report : reportResult.getAllReports()) {
+            for (CashFlowActivityTotal act : report.getActivityTotals()) {
+              if (act.getActivity() == CashFlowActivity.UNCLASSIFIED) {
+                unclassifiedAmount += act.getIncomeMinor() + act.getExpenseMinor();
+              }
+            }
+          }
+          return new SummaryLoadData(walletMap, categoryMap, walletId, categoryId,
+              reportResult, summary, prevSummary, prevPrevSummary,
+              unclassifiedCount, unclassifiedAmount);
         },
         data -> {
           if (!isAdded()
@@ -214,24 +262,38 @@ public final class SummaryFragment extends ScreenFragment {
           selectedWalletId = data.walletId;
           selectedCategoryId = data.categoryId;
           cachedData = data;
-          bindSummary(data.summary, data.prevSummary, data.prevPrevSummary, requestedStartDate, requestedEndDate);
+          bindReport(data.reportResult, data.summary, data.prevSummary, data.prevPrevSummary,
+              requestedStartDate, requestedEndDate, data.unclassifiedCount, data.unclassifiedAmount);
           updateFilterButton();
           loading.setVisibility(View.GONE);
         });
   }
 
-  private void bindSummary(
+  private void bindReport(
+      CashFlowReportResult reportResult,
       MonthlySummary summary,
       MonthlySummary prevSummary,
       MonthlySummary prevPrevSummary,
       LocalDate startDate,
-      LocalDate endDate) {
+      LocalDate endDate,
+      long unclassifiedCount,
+      long unclassifiedAmount) {
     periodLabel.setText(formatRangeLabel(startDate, endDate));
-    
-    long totalIncome = summary.getMonthIncomeMinor();
-    long totalExpense = summary.getMonthExpenseMinor();
-    long net = summary.getNetFlowMinor();
-    
+
+    CashFlowReport primaryReport = null;
+    for (CashFlowReport r : reportResult.getAllReports()) {
+      primaryReport = r;
+      break;
+    }
+
+    long totalIncome = summary != null ? summary.getMonthIncomeMinor() : 0L;
+    long totalExpense = summary != null ? summary.getMonthExpenseMinor() : 0L;
+    long net = totalIncome - totalExpense;
+
+    if (primaryReport != null) {
+      headlineView.setText(primaryReport.getHeadlineLabel());
+    }
+
     if (showPercentageMode) {
       long base = totalIncome > 0 ? totalIncome : (totalExpense > 0 ? totalExpense : 1);
       netFlow.setText(fmtPct(net, base, true));
@@ -243,6 +305,30 @@ public final class SummaryFragment extends ScreenFragment {
       monthIncome.setText(format(totalIncome));
     }
     netFlow.setTextColor(ContextCompat.getColor(requireContext(), net >= 0 ? R.color.finan_summary_net_income : R.color.finan_summary_net_expense));
+
+    netFlow.setOnClickListener(v -> {
+      if (requireActivity() instanceof ScreenNavigator) {
+        long startMillis = startDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endMillis = endDate.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        ((ScreenNavigator) requireActivity()).openHistoryWithFilter(null, startMillis, endMillis, selectedWalletId, selectedCategoryId);
+      }
+    });
+
+    monthIncome.setOnClickListener(v -> {
+      if (requireActivity() instanceof ScreenNavigator) {
+        long startMillis = startDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endMillis = endDate.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        ((ScreenNavigator) requireActivity()).openHistoryWithFilter("INCOME", startMillis, endMillis, selectedWalletId, selectedCategoryId);
+      }
+    });
+
+    monthExpense.setOnClickListener(v -> {
+      if (requireActivity() instanceof ScreenNavigator) {
+        long startMillis = startDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long endMillis = endDate.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        ((ScreenNavigator) requireActivity()).openHistoryWithFilter("EXPENSE", startMillis, endMillis, selectedWalletId, selectedCategoryId);
+      }
+    });
 
     FinancialAdvisor.Advice advice = FinancialAdvisor.getAdvice(requireContext(), summary, prevSummary, prevPrevSummary, startDate, endDate);
     if (advice != null) {
@@ -260,29 +346,245 @@ public final class SummaryFragment extends ScreenFragment {
       adviceCard.setVisibility(View.GONE);
     }
 
+    bindInboxPrompt(unclassifiedCount, unclassifiedAmount);
+
     cashFlowContainer.removeAllViews();
-    if (summary.getActivitySummaries().isEmpty()) {
-      emptyMessage.setVisibility(View.VISIBLE);
-    } else {
-      emptyMessage.setVisibility(View.GONE);
-      for (MonthlySummary.ActivitySummary activitySummary : summary.getActivitySummaries()) {
-        cashFlowContainer.addView(createActivityCard(activitySummary));
+    boolean hasActivity = false;
+    for (CashFlowReport report : reportResult.getAllReports()) {
+      for (CashFlowActivityTotal act : report.getActivityTotals()) {
+        cashFlowContainer.addView(createActivityCard(act));
+        hasActivity = true;
       }
     }
+    emptyMessage.setVisibility(hasActivity ? View.GONE : View.VISIBLE);
 
-    long totalBalance = totalWalletBalance(summary);
+    bindReconciliation(reportResult);
+    bindWeeklyChart(reportResult);
+
+    long totalBalance = 0L;
+    if (summary != null) {
+      totalBalance = totalWalletBalance(summary);
+    }
     walletTotal.setText(showPercentageMode ? "100%" : format(totalBalance));
 
     walletList.removeAllViews();
-    for (WalletBalance wallet : summary.getWalletBalances()) {
-      if (walletList.getChildCount() > 0) {
-        walletList.addView(createDivider(requireContext()));
+    if (summary != null) {
+      for (WalletBalance wallet : summary.getWalletBalances()) {
+        if (walletList.getChildCount() > 0) {
+          walletList.addView(createDivider(requireContext()));
+        }
+        walletList.addView(createWalletRow(wallet, totalBalance));
       }
-      walletList.addView(createWalletRow(wallet, totalBalance));
     }
   }
 
-  private View createActivityCard(MonthlySummary.ActivitySummary actSummary) {
+  private void bindInboxPrompt(long unclassifiedCount, long unclassifiedAmount) {
+    if (unclassifiedCount > 0) {
+      inboxPrompt.setVisibility(View.VISIBLE);
+      inboxTitle.setText("Rapikan arus kas");
+      inboxMessage.setText(unclassifiedCount + " kategori belum dikelompokkan · " + format(unclassifiedAmount));
+    } else {
+      inboxPrompt.setVisibility(View.GONE);
+    }
+  }
+
+  private void bindReconciliation(CashFlowReportResult reportResult) {
+    reconciliationCard.setVisibility(View.GONE);
+    reconciliationLines.removeAllViews();
+
+    for (CashFlowReport report : reportResult.getAllReports()) {
+      if (report.getWalletId() != null && reportResult.getAllReports().size() > 1) {
+        continue;
+      }
+      reconciliationCard.setVisibility(View.VISIBLE);
+      addReconciliationLine("Saldo awal", report.getOpeningBalanceMinor(), false, false, null);
+      addReconciliationLine("Pemasukan", report.getIncomeMinor(), true, false, v -> {
+        if (requireActivity() instanceof ScreenNavigator) {
+          long start = report.getStartDate().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+          long end = report.getEndDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+          ((ScreenNavigator) requireActivity()).openHistoryWithFilter("INCOME", start, end, report.getWalletId(), null);
+        }
+      });
+      addReconciliationLine("Pengeluaran", report.getExpenseMinor(), false, false, v -> {
+        if (requireActivity() instanceof ScreenNavigator) {
+          long start = report.getStartDate().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+          long end = report.getEndDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+          ((ScreenNavigator) requireActivity()).openHistoryWithFilter("EXPENSE", start, end, report.getWalletId(), null);
+        }
+      });
+      if (report.getNetTransferMinor() != 0) {
+        addReconciliationLine("Transfer bersih", report.getNetTransferMinor(), true, false, null);
+      }
+      if (report.getNetAdjustmentMinor() != 0) {
+        addReconciliationLine("Koreksi saldo", report.getNetAdjustmentMinor(), true, true, null);
+      }
+
+      View divider = new View(requireContext());
+      divider.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.finan_divider));
+      divider.setLayoutParams(new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.MATCH_PARENT, UiComponentStyles.dp(requireContext(), 1)));
+      reconciliationLines.addView(divider);
+
+      addReconciliationLine("Saldo akhir", report.getClosingBalanceMinor(), false, false, null);
+
+      if (!reportResult.isSingleCurrency()) {
+        TextView currencyLabel = new TextView(requireContext());
+        currencyLabel.setText(report.getCurrencyCode());
+        currencyLabel.setTextColor(ContextCompat.getColor(requireContext(), R.color.finan_text_secondary));
+        currencyLabel.setTextSize(11f);
+        currencyLabel.setPadding(0, UiComponentStyles.dp(requireContext(), 4), 0, 0);
+        reconciliationLines.addView(currencyLabel);
+      }
+    }
+  }
+
+  private void addReconciliationLine(String label, long amount, boolean signed, boolean isAdjustment, View.OnClickListener clickListener) {
+    Context context = requireContext();
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    row.setPadding(0, UiComponentStyles.dp(context, 6), 0, UiComponentStyles.dp(context, 6));
+    if (clickListener != null) {
+      row.setClickable(true);
+      row.setFocusable(true);
+      row.setForeground(ContextCompat.getDrawable(context, UiComponentStyles.selectableItemBackground(context)));
+      row.setOnClickListener(clickListener);
+    }
+
+    TextView labelView = new TextView(context);
+    labelView.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+    labelView.setText(label);
+    labelView.setTextColor(ContextCompat.getColor(context, isAdjustment ? R.color.finan_warm_accent : R.color.finan_text_primary));
+    labelView.setTextSize(14f);
+    labelView.setTypeface(labelView.getTypeface(), isAdjustment ? android.graphics.Typeface.ITALIC : android.graphics.Typeface.NORMAL);
+    row.addView(labelView);
+
+    TextView amountView = new TextView(context);
+    amountView.setText(signed && amount >= 0 ? ("+" + format(amount)) : format(amount));
+    amountView.setPadding(UiComponentStyles.dp(context, 8), 0, 0, 0);
+    amountView.setTextColor(ContextCompat.getColor(context, amount >= 0 ? R.color.finan_primary : R.color.finan_expense));
+    amountView.setTextSize(14f);
+    amountView.setTypeface(amountView.getTypeface(), android.graphics.Typeface.BOLD);
+    row.addView(amountView);
+
+    reconciliationLines.addView(row);
+  }
+
+  private void bindWeeklyChart(CashFlowReportResult reportResult) {
+    chartWeeksContainer.removeAllViews();
+
+    long maxAmount = 0L;
+    int totalDays = 0;
+    for (CashFlowReport report : reportResult.getAllReports()) {
+      for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
+        for (CashFlowReport.DailyTotal day : week.getDays()) {
+          long dayTotal = day.getIncomeMinor() + day.getExpenseMinor();
+          if (dayTotal > maxAmount) maxAmount = dayTotal;
+          totalDays++;
+        }
+      }
+    }
+
+    if (totalDays == 0 || maxAmount == 0) {
+      weeklyChart.setVisibility(View.GONE);
+      return;
+    }
+
+    weeklyChart.setVisibility(View.VISIBLE);
+    int incomeColor = ContextCompat.getColor(requireContext(), R.color.finan_income);
+    int expenseColor = ContextCompat.getColor(requireContext(), R.color.finan_expense);
+
+    for (CashFlowReport report : reportResult.getAllReports()) {
+      for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
+        chartWeeksContainer.addView(createWeekRow(week, maxAmount, incomeColor, expenseColor));
+      }
+    }
+  }
+
+  private View createWeekRow(CashFlowReport.WeekSummary week, long maxAmount, int incomeColor, int expenseColor) {
+    Context context = requireContext();
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.VERTICAL);
+    row.setPadding(0, UiComponentStyles.dp(context, 4), 0, UiComponentStyles.dp(context, 4));
+
+    TextView weekLabel = new TextView(context);
+    String startLabel = formatShortDate(week.getStartDate());
+    String endLabel = formatShortDate(week.getEndDate());
+    weekLabel.setText(startLabel + " - " + endLabel);
+    weekLabel.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+    weekLabel.setTextSize(10f);
+    weekLabel.setTypeface(weekLabel.getTypeface(), android.graphics.Typeface.BOLD);
+    weekLabel.setPadding(0, 0, 0, UiComponentStyles.dp(context, 6));
+    row.addView(weekLabel);
+
+    LinearLayout daysRow = new LinearLayout(context);
+    daysRow.setOrientation(LinearLayout.HORIZONTAL);
+    daysRow.setWeightSum(7f);
+
+    for (CashFlowReport.DailyTotal day : week.getDays()) {
+      LinearLayout dayCol = new LinearLayout(context);
+      dayCol.setOrientation(LinearLayout.VERTICAL);
+      dayCol.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+      LinearLayout.LayoutParams colParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+      dayCol.setLayoutParams(colParams);
+      dayCol.setPadding(UiComponentStyles.dp(context, 1), 0, UiComponentStyles.dp(context, 1), 0);
+
+      LinearLayout barContainer = new LinearLayout(context);
+      barContainer.setOrientation(LinearLayout.VERTICAL);
+      barContainer.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+      int barHeight = UiComponentStyles.dp(context, 48);
+      barContainer.setLayoutParams(new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.MATCH_PARENT, barHeight));
+
+      long dayIncome = day.getIncomeMinor();
+      long dayExpense = day.getExpenseMinor();
+
+      if (dayIncome > 0) {
+        int incomeBarHeight = Math.max(2, (int) (barHeight * dayIncome / (maxAmount * 2)));
+        View incomeBar = new View(context);
+        incomeBar.setBackgroundColor(incomeColor);
+        incomeBar.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, incomeBarHeight));
+        barContainer.addView(incomeBar);
+      }
+
+      if (dayExpense > 0) {
+        int expBarHeight = Math.max(2, (int) (barHeight * dayExpense / (maxAmount * 2)));
+        View expBar = new View(context);
+        expBar.setBackgroundColor(expenseColor);
+        expBar.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, expBarHeight));
+        barContainer.addView(expBar);
+      }
+
+      if (dayIncome == 0 && dayExpense == 0) {
+        dayCol.setMinimumHeight(barHeight);
+      }
+
+      dayCol.addView(barContainer);
+
+      TextView dayLabel = new TextView(context);
+      dayLabel.setText(String.valueOf(day.getDateMillis() > 0
+          ? java.time.Instant.ofEpochMilli(day.getDateMillis())
+              .atZone(java.time.ZoneId.systemDefault()).toLocalDate().getDayOfMonth()
+          : 0));
+      dayLabel.setTextColor(ContextCompat.getColor(context, R.color.finan_text_hint));
+      dayLabel.setTextSize(9f);
+      dayLabel.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+      dayCol.addView(dayLabel);
+
+      daysRow.addView(dayCol);
+    }
+
+    row.addView(daysRow);
+    return row;
+  }
+
+  private String formatShortDate(LocalDate date) {
+    return date.format(java.time.format.DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("id-ID")));
+  }
+
+  private View createActivityCard(CashFlowActivityTotal actTotal) {
     Context context = requireContext();
     View card = getLayoutInflater().inflate(R.layout.item_cash_flow_card, cashFlowContainer, false);
 
@@ -294,11 +596,11 @@ public final class SummaryFragment extends ScreenFragment {
     DonutChartView donutChart = card.findViewById(R.id.item_cashflow_donut_chart);
     LinearLayout legendList = card.findViewById(R.id.item_cashflow_chart_legend);
 
-    title.setText(getActivityTitle(actSummary.getActivity()));
+    title.setText(getActivityTitle(actTotal.getActivity()));
     
-    long net = actSummary.getNetFlowMinor();
-    long inflow = actSummary.getInflowMinor();
-    long outflow = actSummary.getOutflowMinor();
+    long net = actTotal.getNetMinor();
+    long inflow = actTotal.getIncomeMinor();
+    long outflow = actTotal.getExpenseMinor();
 
     if (showPercentageMode) {
       long base = inflow > 0 ? inflow : (outflow > 0 ? outflow : 1);
@@ -312,7 +614,9 @@ public final class SummaryFragment extends ScreenFragment {
     }
     netText.setTextColor(ContextCompat.getColor(context, net >= 0 ? R.color.finan_income : R.color.finan_expense));
 
-    List<CategoryTotal> categories = actSummary.getTopCategories();
+    List<CategoryTotal> categories = new ArrayList<>();
+    categories.addAll(actTotal.getIncomeCategories());
+    categories.addAll(actTotal.getExpenseCategories());
     if (categories.isEmpty()) {
       card.findViewById(R.id.item_cashflow_chart_container).setVisibility(View.GONE);
       card.findViewById(R.id.item_cashflow_divider).setVisibility(View.GONE);
@@ -973,7 +1277,8 @@ public final class SummaryFragment extends ScreenFragment {
     updateModeToggle();
     if (cachedData != null) {
       TransitionManager.beginDelayedTransition(contentContainer);
-      bindSummary(cachedData.summary, cachedData.prevSummary, cachedData.prevPrevSummary, selectedStartDate, selectedEndDate);
+      bindReport(cachedData.reportResult, cachedData.summary, cachedData.prevSummary, cachedData.prevPrevSummary,
+          selectedStartDate, selectedEndDate, cachedData.unclassifiedCount, cachedData.unclassifiedAmount);
     } else {
       loadSummaryAsync();
     }
@@ -1012,25 +1317,34 @@ public final class SummaryFragment extends ScreenFragment {
     private final Map<Long, Category> categoriesById;
     private final Long walletId;
     private final Long categoryId;
+    private final CashFlowReportResult reportResult;
     private final MonthlySummary summary;
     private final MonthlySummary prevSummary;
     private final MonthlySummary prevPrevSummary;
+    private final long unclassifiedCount;
+    private final long unclassifiedAmount;
 
     private SummaryLoadData(
         Map<Long, Wallet> walletsById,
         Map<Long, Category> categoriesById,
         Long walletId,
         Long categoryId,
+        CashFlowReportResult reportResult,
         MonthlySummary summary,
         MonthlySummary prevSummary,
-        MonthlySummary prevPrevSummary) {
+        MonthlySummary prevPrevSummary,
+        long unclassifiedCount,
+        long unclassifiedAmount) {
       this.walletsById = walletsById;
       this.categoriesById = categoriesById;
       this.walletId = walletId;
       this.categoryId = categoryId;
+      this.reportResult = reportResult;
       this.summary = summary;
       this.prevSummary = prevSummary;
       this.prevPrevSummary = prevPrevSummary;
+      this.unclassifiedCount = unclassifiedCount;
+      this.unclassifiedAmount = unclassifiedAmount;
     }
   }
 

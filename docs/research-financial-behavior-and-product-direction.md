@@ -38,8 +38,10 @@ Rekomendasi utama:
    proyeksi saldo.
 4. Tampilkan `Sisa setelah rencana`, bukan hanya saldo saat ini, dengan formula yang dapat dibuka
    dan dijelaskan.
-5. Tambahkan `Ulangi transaksi` dan mode pencatatan susulan agar kegagalan mencatat beberapa hari
-   tidak membuat user meninggalkan aplikasi.
+5. Pertahankan mode pencatatan tunggal yang cepat karena kegagalan mencatat beberapa hari
+   tidak membuat user meninggalkan aplikasi. Fitur ulangi dan pencatatan susulan
+   dievaluasi dan tidak memberikan manfaat signifikan pada capture-first flow 2-3 tap,
+   sehingga diputuskan untuk tidak diimplementasikan.
 6. Buat review bulanan singkat, deskriptif, dan dapat ditindaklanjuti tanpa skor atau bahasa
    menghakimi.
 7. Tambahkan tujuan/dana cadangan sederhana setelah proyeksi arus kas stabil. Gunakan target
@@ -165,8 +167,10 @@ berat, user cenderung menghindari aplikasi.
 Implikasi:
 
 - Pertahankan fast path normal.
-- Tambahkan `Ulangi transaksi`, draft, dan edit terakhir.
-- Sediakan pencatatan susulan yang cepat dengan tanggal tetap terlihat.
+- Fitur ulangi dan pencatatan susulan dievaluasi dan diputuskan untuk tidak
+  diimplementasikan. Pada capture-first flow (2-3 tap), manfaat penghematan 1-2 tap
+  tidak sebanding dengan kompleksitas UI yang ditambahkan.
+- Pastikan draft dan edit transaksi terakhir tetap tersedia.
 - Jangan memakai streak yang mengubah hari terlewat menjadi kegagalan.
 - Ringkasan perlu menjelaskan kapan transaksi terakhir dicatat agar tidak memberi kesan data pasti
   ketika pencatatan mungkin belum lengkap.
@@ -348,15 +352,27 @@ Gunakan `Sisa setelah rencana`, bukan `Aman dibelanjakan`, karena:
 - Pencatatan manual dapat belum lengkap.
 - Produk tidak boleh memberi jaminan yang lebih kuat daripada datanya.
 
-#### 8. Ulangi dan pencatatan susulan
+#### 8. Ulangi dan pencatatan susulan — tidak diimplementasikan
 
-Tambahkan:
+Keputusan: fitur ini dievaluasi dan **diputuskan untuk tidak dikerjakan**.
 
-- `Ulangi` pada transaksi recent.
-- Suggestion berdasarkan kombinasi wallet, category, merchant, dan nominal yang sering dipakai.
-- Multi-add ringan untuk transaksi yang terlewat tanpa membuka form panjang berulang kali.
-- Tanggal transaksi tetap jelas dan mudah diganti.
-- Tidak ada auto-save dari suggestion.
+Pertimbangan:
+
+- **Tidak memberikan percepatan berarti**: Finan sudah 2-3 tap per transaksi.
+  "Ulangi" hanya menghemat 1 tap, sementara nominal sering berbeda setiap kali
+  (kopi hari ini Rp25.000, besok Rp28.000) sehingga user tetap harus mengetik ulang.
+- **Multi-add bertentangan dengan capture-first**: Tujuan Finan adalah mencatat
+  *saat kejadian*, bukan menumpuk transaksi untuk diurus belakangan. Multi-add
+  justru memperkuat kebiasaan menunda.
+- **Kompleksitas UI tidak sebanding**: Tombol ulangi, suggestion bar, dan mode
+  multi-add menambah beban visual pada home screen yang saat ini bersih dan
+  fokus pada capture.
+- **Manfaat lebih kecil daripada understanding dan reconcile**: Sumber daya
+  lebih baik dialokasikan ke laporan arus kas terekonstruksi yang merupakan
+  gap nyata di core loop.
+
+Keputusan ini bersifat tetap kecuali ada data pengguna yang menunjukkan bahwa
+kurangnya fitur ini menjadi penyebab user meninggalkan aplikasi.
 
 #### 9. Review bulanan singkat
 
@@ -481,10 +497,11 @@ yang lebih besar daripada manfaat awalnya bagi capture-first tracker.
 ### Fase B: kebiasaan tetap ringan
 
 1. Undo dan edit transaksi terakhir.
-2. Ulangi transaksi.
-3. Draft yang selamat dari interruption.
-4. Pencatatan susulan cepat.
-5. Indikator transaksi terakhir tanpa streak.
+2. Draft yang selamat dari interruption.
+3. Indikator transaksi terakhir tanpa streak.
+
+> **Catatan**: "Ulangi transaksi" dan "Pencatatan susulan cepat" dievaluasi dan
+> diputuskan untuk tidak diimplementasikan. Lihat [Prioritas 1:8](#8-ulangi-dan-pencatatan-susulan--tidak-diimplementasikan).
 
 ### Fase C: melihat ke depan
 

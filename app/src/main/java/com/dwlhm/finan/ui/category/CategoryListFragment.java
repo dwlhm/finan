@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 public final class CategoryListFragment extends ScreenFragment {
 
   public static final String TAG = "category_list";
+  public static final String ARG_CLASSIFICATION_FILTER = "classification_filter";
   private static final long SEARCH_DEBOUNCE_MS = 200L;
   private static final String SEARCH_STATE = "category_search";
   private static final String PENDING_EXPANDED_STATE = "category_pending_expanded";
@@ -81,6 +82,12 @@ public final class CategoryListFragment extends ScreenFragment {
       otherExpanded = savedInstanceState.getBoolean(OTHER_EXPANDED_STATE, true);
       String filter = savedInstanceState.getString(CLASSIFICATION_FILTER_STATE);
       classificationFilter = filter == null ? null : CashFlowActivity.valueOf(filter);
+    }
+    if (classificationFilter == null) {
+      String argFilter = getArguments() != null ? getArguments().getString(ARG_CLASSIFICATION_FILTER) : null;
+      if (argFilter != null) {
+        classificationFilter = CashFlowActivity.UNCLASSIFIED;
+      }
     }
     listView = view.findViewById(R.id.category_list);
     loadingView = view.findViewById(R.id.category_loading);

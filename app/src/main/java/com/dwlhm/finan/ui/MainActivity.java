@@ -58,6 +58,17 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
   }
 
   @Override
+  public void openCategoriesFiltered(String classificationFilter) {
+    Bundle args = new Bundle();
+    if (classificationFilter != null) {
+      args.putString(CategoryListFragment.ARG_CLASSIFICATION_FILTER, classificationFilter);
+    }
+    CategoryListFragment fragment = new CategoryListFragment();
+    fragment.setArguments(args);
+    openSettingsChild(fragment, CategoryListFragment.TAG, BACK_STACK_CATEGORY);
+  }
+
+  @Override
   public void openWallets() {
     openSettingsChild(new WalletListFragment(), WalletListFragment.TAG, BACK_STACK_WALLET);
   }
@@ -69,6 +80,30 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
     Fragment fragment = getSupportFragmentManager().findFragmentByTag(Screen.HISTORY.tag);
     if (fragment instanceof HistoryFragment) {
       ((HistoryFragment) fragment).setCategoryFilter(categoryId);
+    }
+  }
+
+  @Override
+  public void openHistoryWithFilter(String type, long startDate, long endDate, Long walletId, Long categoryId) {
+    showScreen(Screen.HISTORY, true);
+    getSupportFragmentManager().executePendingTransactions();
+    Fragment fragment = getSupportFragmentManager().findFragmentByTag(Screen.HISTORY.tag);
+    if (fragment instanceof HistoryFragment) {
+      HistoryFragment hf = (HistoryFragment) fragment;
+      hf.setDateRange(startDate, endDate);
+      hf.setTypeFilter(type);
+      if (walletId != null) hf.setWalletFilter(walletId);
+      if (categoryId != null) hf.setCategoryFilter(categoryId);
+    }
+  }
+
+  @Override
+  public void openHistoryForActivity(String activity) {
+    showScreen(Screen.HISTORY, true);
+    getSupportFragmentManager().executePendingTransactions();
+    Fragment fragment = getSupportFragmentManager().findFragmentByTag(Screen.HISTORY.tag);
+    if (fragment instanceof HistoryFragment) {
+      ((HistoryFragment) fragment).setActivityFilter(activity);
     }
   }
 

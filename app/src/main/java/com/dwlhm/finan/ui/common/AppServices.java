@@ -22,6 +22,7 @@ import com.dwlhm.finan.service.category.CategoryUsageService;
 import com.dwlhm.finan.service.category.CategoryClassificationService;
 import com.dwlhm.finan.service.export.ExportService;
 import com.dwlhm.finan.service.export.ImportService;
+import com.dwlhm.finan.service.summary.CashFlowReportService;
 import com.dwlhm.finan.service.summary.SummaryService;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.service.transfer.TransferService;
@@ -48,6 +49,7 @@ public final class AppServices {
   public final DefaultsStore defaultsStore;
   public final DbWorker dbWorker;
   public final WalletService walletService;
+  public final CashFlowReportService cashFlowReportService;
 
   private AppServices(
       FinanDatabaseHelper databaseHelper,
@@ -65,8 +67,10 @@ public final class AppServices {
       TransferDao transferDao,
       DefaultsStore defaultsStore,
       DbWorker dbWorker,
-      WalletService walletService) {
+      WalletService walletService,
+      CashFlowReportService cashFlowReportService) {
     this.databaseHelper = databaseHelper;
+    this.cashFlowReportService = cashFlowReportService;
     this.transactionService = transactionService;
     this.adjustmentService = adjustmentService;
     this.transferService = transferService;
@@ -138,6 +142,8 @@ public final class AppServices {
 
     DefaultsStore defaultsStore = new DefaultsStore(context);
     WalletService walletService = new WalletService(db, walletTable);
+    CashFlowReportService cashFlowReportService =
+        new CashFlowReportService(summaryDao, categoryTable, walletTable, timeProvider, ZoneId.systemDefault());
 
     return new AppServices(
         databaseHelper,
@@ -155,6 +161,7 @@ public final class AppServices {
         transferTable,
         defaultsStore,
         new DbWorker(),
-        walletService);
+        walletService,
+        cashFlowReportService);
   }
 }

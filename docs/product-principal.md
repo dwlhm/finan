@@ -86,7 +86,8 @@ Aplikasi harus terasa cepat dalam beberapa aspek:
 * Cepat memilih kategori.
 * Cepat menyimpan transaksi.
 * Cepat mengedit transaksi terakhir.
-* Cepat mengulang transaksi yang mirip.
+* (Fitur "ulangi transaksi" dievaluasi dan tidak memberikan manfaat berarti pada
+  flow 2-3 tap, sehingga tidak diimplementasikan.)
 
 Jika user merasa perlu “menyiapkan waktu” untuk mencatat transaksi, produk gagal menjalankan prinsip ini.
 
