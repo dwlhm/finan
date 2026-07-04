@@ -156,7 +156,7 @@
                         android:paddingStart="12dp"
                         android:paddingEnd="12dp"
                         android:text="Bulan Ini"
-                        android:textColor="@color/finan_summary_period_text"
+                        android:textColor="@color/finan_chip_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
@@ -173,7 +173,7 @@
                         android:paddingStart="12dp"
                         android:paddingEnd="12dp"
                         android:text="Bulan Lalu"
-                        android:textColor="@color/finan_summary_period_text"
+                        android:textColor="@color/finan_chip_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -456,39 +456,58 @@
                         android:layout_weight="1"
                         android:text="Pengeluaran Harian" />
 
-                    <TextView
-                        android:id="@+id/summary_chart_legend_income"
+                    <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Pemasukan"
-                        android:textColor="@color/finan_income"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
+                        android:layout_height="28dp"
+                        android:background="@drawable/bg_toggle_frame">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_marginEnd="8dp"
-                        android:text="/"
-                        android:textColor="@color/finan_text_hint"
-                        android:textSize="10sp" />
+                        <TextView
+                            android:id="@+id/summary_chart_toggle_income"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:background="@android:color/transparent"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                            android:gravity="center"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:text="Pemasukan"
+                            android:textColor="#4A9E7F"
+                            android:textSize="9sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:id="@+id/summary_chart_legend_expense"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Pengeluaran"
-                        android:textColor="@color/finan_expense"
-                        android:textSize="10sp"
-                        android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/summary_chart_toggle_expense"
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_toggle_active"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                            android:gravity="center"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:text="Pengeluaran"
+                            android:textColor="#FFFFFF"
+                            android:textSize="9sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/summary_chart_legend"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:orientation="horizontal" />
 
                 <LinearLayout
                     android:id="@+id/summary_chart_weeks"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="10dp"
                     android:orientation="vertical" />
             </LinearLayout>
 

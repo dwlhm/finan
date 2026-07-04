@@ -1,6 +1,7 @@
 package com.dwlhm.finan.ui.common;
 
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
@@ -12,6 +13,7 @@ import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
@@ -19,6 +21,10 @@ public final class CustomDatePickerView extends LinearLayout {
 
   public interface OnDateSelectedListener {
     void onDateSelected(long millis);
+  }
+
+  public interface OnRangeSelectedListener {
+    void onRangeSelected(long startMillis, long endMillis);
   }
 
   private static final String[] WEEKDAYS = { "Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab" };
@@ -31,10 +37,15 @@ public final class CustomDatePickerView extends LinearLayout {
   private final LinearLayout grid, yearGrid;
   private final TextView navLeft, navRight;
   private final int colorPrimary, colorSecondary, colorDim, colorWeekend, colorSelected;
+  private final int colorRangeBg;
   private int year, month, selectedDay = 1, yearRangeStart;
   private int startDow, todayDay;
   private boolean showingYears;
   private OnDateSelectedListener listener;
+  private OnRangeSelectedListener rangeListener;
+  private boolean rangeMode;
+  private Integer rangeStartDay, rangeStartMonth, rangeStartYear;
+  private Integer rangeEndDay, rangeEndMonth, rangeEndYear;
 
   public CustomDatePickerView(Context context) {
     this(context, null);
@@ -49,6 +60,7 @@ public final class CustomDatePickerView extends LinearLayout {
     colorSelected = ContextCompat.getColor(context, R.color.finan_chip_text_selected);
     colorDim = (colorSecondary & 0x00FFFFFF) | (0x80000000);
     colorWeekend = ContextCompat.getColor(context, R.color.finan_expense);
+    colorRangeBg = (colorPrimary & 0x00FFFFFF) | (0x18000000);
     int selBg = UiComponentStyles.selectableItemBackground(context);
 
     LocalDate now = LocalDate.now();
@@ -134,7 +146,16 @@ public final class CustomDatePickerView extends LinearLayout {
       selectedDay = today.getDayOfMonth();
       showingYears = false;
       render();
-      fireSelected();
+      if (rangeMode) {
+        rangeStartDay = today.getDayOfMonth();
+        rangeStartMonth = today.getMonthValue();
+        rangeStartYear = today.getYear();
+        rangeEndDay = null;
+        rangeEndMonth = null;
+        rangeEndYear = null;
+      } else {
+        fireSelected();
+      }
     });
     LayoutParams todayParams = new LayoutParams(LayoutParams.WRAP_CONTENT, dp(40));
     todayParams.setMargins(0, dp(4), 0, 0);
@@ -183,14 +204,36 @@ public final class CustomDatePickerView extends LinearLayout {
   }
 
   private void applyDayStyle(int day, boolean selected) {
+    applyDayStyle(day, month, year, selected);
+  }
+
+  private void applyDayStyle(int day, int m, int y, boolean selected) {
     int pos = startDow + day - 1;
-    if (pos < 0 || pos >= 42) return;
-    TextView cell = cellAt(pos);
-    boolean isToday = day == todayDay;
-    boolean isWeekend = (pos % 7) == 0 || (pos % 7) == 6;
+    if (m != month || y != year) {
+      pos = -1;
+    }
+    TextView cell = findCell(day, m, y);
+    if (cell == null) return;
+    boolean isToday = todayDay == day && m == month && y == year;
+    boolean isWeekend = pos >= 0 && ((pos % 7) == 0 || (pos % 7) == 6);
+    boolean inRange = false;
+    boolean isRangeStart = false;
+    boolean isRangeEnd = false;
+    if (rangeMode && rangeStartDay != null && rangeEndDay != null) {
+      isRangeStart = day == rangeStartDay && m == rangeStartMonth && y == rangeStartYear;
+      isRangeEnd = day == rangeEndDay && m == rangeEndMonth && y == rangeEndYear;
+      inRange = !isRangeStart && !isRangeEnd
+          && !beforeRangeStart(day, m, y) && !afterRangeEnd(day, m, y);
+    }
     if (selected) {
       cell.setBackgroundResource(R.drawable.bg_date_selected);
       cell.setTextColor(colorSelected);
+    } else if (isRangeStart || isRangeEnd) {
+      cell.setBackgroundResource(R.drawable.bg_date_selected);
+      cell.setTextColor(colorSelected);
+    } else if (inRange) {
+      cell.setBackgroundColor(colorRangeBg);
+      cell.setTextColor(colorPrimary);
     } else if (isToday) {
       cell.setBackgroundResource(R.drawable.bg_date_today);
       cell.setTextColor(colorPrimary);
@@ -199,6 +242,32 @@ public final class CustomDatePickerView extends LinearLayout {
       cell.setTextColor(isWeekend ? colorWeekend : colorSecondary);
     }
     cell.invalidate();
+  }
+
+  private TextView findCell(int day, int m, int y) {
+    if (m == month && y == year) {
+      int pos = startDow + day - 1;
+      if (pos >= 0 && pos < 42) return cellAt(pos);
+      return null;
+    }
+    for (int p = 0; p < 42; p++) {
+      TextView cell = cellAt(p);
+      boolean isPrev = p < startDow;
+      boolean isNext = p >= startDow + LocalDate.of(year, month, 1).lengthOfMonth();
+      if (isPrev) {
+        int prevMonth = month == 1 ? 12 : month - 1;
+        int prevYear = month == 1 ? year - 1 : year;
+        int daysInPrev = LocalDate.of(prevYear, prevMonth, 1).lengthOfMonth();
+        int cellDay = daysInPrev - startDow + p + 1;
+        if (cellDay == day && prevMonth == m && prevYear == y) return cell;
+      } else if (isNext) {
+        int nextMonth = month == 12 ? 1 : month + 1;
+        int nextYear = month == 12 ? year + 1 : year;
+        int cellDay = p - startDow - LocalDate.of(year, month, 1).lengthOfMonth() + 1;
+        if (cellDay == day && nextMonth == m && nextYear == y) return cell;
+      }
+    }
+    return null;
   }
 
   private void render() {
@@ -255,9 +324,17 @@ public final class CustomDatePickerView extends LinearLayout {
       if (p < startDow) {
         int day = daysInPrev - startDow + p + 1;
         cell.setText(String.valueOf(day));
-        cell.setTextColor(colorDim);
         int pm = prevMonth, py = prevYear, df = day;
-        cell.setOnClickListener(v -> { month = pm; year = py; selectedDay = df; render(); fireSelected(); });
+        if (rangeMode && rangeStartDay != null && rangeEndDay == null) {
+          cell.setTextColor(colorDim);
+          cell.setOnClickListener(v -> { month = pm; year = py; selectedDay = df; render(); fireSelected(); });
+        } else {
+          cell.setTextColor(colorDim);
+          cell.setOnClickListener(v -> { month = pm; year = py; selectedDay = df; render(); fireSelected(); });
+        }
+        if (rangeMode) {
+          applyDayStyle(day, pm, py, false);
+        }
       } else if (p < startDow + daysInMonth) {
         int day = p - startDow + 1;
         cell.setText(String.valueOf(day));
@@ -267,16 +344,58 @@ public final class CustomDatePickerView extends LinearLayout {
       } else {
         int day = p - startDow - daysInMonth + 1;
         cell.setText(String.valueOf(day));
-        cell.setTextColor(colorDim);
         int nm = month == 12 ? 1 : month + 1;
         int ny = month == 12 ? year + 1 : year;
         int df = day;
-        cell.setOnClickListener(v -> { month = nm; year = ny; selectedDay = df; render(); fireSelected(); });
+        if (rangeMode && rangeStartDay != null && rangeEndDay == null) {
+          cell.setTextColor(colorDim);
+          cell.setOnClickListener(v -> { month = nm; year = ny; selectedDay = df; render(); fireSelected(); });
+        } else {
+          cell.setTextColor(colorDim);
+          cell.setOnClickListener(v -> { month = nm; year = ny; selectedDay = df; render(); fireSelected(); });
+        }
+        if (rangeMode) {
+          applyDayStyle(day, nm, ny, false);
+        }
       }
     }
   }
 
   private void selectDate(int day) {
+    if (rangeMode) {
+      if (rangeStartDay == null || rangeEndDay != null) {
+        rangeStartDay = day;
+        rangeStartMonth = month;
+        rangeStartYear = year;
+        rangeEndDay = null;
+        rangeEndMonth = null;
+        rangeEndYear = null;
+        selectedDay = day;
+        render();
+      } else {
+        int endDay = day;
+        int endMonth = month;
+        int endYear = year;
+        LocalDate start = LocalDate.of(rangeStartYear, rangeStartMonth, rangeStartDay);
+        LocalDate end = LocalDate.of(endYear, endMonth, endDay);
+        if (end.isBefore(start)) {
+          rangeStartDay = endDay;
+          rangeStartMonth = endMonth;
+          rangeStartYear = endYear;
+          rangeEndDay = start.getDayOfMonth();
+          rangeEndMonth = start.getMonthValue();
+          rangeEndYear = start.getYear();
+        } else {
+          rangeEndDay = endDay;
+          rangeEndMonth = endMonth;
+          rangeEndYear = endYear;
+        }
+        selectedDay = endDay;
+        render();
+        fireRangeSelected();
+      }
+      return;
+    }
     int old = selectedDay;
     if (old == day) return;
     selectedDay = day;
@@ -290,6 +409,57 @@ public final class CustomDatePickerView extends LinearLayout {
       listener.onDateSelected(
           LocalDate.of(year, month, selectedDay).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
     }
+  }
+
+  private void fireRangeSelected() {
+    if (rangeListener != null && rangeStartDay != null && rangeEndDay != null) {
+      LocalDate start = LocalDate.of(rangeStartYear, rangeStartMonth, rangeStartDay);
+      LocalDate end = LocalDate.of(rangeEndYear, rangeEndMonth, rangeEndDay);
+      rangeListener.onRangeSelected(
+          start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+          end.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
+    }
+  }
+
+  private boolean beforeRangeStart(int day, int m, int y) {
+    if (rangeStartDay == null) return true;
+    LocalDate d = LocalDate.of(y, m, day);
+    LocalDate rs = LocalDate.of(rangeStartYear, rangeStartMonth, rangeStartDay);
+    return d.isBefore(rs);
+  }
+
+  private boolean afterRangeEnd(int day, int m, int y) {
+    if (rangeEndDay == null) return true;
+    LocalDate d = LocalDate.of(y, m, day);
+    LocalDate re = LocalDate.of(rangeEndYear, rangeEndMonth, rangeEndDay);
+    return d.isAfter(re);
+  }
+
+  public void setRangeMode(boolean rangeMode) {
+    this.rangeMode = rangeMode;
+    if (!rangeMode) {
+      rangeStartDay = rangeStartMonth = rangeStartYear = null;
+      rangeEndDay = rangeEndMonth = rangeEndYear = null;
+    }
+  }
+
+  public void setRange(long startMillis, long endMillis) {
+    LocalDate start = Instant.ofEpochMilli(startMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+    LocalDate end = Instant.ofEpochMilli(endMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+    rangeStartDay = start.getDayOfMonth();
+    rangeStartMonth = start.getMonthValue();
+    rangeStartYear = start.getYear();
+    rangeEndDay = end.getDayOfMonth();
+    rangeEndMonth = end.getMonthValue();
+    rangeEndYear = end.getYear();
+    year = start.getYear();
+    month = start.getMonthValue();
+    selectedDay = start.getDayOfMonth();
+    render();
+  }
+
+  public void setOnRangeSelectedListener(OnRangeSelectedListener l) {
+    this.rangeListener = l;
   }
 
   public void setDate(long millis) {

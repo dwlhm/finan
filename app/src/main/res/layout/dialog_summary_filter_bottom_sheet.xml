@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="20dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_bottom_sheet_handle" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/summary_filter_title"
+        android:textAppearance="@style/Finan.Text.Title" />
+
+    <TextView
+        style="@style/Finan.Text.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/summary_wallet_filter_label" />
+
+    <TextView
+        android:id="@+id/filter_wallet_value"
+        style="@style/Finan.Button.Select"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:drawableEnd="@drawable/ic_occurred_at_chevron"
+        android:foreground="?android:attr/selectableItemBackground" />
+
+    <TextView
+        style="@style/Finan.Text.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/summary_category_filter_label" />
+
+    <TextView
+        android:id="@+id/filter_category_value"
+        style="@style/Finan.Button.Select"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:drawableEnd="@drawable/ic_occurred_at_chevron"
+        android:foreground="?android:attr/selectableItemBackground" />
+
+    <TextView
+        android:id="@+id/filter_reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:padding="4dp"
+        android:text="@string/summary_filter_reset"
+        android:textColor="@color/finan_warm_accent"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <com.dwlhm.finan.ui.common.DialogActionsView
+        android:id="@+id/filter_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:primaryText="@string/summary_range_apply" />
+
+</LinearLayout>

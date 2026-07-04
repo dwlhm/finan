@@ -1,23 +1,20 @@
 package com.dwlhm.finan.ui.summary;
 
-import android.app.AlertDialog;
-import android.app.DatePickerDialog;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.ImageView;
 import android.widget.TextView;
-import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
@@ -32,11 +29,11 @@ import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.WalletBalance;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.EntityLookup;
-import com.dwlhm.finan.ui.common.FilterDialog;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
+import com.dwlhm.finan.ui.summary.SummaryFilterBottomSheet;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
@@ -70,7 +67,6 @@ public final class SummaryFragment extends ScreenFragment {
   private Long selectedWalletId;
   private Long selectedCategoryId;
 
-  private ProgressBar loading;
   private TextView periodLabel;
   private ImageButton filterButton;
   private TextView netFlow;
@@ -96,7 +92,11 @@ public final class SummaryFragment extends ScreenFragment {
   private LinearLayout reconciliationCard;
   private LinearLayout reconciliationLines;
   private LinearLayout weeklyChart;
+  private LinearLayout chartLegend;
   private LinearLayout chartWeeksContainer;
+  private TextView chartToggleIncome;
+  private TextView chartToggleExpense;
+  private boolean showWeeklyChartIncome;
   private TextView headlineView;
 
   @Override
@@ -123,7 +123,6 @@ public final class SummaryFragment extends ScreenFragment {
     selectedEndDate = restoredRange.end;
     selectedWalletId = restoreFilterId(savedInstanceState, WALLET_FILTER_STATE_KEY);
     selectedCategoryId = restoreFilterId(savedInstanceState, CATEGORY_FILTER_STATE_KEY);
-    loading = view.findViewById(R.id.summary_loading);
     periodLabel = view.findViewById(R.id.summary_period_label);
     filterButton = view.findViewById(R.id.summary_filter_button);
     netFlow = view.findViewById(R.id.summary_net_flow);
@@ -146,7 +145,14 @@ public final class SummaryFragment extends ScreenFragment {
     reconciliationCard = view.findViewById(R.id.summary_reconciliation_card);
     reconciliationLines = view.findViewById(R.id.summary_reconciliation_lines);
     weeklyChart = view.findViewById(R.id.summary_weekly_chart);
+    chartLegend = view.findViewById(R.id.summary_chart_legend);
     chartWeeksContainer = view.findViewById(R.id.summary_chart_weeks);
+    chartToggleIncome = view.findViewById(R.id.summary_chart_toggle_income);
+    chartToggleExpense = view.findViewById(R.id.summary_chart_toggle_expense);
+    chartToggleIncome.setOnClickListener(v -> setWeeklyChartMode(true));
+    chartToggleExpense.setOnClickListener(v -> setWeeklyChartMode(false));
+    updateChartToggle();
+    populateChartLegend();
     headlineView = view.findViewById(R.id.summary_net_flow_label);
 
     inboxPrompt.setOnClickListener(v -> {
@@ -159,17 +165,16 @@ public final class SummaryFragment extends ScreenFragment {
     View lastMonthChip = view.findViewById(R.id.summary_chip_last_month);
 
     thisMonthChip.setOnClickListener(v -> {
-        LocalDate today = LocalDate.now();
-        selectedStartDate = today.withDayOfMonth(1);
-        selectedEndDate = today.withDayOfMonth(today.lengthOfMonth());
+        DateRange range = cycleRange(0);
+        selectedStartDate = range.start;
+        selectedEndDate = range.end;
         loadSummaryAsync();
     });
 
     lastMonthChip.setOnClickListener(v -> {
-        LocalDate today = LocalDate.now();
-        LocalDate lastMonth = today.minusMonths(1);
-        selectedStartDate = lastMonth.withDayOfMonth(1);
-        selectedEndDate = lastMonth.withDayOfMonth(lastMonth.lengthOfMonth());
+        DateRange range = cycleRange(-1);
+        selectedStartDate = range.start;
+        selectedEndDate = range.end;
         loadSummaryAsync();
     });
 
@@ -207,8 +212,6 @@ public final class SummaryFragment extends ScreenFragment {
     LocalDate requestedEndDate = selectedEndDate;
     Long requestedWalletId = selectedWalletId;
     Long requestedCategoryId = selectedCategoryId;
-    loading.setVisibility(View.VISIBLE);
-    emptyMessage.setVisibility(View.GONE);
     services.dbWorker.compute(
         () -> {
           List<Wallet> wallets = services.walletService.findAll();
@@ -265,7 +268,6 @@ public final class SummaryFragment extends ScreenFragment {
           bindReport(data.reportResult, data.summary, data.prevSummary, data.prevPrevSummary,
               requestedStartDate, requestedEndDate, data.unclassifiedCount, data.unclassifiedAmount);
           updateFilterButton();
-          loading.setVisibility(View.GONE);
         });
   }
 
@@ -470,113 +472,105 @@ public final class SummaryFragment extends ScreenFragment {
     reconciliationLines.addView(row);
   }
 
+  private static final int[] DAY_COLORS = {
+    0xFFE74C3C, // Monday    - Senin   (red)
+    0xFF2980B9, // Tuesday   - Selasa  (blue)
+    0xFF27AE60, // Wednesday - Rabu    (green)
+    0xFFF39C12, // Thursday  - Kamis   (orange)
+    0xFF8E44AD, // Friday    - Jumat   (purple)
+    0xFF16A085, // Saturday  - Sabtu   (teal)
+    0xFFE91E63, // Sunday    - Minggu  (pink)
+  };
+
+  private static int dayOfWeekIndex(long dateMillis) {
+    if (dateMillis <= 0) return 0;
+    return java.time.Instant.ofEpochMilli(dateMillis)
+        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        .getDayOfWeek().getValue() - 1;
+  }
+
   private void bindWeeklyChart(CashFlowReportResult reportResult) {
     chartWeeksContainer.removeAllViews();
 
-    long maxAmount = 0L;
     int totalDays = 0;
     for (CashFlowReport report : reportResult.getAllReports()) {
-      for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
-        for (CashFlowReport.DailyTotal day : week.getDays()) {
-          long dayTotal = day.getIncomeMinor() + day.getExpenseMinor();
-          if (dayTotal > maxAmount) maxAmount = dayTotal;
-          totalDays++;
-        }
-      }
+      totalDays += report.getWeekSummaries().size() * 7;
     }
 
-    if (totalDays == 0 || maxAmount == 0) {
+    if (totalDays == 0) {
       weeklyChart.setVisibility(View.GONE);
       return;
     }
 
     weeklyChart.setVisibility(View.VISIBLE);
-    int incomeColor = ContextCompat.getColor(requireContext(), R.color.finan_income);
-    int expenseColor = ContextCompat.getColor(requireContext(), R.color.finan_expense);
 
     for (CashFlowReport report : reportResult.getAllReports()) {
       for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
-        chartWeeksContainer.addView(createWeekRow(week, maxAmount, incomeColor, expenseColor));
+        long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
+        if (weekTotal > 0) {
+          chartWeeksContainer.addView(createWeekRow(week));
+        }
       }
     }
   }
 
-  private View createWeekRow(CashFlowReport.WeekSummary week, long maxAmount, int incomeColor, int expenseColor) {
+  private View createWeekRow(CashFlowReport.WeekSummary week) {
     Context context = requireContext();
     LinearLayout row = new LinearLayout(context);
-    row.setOrientation(LinearLayout.VERTICAL);
-    row.setPadding(0, UiComponentStyles.dp(context, 4), 0, UiComponentStyles.dp(context, 4));
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setPadding(0, UiComponentStyles.dp(context, 5), 0, UiComponentStyles.dp(context, 5));
 
     TextView weekLabel = new TextView(context);
-    String startLabel = formatShortDate(week.getStartDate());
-    String endLabel = formatShortDate(week.getEndDate());
-    weekLabel.setText(startLabel + " - " + endLabel);
+    weekLabel.setText(formatShortDate(week.getStartDate()) + " - " + formatShortDate(week.getEndDate()));
     weekLabel.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
     weekLabel.setTextSize(10f);
-    weekLabel.setTypeface(weekLabel.getTypeface(), android.graphics.Typeface.BOLD);
-    weekLabel.setPadding(0, 0, 0, UiComponentStyles.dp(context, 6));
+    weekLabel.setTypeface(weekLabel.getTypeface(), Typeface.BOLD);
+    LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(
+        UiComponentStyles.dp(context, 72), LinearLayout.LayoutParams.WRAP_CONTENT);
+    weekLabel.setLayoutParams(labelLp);
+    weekLabel.setPadding(0, 0, UiComponentStyles.dp(context, 8), 0);
     row.addView(weekLabel);
 
-    LinearLayout daysRow = new LinearLayout(context);
-    daysRow.setOrientation(LinearLayout.HORIZONTAL);
-    daysRow.setWeightSum(7f);
+    int barHeight = UiComponentStyles.dp(context, 28);
+    int cornerRadius = UiComponentStyles.dp(context, 6);
+    LinearLayout bar = new LinearLayout(context);
+    bar.setOrientation(LinearLayout.HORIZONTAL);
+    bar.setLayoutParams(new LinearLayout.LayoutParams(0, barHeight, 1f));
 
-    for (CashFlowReport.DailyTotal day : week.getDays()) {
-      LinearLayout dayCol = new LinearLayout(context);
-      dayCol.setOrientation(LinearLayout.VERTICAL);
-      dayCol.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-      LinearLayout.LayoutParams colParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-      dayCol.setLayoutParams(colParams);
-      dayCol.setPadding(UiComponentStyles.dp(context, 1), 0, UiComponentStyles.dp(context, 1), 0);
-
-      LinearLayout barContainer = new LinearLayout(context);
-      barContainer.setOrientation(LinearLayout.VERTICAL);
-      barContainer.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-      int barHeight = UiComponentStyles.dp(context, 48);
-      barContainer.setLayoutParams(new LinearLayout.LayoutParams(
-          LinearLayout.LayoutParams.MATCH_PARENT, barHeight));
-
-      long dayIncome = day.getIncomeMinor();
-      long dayExpense = day.getExpenseMinor();
-
-      if (dayIncome > 0) {
-        int incomeBarHeight = Math.max(2, (int) (barHeight * dayIncome / (maxAmount * 2)));
-        View incomeBar = new View(context);
-        incomeBar.setBackgroundColor(incomeColor);
-        incomeBar.setLayoutParams(new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, incomeBarHeight));
-        barContainer.addView(incomeBar);
+    List<CashFlowReport.DailyTotal> days = week.getDays();
+    float weightSum = 0f;
+    boolean hasData = false;
+    for (CashFlowReport.DailyTotal day : days) {
+      long val = showWeeklyChartIncome ? day.getIncomeMinor() : day.getExpenseMinor();
+      if (val > 0) {
+        weightSum += (float) val;
+        hasData = true;
       }
-
-      if (dayExpense > 0) {
-        int expBarHeight = Math.max(2, (int) (barHeight * dayExpense / (maxAmount * 2)));
-        View expBar = new View(context);
-        expBar.setBackgroundColor(expenseColor);
-        expBar.setLayoutParams(new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, expBarHeight));
-        barContainer.addView(expBar);
-      }
-
-      if (dayIncome == 0 && dayExpense == 0) {
-        dayCol.setMinimumHeight(barHeight);
-      }
-
-      dayCol.addView(barContainer);
-
-      TextView dayLabel = new TextView(context);
-      dayLabel.setText(String.valueOf(day.getDateMillis() > 0
-          ? java.time.Instant.ofEpochMilli(day.getDateMillis())
-              .atZone(java.time.ZoneId.systemDefault()).toLocalDate().getDayOfMonth()
-          : 0));
-      dayLabel.setTextColor(ContextCompat.getColor(context, R.color.finan_text_hint));
-      dayLabel.setTextSize(9f);
-      dayLabel.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-      dayCol.addView(dayLabel);
-
-      daysRow.addView(dayCol);
     }
 
-    row.addView(daysRow);
+    if (hasData) {
+      bar.setWeightSum(weightSum);
+      int gapDp = UiComponentStyles.dp(context, 2);
+
+      for (int i = 0; i < days.size(); i++) {
+        long val = showWeeklyChartIncome ? days.get(i).getIncomeMinor() : days.get(i).getExpenseMinor();
+        if (val <= 0) continue;
+
+        View segment = new View(context);
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.RECTANGLE);
+        shape.setColor(DAY_COLORS[dayOfWeekIndex(days.get(i).getDateMillis())]);
+        shape.setCornerRadius(cornerRadius);
+        segment.setBackground(shape);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, barHeight, (float) val);
+        lp.rightMargin = gapDp;
+        segment.setLayoutParams(lp);
+        bar.addView(segment);
+      }
+    }
+
+    row.addView(bar);
     return row;
   }
 
@@ -830,137 +824,22 @@ public final class SummaryFragment extends ScreenFragment {
 
   private void showDateRangePicker() {
     Context context = requireContext();
-    LocalDate[] pendingStart = {selectedStartDate};
-    LocalDate[] pendingEnd = {selectedEndDate};
-
     android.content.SharedPreferences prefs = context.getSharedPreferences("finan_prefs", Context.MODE_PRIVATE);
-    int[] pendingCutoff = {prefs.getInt("cutoff_day", 1)};
+    int cutoffDay = prefs.getInt("cutoff_day", 1);
 
-    LinearLayout content = new LinearLayout(context);
-    content.setOrientation(LinearLayout.VERTICAL);
-    int horizontalPadding = UiComponentStyles.dp(context, 20);
-    int topPadding = UiComponentStyles.dp(context, 6);
-    content.setPadding(horizontalPadding, topPadding, horizontalPadding, 0);
-
-    TextView startValue = createRangeDateValue(context, pendingStart[0]);
-    TextView endValue = createRangeDateValue(context, pendingEnd[0]);
-    TextView cycleValue = createPickerValue(context, getCycleLabel(pendingCutoff[0]));
-
-    content.addView(createRangeDateRow(context, R.string.summary_range_start_label, startValue));
-    content.addView(createRangeDateRow(context, R.string.summary_range_end_label, endValue));
-
-    LinearLayout cycleRow = new LinearLayout(context);
-    cycleRow.setOrientation(LinearLayout.VERTICAL);
-    LinearLayout.LayoutParams cycleRowParams = new LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    cycleRowParams.topMargin = UiComponentStyles.dp(context, 10);
-    cycleRow.setLayoutParams(cycleRowParams);
-
-    TextView cycleLabel = new TextView(context);
-    cycleLabel.setText("Mulai Siklus Bulanan (Tanggal Gajian)");
-    cycleLabel.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
-    cycleLabel.setTextSize(12f);
-    cycleLabel.setTypeface(cycleLabel.getTypeface(), Typeface.BOLD);
-    cycleRow.addView(cycleLabel);
-
-    LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    valueParams.topMargin = UiComponentStyles.dp(context, 6);
-    cycleRow.addView(cycleValue, valueParams);
-
-    content.addView(cycleRow);
-
-    startValue.setOnClickListener(
-        v ->
-            showDatePicker(
-                R.string.summary_range_start_label,
-                pendingStart[0],
-                selected -> {
-                  pendingStart[0] = selected;
-                  if (pendingEnd[0].isBefore(selected)) {
-                    pendingEnd[0] = selected;
-                  }
-                  startValue.setText(formatDateLabel(pendingStart[0]));
-                  endValue.setText(formatDateLabel(pendingEnd[0]));
-                }));
-    endValue.setOnClickListener(
-        v ->
-            showDatePicker(
-                R.string.summary_range_end_label,
-                pendingEnd[0],
-                selected -> {
-                  pendingEnd[0] = selected;
-                  if (pendingStart[0].isAfter(selected)) {
-                    pendingStart[0] = selected;
-                  }
-                  startValue.setText(formatDateLabel(pendingStart[0]));
-                  endValue.setText(formatDateLabel(pendingEnd[0]));
-                }));
-
-    String[] cycleOptions = {
-      "Tanggal 1 (Awal Bulan)",
-      "Tanggal 5",
-      "Tanggal 10",
-      "Tanggal 15",
-      "Tanggal 20",
-      "Tanggal 25",
-      "Tanggal 28",
-      "Hari Kerja Terakhir (Akhir Bulan)"
-    };
-    int[] cycleValues = {1, 5, 10, 15, 20, 25, 28, -1};
-
-    cycleValue.setOnClickListener(v -> {
-      new AlertDialog.Builder(context)
-          .setTitle("Pilih Siklus Gajian")
-          .setItems(cycleOptions, (dialog, which) -> {
-            int newDay = cycleValues[which];
-            pendingCutoff[0] = newDay;
-            cycleValue.setText(getCycleLabel(newDay));
-
-            LocalDate now = LocalDate.now();
-            LocalDate start;
-            LocalDate end;
-            if (newDay == 1) {
-              start = now.withDayOfMonth(1);
-              end = start.withDayOfMonth(start.lengthOfMonth());
-            } else if (newDay == -1) {
-              LocalDate thisMonthCutoff = lastBusinessDayOfMonth(now);
-              if (now.isBefore(thisMonthCutoff)) {
-                start = lastBusinessDayOfMonth(now.minusMonths(1));
-                end = thisMonthCutoff.minusDays(1);
-              } else {
-                start = thisMonthCutoff;
-                end = lastBusinessDayOfMonth(now.plusMonths(1)).minusDays(1);
-              }
-            } else {
-              if (now.getDayOfMonth() >= newDay) {
-                start = now.withDayOfMonth(newDay);
-              } else {
-                start = now.minusMonths(1).withDayOfMonth(newDay);
-              }
-              end = start.plusMonths(1).minusDays(1);
-            }
-            pendingStart[0] = start;
-            pendingEnd[0] = end;
-            startValue.setText(formatDateLabel(pendingStart[0]));
-            endValue.setText(formatDateLabel(pendingEnd[0]));
-          })
-          .show();
-    });
-
-    new AlertDialog.Builder(context)
-        .setTitle(R.string.summary_date_picker_title)
-        .setView(content)
-        .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton(
-            R.string.summary_range_apply,
-            (dialog, which) -> {
-              prefs.edit().putInt("cutoff_day", pendingCutoff[0]).apply();
-              selectedStartDate = pendingStart[0];
-              selectedEndDate = pendingEnd[0];
+    SummaryDateRangeBottomSheet bottomSheet =
+        new SummaryDateRangeBottomSheet(
+            context,
+            selectedStartDate,
+            selectedEndDate,
+            cutoffDay,
+            (startDate, endDate, newCutoffDay) -> {
+              prefs.edit().putInt("cutoff_day", newCutoffDay).apply();
+              selectedStartDate = startDate;
+              selectedEndDate = endDate;
               loadSummaryAsync();
-            })
-        .show();
+            });
+    bottomSheet.show();
   }
 
   private String getCycleLabel(int cutoffDay) {
@@ -989,103 +868,25 @@ public final class SummaryFragment extends ScreenFragment {
           Long walletId = validWalletIdOrNull(selectedWalletId, walletMap);
           Long categoryId = validCategoryIdOrNull(selectedCategoryId, categoryMap);
 
-          ArrayList<FilterDialog.Group> groups = new ArrayList<>();
-          groups.add(
-              new FilterDialog.Group(
-                  getString(R.string.summary_wallet_filter_label),
-                  getString(R.string.summary_wallet_filter_title),
-                  walletFilterOptions(data.wallets),
-                  walletId));
-          groups.add(
-              new FilterDialog.Group(
-                  getString(R.string.summary_category_filter_label),
-                  getString(R.string.summary_category_filter_title),
-                  categoryFilterOptions(data.categories),
-                  categoryId));
-
-          FilterDialog.show(
-              requireContext(),
-              getString(R.string.summary_filter_title),
-              getString(R.string.summary_range_apply),
-              getString(R.string.summary_filter_reset),
-              groups,
-              selectedIds -> {
-                selectedWalletId = selectedIds.get(0);
-                selectedCategoryId = selectedIds.get(1);
-                loadSummaryAsync();
-              },
-              () -> {
-                selectedWalletId = null;
-                selectedCategoryId = null;
-                loadSummaryAsync();
-              });
+          SummaryFilterBottomSheet bottomSheet =
+              new SummaryFilterBottomSheet(
+                  requireContext(),
+                  data.wallets,
+                  data.categories,
+                  walletId,
+                  categoryId,
+                  (wId, cId) -> {
+                    selectedWalletId = wId;
+                    selectedCategoryId = cId;
+                    loadSummaryAsync();
+                  },
+                  () -> {
+                    selectedWalletId = null;
+                    selectedCategoryId = null;
+                    loadSummaryAsync();
+                  });
+          bottomSheet.show();
         });
-  }
-
-  private void showDatePicker(
-      @StringRes int titleRes, LocalDate initialDate, DateSelectionListener listener) {
-    DatePickerDialog dialog =
-        new DatePickerDialog(
-            requireContext(),
-            (picker, year, monthOfYear, dayOfMonth) -> {
-              listener.onDateSelected(LocalDate.of(year, monthOfYear + 1, dayOfMonth));
-            },
-            initialDate.getYear(),
-            initialDate.getMonthValue() - 1,
-            initialDate.getDayOfMonth());
-    dialog.setTitle(titleRes);
-    dialog.show();
-  }
-
-  private LinearLayout createRangeDateRow(
-      Context context, @StringRes int labelRes, TextView valueView) {
-    LinearLayout row = new LinearLayout(context);
-    row.setOrientation(LinearLayout.VERTICAL);
-    LinearLayout.LayoutParams rowParams =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    rowParams.topMargin = UiComponentStyles.dp(context, 10);
-    row.setLayoutParams(rowParams);
-
-    TextView label = new TextView(context);
-    label.setText(labelRes);
-    label.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
-    label.setTextSize(12f);
-    label.setTypeface(label.getTypeface(), Typeface.BOLD);
-    row.addView(label);
-
-    LinearLayout.LayoutParams valueParams =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    valueParams.topMargin = UiComponentStyles.dp(context, 6);
-    row.addView(valueView, valueParams);
-    return row;
-  }
-
-  private TextView createRangeDateValue(Context context, LocalDate date) {
-    return createPickerValue(context, formatDateLabel(date));
-  }
-
-  private TextView createPickerValue(Context context, String text) {
-    TextView value = new TextView(context);
-    value.setBackgroundResource(R.drawable.bg_control_surface);
-    value.setClickable(true);
-    value.setEllipsize(TextUtils.TruncateAt.END);
-    value.setFocusable(true);
-    value.setForeground(
-        ContextCompat.getDrawable(context, UiComponentStyles.selectableItemBackground(context)));
-    value.setGravity(Gravity.CENTER_VERTICAL);
-    value.setMaxLines(1);
-    value.setMinHeight(UiComponentStyles.dp(context, 46));
-    value.setPadding(
-        UiComponentStyles.dp(context, 12),
-        0,
-        UiComponentStyles.dp(context, 12),
-        0);
-    value.setText(text);
-    value.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
-    value.setTextSize(15f);
-    return value;
   }
 
   private DateRange restoreSelectedRange(@Nullable Bundle savedInstanceState) {
@@ -1112,24 +913,6 @@ public final class SummaryFragment extends ScreenFragment {
     }
     long value = savedInstanceState.getLong(key, FILTER_NONE_ID);
     return value == FILTER_NONE_ID ? null : value;
-  }
-
-  private List<FilterDialog.Option> walletFilterOptions(List<Wallet> wallets) {
-    ArrayList<FilterDialog.Option> options = new ArrayList<>();
-    options.add(new FilterDialog.Option(null, getString(R.string.summary_all_wallets)));
-    for (Wallet wallet : wallets) {
-      options.add(new FilterDialog.Option(wallet.getId(), wallet.getName()));
-    }
-    return options;
-  }
-
-  private List<FilterDialog.Option> categoryFilterOptions(List<Category> categories) {
-    ArrayList<FilterDialog.Option> options = new ArrayList<>();
-    options.add(new FilterDialog.Option(null, getString(R.string.summary_all_categories)));
-    for (Category category : categories) {
-      options.add(new FilterDialog.Option(category.getId(), category.getName()));
-    }
-    return options;
   }
 
   private void updateFilterButton() {
@@ -1204,37 +987,37 @@ public final class SummaryFragment extends ScreenFragment {
     return lastDay;
   }
 
-  private DateRange defaultRange() {
+  private DateRange cycleRange(int monthOffset) {
     Context context = getContext();
     int cutoffDay = 1;
     if (context != null) {
       cutoffDay = context.getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
                          .getInt("cutoff_day", 1);
     }
-    LocalDate now = LocalDate.now();
+    LocalDate date = LocalDate.now().plusMonths(monthOffset);
     if (cutoffDay == 1) {
-      return new DateRange(now.withDayOfMonth(1), now.withDayOfMonth(now.lengthOfMonth()));
+      return new DateRange(date.withDayOfMonth(1), date.withDayOfMonth(date.lengthOfMonth()));
     }
     LocalDate start;
-    LocalDate end;
     if (cutoffDay == -1) {
-      LocalDate thisMonthCutoff = lastBusinessDayOfMonth(now);
-      if (now.isBefore(thisMonthCutoff)) {
-        start = lastBusinessDayOfMonth(now.minusMonths(1));
-        end = thisMonthCutoff.minusDays(1);
+      LocalDate thisMonthCutoff = lastBusinessDayOfMonth(date);
+      if (date.isBefore(thisMonthCutoff)) {
+        start = lastBusinessDayOfMonth(date.minusMonths(1));
       } else {
         start = thisMonthCutoff;
-        end = lastBusinessDayOfMonth(now.plusMonths(1)).minusDays(1);
       }
     } else {
-      if (now.getDayOfMonth() >= cutoffDay) {
-        start = now.withDayOfMonth(cutoffDay);
+      if (date.getDayOfMonth() >= cutoffDay) {
+        start = date.withDayOfMonth(cutoffDay);
       } else {
-        start = now.minusMonths(1).withDayOfMonth(cutoffDay);
+        start = date.minusMonths(1).withDayOfMonth(cutoffDay);
       }
-      end = start.plusMonths(1).minusDays(1);
     }
-    return new DateRange(start, end);
+    return new DateRange(start, start.plusMonths(1).minusDays(1));
+  }
+
+  private DateRange defaultRange() {
+    return cycleRange(0);
   }
 
   private long totalWalletBalance(MonthlySummary summary) {
@@ -1292,14 +1075,60 @@ public final class SummaryFragment extends ScreenFragment {
     modePersentase.setTextColor(pct ? 0xFFFFFFFF : 0xFF4A9E7F);
   }
 
+  private void setWeeklyChartMode(boolean showIncome) {
+    if (showWeeklyChartIncome == showIncome) return;
+    showWeeklyChartIncome = showIncome;
+    updateChartToggle();
+    if (cachedData != null) {
+      bindWeeklyChart(cachedData.reportResult);
+    }
+  }
+
+  private void updateChartToggle() {
+    boolean income = showWeeklyChartIncome;
+    chartToggleIncome.setBackgroundResource(income ? R.drawable.bg_toggle_active : android.R.color.transparent);
+    chartToggleIncome.setTextColor(income ? 0xFFFFFFFF : 0xFF4A9E7F);
+    chartToggleExpense.setBackgroundResource(income ? android.R.color.transparent : R.drawable.bg_toggle_active);
+    chartToggleExpense.setTextColor(income ? 0xFF4A9E7F : 0xFFFFFFFF);
+  }
+
+  private void populateChartLegend() {
+    Context context = requireContext();
+    String[] labels = {"Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"};
+    int dotSize = UiComponentStyles.dp(context, 6);
+    int gap = UiComponentStyles.dp(context, 3);
+    GradientDrawable dotShape = new GradientDrawable();
+    dotShape.setShape(GradientDrawable.OVAL);
+
+    for (int i = 0; i < 7; i++) {
+      dotShape = new GradientDrawable();
+      dotShape.setShape(GradientDrawable.OVAL);
+      dotShape.setColor(DAY_COLORS[i]);
+
+      View dot = new View(context);
+      dot.setLayoutParams(new LinearLayout.LayoutParams(dotSize, dotSize));
+      dot.setBackground(dotShape);
+
+      TextView label = new TextView(context);
+      label.setText(labels[i]);
+      label.setTextSize(9f);
+      label.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+      label.setPadding(UiComponentStyles.dp(context, 3), 0, 0, 0);
+
+      LinearLayout item = new LinearLayout(context);
+      item.setOrientation(LinearLayout.HORIZONTAL);
+      item.setGravity(Gravity.CENTER);
+      item.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+      item.addView(dot);
+      item.addView(label);
+      chartLegend.addView(item);
+    }
+  }
+
   private String fmtPct(long amount, long total, boolean signed) {
     if (total <= 0) return "0%";
     double pct = (amount * 100.0) / total;
     return (signed && amount >= 0 ? "+" : "") + String.format(Locale.getDefault(), "%.1f%%", pct);
-  }
-
-  private interface DateSelectionListener {
-    void onDateSelected(LocalDate date);
   }
 
   private static final class DateRange {
