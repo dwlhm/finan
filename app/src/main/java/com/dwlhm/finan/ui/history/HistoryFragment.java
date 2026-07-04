@@ -320,7 +320,7 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private HistorySources loadHistorySources() {
-    List<Wallet> wallets = services.walletDao.findAll();
+    List<Wallet> wallets = services.walletService.findAll();
     List<Category> categories = services.categoryDao.findAllOrdered();
     return new HistorySources(
         EntityLookup.indexWallets(wallets),
@@ -361,7 +361,7 @@ public final class HistoryFragment extends ScreenFragment {
   private void showHistoryFilterDialog() {
     services.dbWorker.compute(
         () -> {
-          List<Wallet> wallets = services.walletDao.findAll();
+          List<Wallet> wallets = services.walletService.findAll();
           List<Category> categories = services.categoryDao.findAllOrdered();
           return new FilterSourceData(wallets, categories);
         },

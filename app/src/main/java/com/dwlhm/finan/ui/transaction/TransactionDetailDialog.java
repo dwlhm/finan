@@ -166,7 +166,7 @@ public final class TransactionDetailDialog extends Dialog {
             return null;
           }
           Category category = services.categoryDao.findById(refreshed.getCategoryId());
-          Wallet wallet = services.walletDao.findById(refreshed.getWalletId());
+          Wallet wallet = services.walletService.findById(refreshed.getWalletId());
           return new DetailData(refreshed, category, wallet);
         },
         data -> {
@@ -280,10 +280,10 @@ public final class TransactionDetailDialog extends Dialog {
     final TransactionType loadType = type;
     services.dbWorker.compute(
         () -> {
-          List<Wallet> loadedWallets = services.walletDao.findAll();
+          List<Wallet> loadedWallets = services.walletService.findAll();
           List<Category> categories =
               services.categoryDao.findByTypeFilterOrderByUsage(loadType.name());
-          Wallet wallet = services.walletDao.findById(transaction.getWalletId());
+          Wallet wallet = services.walletService.findById(transaction.getWalletId());
           Category category = services.categoryDao.findById(transaction.getCategoryId());
           return new EditData(loadedWallets, categories, wallet, category);
         },

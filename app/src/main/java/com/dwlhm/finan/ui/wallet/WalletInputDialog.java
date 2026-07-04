@@ -10,9 +10,11 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 import com.dwlhm.finan.R;
+import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.DialogActionsView;
+import com.dwlhm.finan.ui.common.EmojiConstants;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyInputFormatter;
@@ -54,7 +56,7 @@ public final class WalletInputDialog extends Dialog {
         v -> submitCreateWallet(nameInput, balanceInput, iconInput, defaultInput, actionsView));
 
     services.dbWorker.compute(
-        () -> services.walletDao.findAll().isEmpty(),
+        () -> services.walletService.findAll().isEmpty(),
         firstWallet -> {
           if (!isShowing() || firstWallet == null) {
             return;
@@ -93,7 +95,7 @@ public final class WalletInputDialog extends Dialog {
 
     String icon = iconInput.getText().toString().trim();
     if (icon.isEmpty()) {
-      icon = WALLET_EMOJIS[new SecureRandom().nextInt(WALLET_EMOJIS.length)];
+      icon = EmojiConstants.WALLET_EMOJIS[new SecureRandom().nextInt(EmojiConstants.WALLET_EMOJIS.length)];
     }
 
     boolean makeDefault = defaultInput.isChecked();
@@ -103,22 +105,9 @@ public final class WalletInputDialog extends Dialog {
 
     services.dbWorker.compute(
         () -> {
-          long walletId =
-              services.walletDao.insert(
-                  name,
-                  MoneyFormatter.DEFAULT_CURRENCY_CODE,
-                  makeDefault,
-                  parsedBalance,
-                  System.currentTimeMillis(),
-                  finalIcon);
-          if (walletId <= 0L) {
-            return Boolean.FALSE;
-          }
-          if (makeDefault) {
-            services.walletDao.clearDefaultWalletsExcept(walletId);
-            services.defaultsStore.setDefaultWalletId(walletId);
-          }
-          return Boolean.TRUE;
+          Wallet created = services.walletService.create(
+              name, MoneyFormatter.DEFAULT_CURRENCY_CODE, makeDefault, parsedBalance, finalIcon);
+          return created != null ? Boolean.TRUE : Boolean.FALSE;
         },
         created -> {
           if (!isShowing()) {
@@ -134,10 +123,4 @@ public final class WalletInputDialog extends Dialog {
           onSaved.run();
         });
   }
-
-  private static final String[] WALLET_EMOJIS = {
-    "💳", "💰", "🏦", "💵", "💎", "🏠", "🚗", "🎓",
-    "✈️", "🛒", "🍔", "☕", "🎮", "👕", "💊", "🐾",
-    "🎵", "📱", "💻", "🏋️"
-  };
 }

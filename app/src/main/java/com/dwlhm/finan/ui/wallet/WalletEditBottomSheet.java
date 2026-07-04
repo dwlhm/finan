@@ -14,6 +14,7 @@ import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.DialogActionsView;
+import com.dwlhm.finan.ui.common.EmojiConstants;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
 
 public final class WalletEditBottomSheet extends Dialog {
@@ -76,36 +77,26 @@ public final class WalletEditBottomSheet extends Dialog {
     }
     String icon = iconInput.getText().toString().trim();
     if (icon.isEmpty()) {
-      icon = WALLET_EMOJIS[new java.security.SecureRandom().nextInt(WALLET_EMOJIS.length)];
+      icon = EmojiConstants.WALLET_EMOJIS[new java.security.SecureRandom().nextInt(EmojiConstants.WALLET_EMOJIS.length)];
     }
     boolean makeDefault = defaultInput.isChecked();
     final String finalIcon = icon;
     actionsView.setPrimaryEnabled(false);
 
     services.dbWorker.compute(
-        () -> services.walletDao.updateNameDefaultAndIcon(
-            wallet.getId(), name, makeDefault, finalIcon),
+        () -> {
+          services.walletService.updateNameDefaultAndIcon(
+              wallet.getId(), name, makeDefault, finalIcon);
+          return Boolean.TRUE;
+        },
         updated -> {
           if (!isShowing()) {
             return;
           }
           actionsView.setPrimaryEnabled(true);
-          if (!Boolean.TRUE.equals(updated)) {
-            Toast.makeText(getContext(), R.string.wallet_error_update, Toast.LENGTH_SHORT).show();
-            return;
-          }
-          if (makeDefault) {
-            services.defaultsStore.setDefaultWalletId(wallet.getId());
-          }
           Toast.makeText(getContext(), R.string.wallet_updated, Toast.LENGTH_SHORT).show();
           dismiss();
           onSaved.run();
         });
   }
-
-  private static final String[] WALLET_EMOJIS = {
-    "💳", "💰", "🏦", "💵", "💎", "🏠", "🚗", "🎓",
-    "✈️", "🛒", "🍔", "☕", "🎮", "👕", "💊", "🐾",
-    "🎵", "📱", "💻", "🏋️"
-  };
 }

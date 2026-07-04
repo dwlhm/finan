@@ -66,8 +66,8 @@ public final class TransferService {
           destinationWalletId,
           amountMinor,
           resolvedOccurredAt,
-          note,
-          true);
+          note);
+      recalculateAffectedWallets(sourceWalletId, destinationWalletId);
       db.setTransactionSuccessful();
       return transferId;
     } finally {
@@ -97,9 +97,9 @@ public final class TransferService {
           updated.getDestinationWalletId(),
           updated.getAmountMinor(),
           updated.getOccurredAt(),
-          updated.getNote(),
-          false);
-      recalculateAffectedWallets(existing, updated);
+          updated.getNote());
+      recalculateAffectedWallets(existing.getSourceWalletId(), existing.getDestinationWalletId());
+      recalculateAffectedWallets(updated.getSourceWalletId(), updated.getDestinationWalletId());
       db.setTransactionSuccessful();
     } finally {
       db.endTransaction();
@@ -148,8 +148,7 @@ public final class TransferService {
       long destinationWalletId,
       long amountMinor,
       long occurredAt,
-      String note,
-      boolean updateBalance) {
+      String note) {
     Transaction outgoing =
         transferEntry(
             transferId,
@@ -170,10 +169,6 @@ public final class TransferService {
         || transactionGateway.insert(incoming) <= 0L) {
       throw new IllegalStateException("Failed to save transfer entries");
     }
-    if (updateBalance) {
-      balanceService.applyTransaction(outgoing);
-      balanceService.applyTransaction(incoming);
-    }
   }
 
   private static Transaction transferEntry(
@@ -189,12 +184,10 @@ public final class TransferService {
     return transaction;
   }
 
-  private void recalculateAffectedWallets(Transfer existing, Transfer updated) {
+  private void recalculateAffectedWallets(long sourceWalletId, long destinationWalletId) {
     Set<Long> walletIds = new LinkedHashSet<>();
-    walletIds.add(existing.getSourceWalletId());
-    walletIds.add(existing.getDestinationWalletId());
-    walletIds.add(updated.getSourceWalletId());
-    walletIds.add(updated.getDestinationWalletId());
+    walletIds.add(sourceWalletId);
+    walletIds.add(destinationWalletId);
     for (Long walletId : walletIds) {
       balanceService.recalculate(walletId);
     }

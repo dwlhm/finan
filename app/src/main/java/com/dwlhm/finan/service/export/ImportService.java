@@ -10,6 +10,7 @@ import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.balance.BalanceService;
+import com.dwlhm.finan.ui.common.EmojiConstants;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -224,6 +225,11 @@ public class ImportService {
       if (icon != null && icon.isEmpty()) {
         icon = null;
       }
+      if (name == null || name.trim().isEmpty()) continue;
+      if (currencyCode == null || currencyCode.trim().isEmpty()) currencyCode = "IDR";
+      if (icon == null || icon.trim().isEmpty()) {
+        icon = EmojiConstants.WALLET_EMOJIS[new java.security.SecureRandom().nextInt(EmojiConstants.WALLET_EMOJIS.length)];
+      }
 
       com.dwlhm.finan.data.entity.Wallet existing = walletDao.findByName(name);
       long newId;
@@ -271,6 +277,24 @@ public class ImportService {
           cashFlowIndex >= 0 && cashFlowIndex < fields.size() ? fields.get(cashFlowIndex)
               : CashFlowActivity.UNCLASSIFIED.name();
 
+      if (name == null || name.trim().isEmpty()) continue;
+      if (icon == null || icon.trim().isEmpty()) {
+        icon = EmojiConstants.CATEGORY_EMOJIS[new java.security.SecureRandom().nextInt(EmojiConstants.CATEGORY_EMOJIS.length)];
+      }
+      if (!"EXPENSE".equals(typeFilter) && !"INCOME".equals(typeFilter) && !"BOTH".equals(typeFilter)) {
+        typeFilter = "BOTH";
+      }
+      if (cashFlowActivity == null || cashFlowActivity.trim().isEmpty()) {
+        cashFlowActivity = CashFlowActivity.UNCLASSIFIED.name();
+      } else {
+        try {
+          CashFlowActivity.valueOf(cashFlowActivity);
+        } catch (IllegalArgumentException e) {
+          cashFlowActivity = CashFlowActivity.UNCLASSIFIED.name();
+        }
+      }
+      sortOrder = categoryDao.nextSortOrder();
+
       com.dwlhm.finan.data.entity.Category existing = categoryDao.findByNameIgnoreCase(name);
       long newId;
       if (existing != null) {
@@ -309,6 +333,9 @@ public class ImportService {
       String note = noteIndex >= 0 && noteIndex < fields.size() ? fields.get(noteIndex) : null;
       if (note != null && note.isEmpty()) note = null;
 
+      if (amountMinor <= 0L) continue;
+      if (sourceWalletId == destWalletId) continue;
+
       transferDao.insert(sourceWalletId, destWalletId, amountMinor, occurredAt, note, now);
       count++;
     }
@@ -340,7 +367,13 @@ public class ImportService {
       if (fields.size() < 7) continue;
 
       long amountMinor = Long.parseLong(fields.get(amountIndex >= 0 ? amountIndex : 1));
-      TransactionType type = TransactionType.valueOf(fields.get(typeIndex >= 0 ? typeIndex : 2));
+      if (amountMinor <= 0L) continue;
+      TransactionType type;
+      try {
+        type = TransactionType.valueOf(fields.get(typeIndex >= 0 ? typeIndex : 2));
+      } catch (IllegalArgumentException e) {
+        continue;
+      }
       long walletId = lookupId(walletIdMap, fields.get(walletIndex >= 0 ? walletIndex : 3));
       long categoryId = safeParseLong(
           fields.get(categoryIndex >= 0 && categoryIndex < fields.size() ? categoryIndex : 4), 0L);

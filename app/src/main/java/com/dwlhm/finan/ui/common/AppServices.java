@@ -25,6 +25,7 @@ import com.dwlhm.finan.service.export.ImportService;
 import com.dwlhm.finan.service.summary.SummaryService;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.service.transfer.TransferService;
+import com.dwlhm.finan.service.wallet.WalletService;
 import com.dwlhm.finan.util.date.SystemTimeProvider;
 
 import java.time.ZoneId;
@@ -41,10 +42,12 @@ public final class AppServices {
   public final TransactionGateway transactionGateway;
   public final TransferDao transferDao;
   public final CategoryDao categoryDao;
+  public final SummaryDao summaryDao;
   public final CategoryClassificationService categoryClassificationService;
   public final WalletDao walletDao;
   public final DefaultsStore defaultsStore;
   public final DbWorker dbWorker;
+  public final WalletService walletService;
 
   private AppServices(
       FinanDatabaseHelper databaseHelper,
@@ -56,11 +59,13 @@ public final class AppServices {
       ImportService importService,
       TransactionGateway transactionGateway,
       CategoryDao categoryDao,
+      SummaryDao summaryDao,
       CategoryClassificationService categoryClassificationService,
       WalletDao walletDao,
       TransferDao transferDao,
       DefaultsStore defaultsStore,
-      DbWorker dbWorker) {
+      DbWorker dbWorker,
+      WalletService walletService) {
     this.databaseHelper = databaseHelper;
     this.transactionService = transactionService;
     this.adjustmentService = adjustmentService;
@@ -70,11 +75,13 @@ public final class AppServices {
     this.importService = importService;
     this.transactionGateway = transactionGateway;
     this.categoryDao = categoryDao;
+    this.summaryDao = summaryDao;
     this.categoryClassificationService = categoryClassificationService;
     this.walletDao = walletDao;
     this.transferDao = transferDao;
     this.defaultsStore = defaultsStore;
     this.dbWorker = dbWorker;
+    this.walletService = walletService;
   }
 
   public static AppServices create(Context context) {
@@ -129,6 +136,9 @@ public final class AppServices {
             db, walletTable, categoryTable, transferTable,
             transactionGateway, balanceService);
 
+    DefaultsStore defaultsStore = new DefaultsStore(context);
+    WalletService walletService = new WalletService(db, walletTable);
+
     return new AppServices(
         databaseHelper,
         transactionService,
@@ -139,10 +149,12 @@ public final class AppServices {
         importService,
         transactionGateway,
         categoryTable,
+        summaryDao,
         categoryClassificationService,
         walletTable,
         transferTable,
-        new DefaultsStore(context),
-        new DbWorker());
+        defaultsStore,
+        new DbWorker(),
+        walletService);
   }
 }

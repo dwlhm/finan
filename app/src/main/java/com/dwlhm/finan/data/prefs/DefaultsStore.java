@@ -13,7 +13,6 @@ public final class DefaultsStore {
 
   private static final String PREFS_NAME = "finan_defaults";
 
-  private static final String KEY_DEFAULT_WALLET_ID = "default_wallet_id";
   private static final String KEY_LAST_WALLET_ID = "last_wallet_id";
   private static final String KEY_DRAFT_JSON = "draft_json";
   private static final String KEY_EDIT_DRAFT_PREFIX = "edit_draft_";
@@ -27,18 +26,6 @@ public final class DefaultsStore {
 
   DefaultsStore(Context context, String prefsName) {
     prefs = context.getApplicationContext().getSharedPreferences(prefsName, Context.MODE_PRIVATE);
-  }
-
-  public boolean hasDefaultWalletId() {
-    return prefs.contains(KEY_DEFAULT_WALLET_ID);
-  }
-
-  public long getDefaultWalletId() {
-    return prefs.getLong(KEY_DEFAULT_WALLET_ID, -1L);
-  }
-
-  public void setDefaultWalletId(long walletId) {
-    prefs.edit().putLong(KEY_DEFAULT_WALLET_ID, walletId).apply();
   }
 
   public Long getLastWalletId() {

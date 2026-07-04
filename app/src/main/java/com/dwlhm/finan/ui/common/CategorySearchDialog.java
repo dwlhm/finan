@@ -22,7 +22,9 @@ import android.app.AlertDialog;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.dao.CategoryDao;
 import com.dwlhm.finan.data.entity.Category;
+import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.service.category.CategoryClassificationService;
 import com.dwlhm.finan.util.search.FuzzySearch;
 
 import java.util.ArrayList;
@@ -39,6 +41,7 @@ public final class CategorySearchDialog extends Dialog {
   private static final int VIEW_ADD_NEW = 2;
 
   private final CategoryDao categoryDao;
+  private final CategoryClassificationService categoryClassificationService;
   private final DbWorker dbWorker;
   private final TransactionType transactionType;
   private final List<Category> allCategories;
@@ -56,7 +59,9 @@ public final class CategorySearchDialog extends Dialog {
       Listener listener) {
     super(context);
     this.categoryDao = categoryDao;
-    this.dbWorker = ServicesProvider.get(context).dbWorker;
+    AppServices services = ServicesProvider.get(context);
+    this.categoryClassificationService = services.categoryClassificationService;
+    this.dbWorker = services.dbWorker;
     this.transactionType = transactionType;
     this.allCategories = new ArrayList<>(allCategories);
     searchIndex = FuzzySearch.index(this.allCategories, Category::getName);
@@ -146,7 +151,7 @@ public final class CategorySearchDialog extends Dialog {
           if (existing != null) {
             return new CategoryCreateResult(existing, false, true);
           }
-          Category created = categoryDao.insertForTransactionType(query, transactionType.name());
+          Category created = categoryClassificationService.create(query, null, transactionType.name(), CashFlowActivity.UNCLASSIFIED, false);
           return new CategoryCreateResult(created, true, false);
         },
         result -> {
@@ -193,8 +198,7 @@ public final class CategorySearchDialog extends Dialog {
                     if (existing != null) {
                       return new CategoryCreateResult(existing, false, true);
                     }
-                    Category created =
-                        categoryDao.insertForTransactionType(name, transactionType.name());
+                    Category created = categoryClassificationService.create(name, null, transactionType.name(), CashFlowActivity.UNCLASSIFIED, false);
                     return new CategoryCreateResult(created, true, false);
                   },
                   result -> {

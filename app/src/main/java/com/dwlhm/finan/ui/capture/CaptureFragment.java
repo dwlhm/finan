@@ -226,7 +226,7 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private CaptureState loadCaptureState(TransactionType type, @Nullable Category retainedCategory) {
-    List<Wallet> loadedWallets = services.walletDao.findAll();
+    List<Wallet> loadedWallets = services.walletService.findAll();
     Wallet resolvedWallet = resolveActiveWallet(loadedWallets);
     List<Category> categoriesForType =
         type.isTransfer()
@@ -258,19 +258,15 @@ public final class CaptureFragment extends ScreenFragment {
         }
       }
     }
-    if (defaultsStore.hasDefaultWalletId()) {
-      long defaultId = defaultsStore.getDefaultWalletId();
+    Wallet foundDefault = services.walletService.findDefault();
+    if (foundDefault != null) {
       for (Wallet wallet : loadedWallets) {
-        if (wallet.getId() == defaultId) {
-          return wallet;
+        if (wallet.getId() == foundDefault.getId()) {
+          return foundDefault;
         }
       }
     }
-    Wallet defaultWallet = services.walletDao.findDefault();
-    if (defaultWallet != null && !defaultsStore.hasDefaultWalletId()) {
-      defaultsStore.setDefaultWalletId(defaultWallet.getId());
-    }
-    return defaultWallet;
+    return foundDefault;
   }
 
   private static boolean isCategoryInList(Category category, List<Category> categories) {
@@ -492,7 +488,7 @@ public final class CaptureFragment extends ScreenFragment {
               AppServices s = ServicesProvider.get(requireContext());
               new WalletInputDialog(requireContext(), s, () ->
                   services.dbWorker.compute(
-                      () -> s.walletDao.findAll(),
+                      () -> s.walletService.findAll(),
                       newWallets -> {
                           if (!isAdded() || newWallets == null) return;
                           wallets = newWallets;

@@ -396,7 +396,7 @@ public final class WalletOverviewBottomSheet extends Dialog {
           dismiss();
 
           services.dbWorker.compute(
-              () -> services.walletDao.delete(deleteWalletId),
+              () -> services.walletService.delete(deleteWalletId),
               success -> {
                 if (Boolean.TRUE.equals(success)) {
                   FinanToast.show(
@@ -405,7 +405,7 @@ public final class WalletOverviewBottomSheet extends Dialog {
                       "Urungkan",
                       () -> {
                         services.dbWorker.compute(
-                            () -> services.walletDao.insert(
+                            () -> services.walletService.insertUndo(
                                 deleteName, deleteCurrencyCode, deleteIsDefault,
                                 deleteOpeningBalanceMinor, deleteCreatedAt, deleteIcon),
                             id -> onDataChanged.run());

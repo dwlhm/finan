@@ -22,6 +22,7 @@ import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.DialogActionsView;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
+import com.dwlhm.finan.ui.common.EmojiConstants;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
 
 import java.util.function.Consumer;
@@ -185,8 +186,8 @@ public final class CategoryEditorDialog extends Dialog {
     String iconValue = draft.icon();
     if (iconValue.isEmpty()) {
       java.security.SecureRandom random = new java.security.SecureRandom();
-      int randomIndex = random.nextInt(DEFAULT_EMOJIS.length);
-      iconValue = DEFAULT_EMOJIS[randomIndex];
+      int randomIndex = random.nextInt(EmojiConstants.CATEGORY_EMOJIS.length);
+      iconValue = EmojiConstants.CATEGORY_EMOJIS[randomIndex];
     }
     final String finalIcon = iconValue;
     final boolean isDefault = draft.isDefault();
@@ -395,11 +396,6 @@ public final class CategoryEditorDialog extends Dialog {
           }
         });
   }
-
-  private static final String[] DEFAULT_EMOJIS = {
-      "🍔", "🚗", "🏠", "🛍️", "💡", "🏥", "🎓", "🎮", "✈️", "☕",
-      "💰", "🍿", "👔", "💆", "🐾", "🎁", "🥦", "🚌", "🏋️", "🎨"
-  };
 
   private static final class SaveResult {
     private final Category saved;

@@ -164,7 +164,7 @@ public final class SummaryFragment extends ScreenFragment {
     emptyMessage.setVisibility(View.GONE);
     services.dbWorker.compute(
         () -> {
-          List<Wallet> wallets = services.walletDao.findAll();
+          List<Wallet> wallets = services.walletService.findAll();
           List<Category> categories = services.categoryDao.findAllOrdered();
           Map<Long, Wallet> walletMap = EntityLookup.indexWallets(wallets);
           Map<Long, Category> categoryMap = EntityLookup.indexCategories(categories);
@@ -653,7 +653,7 @@ public final class SummaryFragment extends ScreenFragment {
   private void showSummaryFilterDialog() {
     services.dbWorker.compute(
         () -> {
-          List<Wallet> wallets = services.walletDao.findAll();
+          List<Wallet> wallets = services.walletService.findAll();
           List<Category> categories = services.categoryDao.findAllOrdered();
           return new SummaryFilterSource(wallets, categories);
         },

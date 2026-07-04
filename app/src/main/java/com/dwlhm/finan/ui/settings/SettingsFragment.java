@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.dwlhm.finan.R;
+import com.dwlhm.finan.data.dao.SummaryDao;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.service.export.ImportService;
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,7 +155,11 @@ public final class SettingsFragment extends ScreenFragment {
     services.dbWorker.compute(
         () -> {
           List<Category> cats = services.categoryDao.findAllForManage();
-          Map<Long, Long> totals = services.categoryDao.getTotalExpenseByCategory();
+          List<SummaryDao.CategorySumRow> rows = services.summaryDao.expenseByCategory(0L, Long.MAX_VALUE);
+          Map<Long, Long> totals = new HashMap<>();
+          for (SummaryDao.CategorySumRow row : rows) {
+            totals.put(row.categoryId, row.totalMinor);
+          }
           return new CategoriesWithTotals(cats, totals);
         },
         result -> {
@@ -245,7 +251,7 @@ public final class SettingsFragment extends ScreenFragment {
   private void loadTopWallets() {
     AppServices services = ServicesProvider.get(requireContext());
     services.dbWorker.compute(
-        () -> services.walletDao.findAll(),
+        () -> services.walletService.findAll(),
         wallets -> {
           if (!isAdded() || wallets == null) {
             return;
@@ -451,7 +457,7 @@ public final class SettingsFragment extends ScreenFragment {
             }
             services.exportService.exportTo(
                 out,
-                services.walletDao.findAll(),
+                services.walletService.findAll(),
                 services.categoryDao.findAllOrdered(),
                 services.transferDao.findAll(),
                 exportStartDate,

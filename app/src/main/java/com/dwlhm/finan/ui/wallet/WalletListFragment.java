@@ -98,7 +98,7 @@ public final class WalletListFragment extends ScreenFragment {
   private void reload() {
     int generation = ++reloadGeneration;
     services.dbWorker.compute(
-        () -> services.walletDao.findAll(),
+        () -> services.walletService.findAll(),
         wallets -> {
           if (!isAdded() || generation != reloadGeneration || wallets == null) {
             return;
@@ -451,18 +451,13 @@ public final class WalletListFragment extends ScreenFragment {
     }
     boolean makeDefault = defaultInput.isChecked();
     services.dbWorker.compute(
-        () -> services.walletDao.updateNameAndDefault(walletId, name, makeDefault),
+        () -> {
+          services.walletService.updateNameAndDefault(walletId, name, makeDefault);
+          return Boolean.TRUE;
+        },
         updated -> {
           if (!isAdded() || !dialog.isShowing()) {
             return;
-          }
-          if (!Boolean.TRUE.equals(updated)) {
-            Toast.makeText(requireContext(), R.string.wallet_error_update, Toast.LENGTH_SHORT)
-                .show();
-            return;
-          }
-          if (makeDefault) {
-            services.defaultsStore.setDefaultWalletId(walletId);
           }
           Toast.makeText(requireContext(), R.string.wallet_updated, Toast.LENGTH_SHORT).show();
           dialog.dismiss();

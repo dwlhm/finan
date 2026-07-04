@@ -6,6 +6,7 @@ import com.dwlhm.finan.data.dao.CategoryDao;
 import com.dwlhm.finan.data.dao.TransactionDao;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
+import com.dwlhm.finan.ui.common.EmojiConstants;
 
 public final class CategoryClassificationService {
 
@@ -13,13 +14,9 @@ public final class CategoryClassificationService {
   private final CategoryDao categories;
   private final TransactionDao transactions;
 
-  private static final String[] RANDOM_EMOJIS = {
-    "🍔", "🚗", "💼", "🛒", "🎉", "✈️", "🏠", "🎁", "☕", "🎮", "💡", "🩺", "📚", "👕", "🐶"
-  };
-
   private static String getRandomEmoji() {
     java.security.SecureRandom random = new java.security.SecureRandom();
-    return RANDOM_EMOJIS[random.nextInt(RANDOM_EMOJIS.length)];
+    return EmojiConstants.CATEGORY_EMOJIS[random.nextInt(EmojiConstants.CATEGORY_EMOJIS.length)];
   }
 
   public CategoryClassificationService(
