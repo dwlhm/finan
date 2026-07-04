@@ -88,6 +88,8 @@ public final class DateTimeBottomSheet extends Dialog {
       dismiss();
     });
     actions.setOnCancelClickListener(v -> dismiss());
+
+    BottomSheetHelper.makeDraggable(this);
   }
 
   private void updatePreview() {

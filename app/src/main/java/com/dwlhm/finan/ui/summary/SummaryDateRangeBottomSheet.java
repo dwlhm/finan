@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.CustomDatePickerView;
 import com.dwlhm.finan.ui.common.DialogActionsView;
 
@@ -135,6 +136,8 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
       dismiss();
     });
     actions.setOnCancelClickListener(v -> dismiss());
+
+    BottomSheetHelper.makeDraggable(this);
   }
 
   private void setMode(boolean bulan) {

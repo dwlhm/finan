@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.dwlhm.finan.R;
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.DialogActionsView;
 
 import java.time.Instant;
@@ -84,6 +85,8 @@ public final class ExportDateRangeBottomSheet extends Dialog {
       dismiss();
     });
     actions.setOnCancelClickListener(v -> dismiss());
+
+    BottomSheetHelper.makeDraggable(this);
   }
 
   private void showDatePicker(boolean isStart) {

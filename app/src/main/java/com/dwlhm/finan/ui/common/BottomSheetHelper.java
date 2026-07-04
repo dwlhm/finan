@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -26,6 +28,26 @@ public final class BottomSheetHelper {
       window.setAttributes(params);
       window.setWindowAnimations(android.R.style.Animation_InputMethod);
     }
+    makeDraggable(dialog);
+  }
+
+  public static void makeDraggable(Dialog dialog) {
+    Window window = dialog.getWindow();
+    if (window == null) return;
+
+    ViewGroup contentFrame = window.getDecorView().findViewById(android.R.id.content);
+    if (contentFrame == null || contentFrame.getChildCount() == 0) return;
+
+    View originalContent = contentFrame.getChildAt(0);
+    contentFrame.removeView(originalContent);
+
+    DraggableBottomSheetLayout wrapper = new DraggableBottomSheetLayout(dialog.getContext());
+    wrapper.setLayoutParams(new ViewGroup.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT));
+    wrapper.addView(originalContent);
+    wrapper.setOnDismissListener(dialog::dismiss);
+    contentFrame.addView(wrapper);
   }
 
   public static boolean isMasked(Context context) {
