@@ -155,7 +155,37 @@ public final class TransactionRecyclerAdapter
     
     if (showHeader) {
       holder.dateHeader.setVisibility(View.VISIBLE);
-      holder.dateHeader.setText(currentHeader);
+      holder.dateLabel.setText(currentHeader);
+
+      long dailyTotal = transaction.getAmountMinor();
+      int nextPos = position + 1;
+      while (nextPos < getContentItemCount()) {
+        Transaction next = getItemAt(nextPos);
+        String nextHeader = headerDateFormat.format(new Date(next.getOccurredAt()));
+        if (nextHeader.equals(currentHeader)) {
+          dailyTotal += next.getAmountMinor();
+          nextPos++;
+        } else {
+          break;
+        }
+      }
+
+      if (masked) {
+        holder.dailyTotal.setText("Rp ***");
+        holder.dailyTotal.setTextColor(
+            ContextCompat.getColor(context, R.color.finan_text_secondary));
+      } else {
+        String formatted = MoneyFormatter.format(dailyTotal);
+        if (dailyTotal >= 0) {
+          holder.dailyTotal.setText("+" + formatted);
+          holder.dailyTotal.setTextColor(
+              ContextCompat.getColor(context, R.color.finan_income));
+        } else {
+          holder.dailyTotal.setText(formatted);
+          holder.dailyTotal.setTextColor(
+              ContextCompat.getColor(context, R.color.finan_expense));
+        }
+      }
     } else {
       holder.dateHeader.setVisibility(View.GONE);
     }

@@ -11,7 +11,9 @@ import com.dwlhm.finan.R;
 
 public final class TransactionItemViewHolder extends RecyclerView.ViewHolder {
 
-  final TextView dateHeader;
+  final View dateHeader;
+  final TextView dateLabel;
+  final TextView dailyTotal;
   final ImageView icon;
   final TextView emoji;
   final TextView category;
@@ -23,6 +25,8 @@ public final class TransactionItemViewHolder extends RecyclerView.ViewHolder {
   TransactionItemViewHolder(@NonNull View itemView) {
     super(itemView);
     dateHeader = itemView.findViewById(R.id.item_transaction_date_header);
+    dateLabel = itemView.findViewById(R.id.item_transaction_date_label);
+    dailyTotal = itemView.findViewById(R.id.item_transaction_daily_total);
     icon = itemView.findViewById(R.id.item_transaction_icon);
     emoji = itemView.findViewById(R.id.item_transaction_emoji);
     category = itemView.findViewById(R.id.item_transaction_category);

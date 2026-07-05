@@ -1,21 +1,14 @@
 package com.dwlhm.finan.ui.history;
 
-import android.app.AlertDialog;
-import android.app.DatePickerDialog;
 import android.content.Context;
-import android.graphics.Typeface;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
@@ -32,10 +25,9 @@ import com.dwlhm.finan.service.transaction.TransactionSearchResolver;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.DebouncedTextWatcher;
 import com.dwlhm.finan.ui.common.EntityLookup;
-import com.dwlhm.finan.ui.common.FilterDialog;
+
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
-import com.dwlhm.finan.ui.common.UiComponentStyles;
 import com.dwlhm.finan.ui.common.infinitescroll.InfiniteScrollListView;
 import com.dwlhm.finan.ui.transaction.TransactionDetailDialog;
 import com.dwlhm.finan.ui.transaction.TransactionRecyclerAdapter;
@@ -45,7 +37,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -142,18 +133,17 @@ public final class HistoryFragment extends ScreenFragment {
     View lastMonthChip = view.findViewById(R.id.history_chip_last_month);
     
     thisMonthChip.setOnClickListener(v -> {
-        LocalDate today = LocalDate.now();
-        selectedStartDate = today.withDayOfMonth(1);
-        selectedEndDate = today.withDayOfMonth(today.lengthOfMonth());
+        DateRange range = cycleDateRange(0);
+        selectedStartDate = range.start;
+        selectedEndDate = range.end;
         updateDateRangeView();
         reload();
     });
     
     lastMonthChip.setOnClickListener(v -> {
-        LocalDate today = LocalDate.now();
-        LocalDate lastMonth = today.minusMonths(1);
-        selectedStartDate = lastMonth.withDayOfMonth(1);
-        selectedEndDate = lastMonth.withDayOfMonth(lastMonth.lengthOfMonth());
+        DateRange range = cycleDateRange(-1);
+        selectedStartDate = range.start;
+        selectedEndDate = range.end;
         updateDateRangeView();
         reload();
     });
@@ -191,6 +181,7 @@ public final class HistoryFragment extends ScreenFragment {
           }
         });
     adapter = new TransactionRecyclerAdapter(requireContext());
+    adapter.setMaskedMode(maskedMode);
     adapter.setOnTransactionClickListener(
         (transaction, position) -> openTransactionDetail(position));
     historyList.setup(adapter, this::loadHistoryPage, services.dbWorker);
@@ -416,136 +407,47 @@ public final class HistoryFragment extends ScreenFragment {
           Long typeId = validTypeIdOrNull(selectedTypeId);
           Long sortId = validSortIdOrNull(selectedSortId);
 
-          ArrayList<FilterDialog.Group> groups = new ArrayList<>();
-          groups.add(
-              new FilterDialog.Group(
-                  getString(R.string.summary_wallet_filter_label),
-                  getString(R.string.summary_wallet_filter_title),
-                  walletFilterOptions(data.wallets),
-                  walletId));
-          groups.add(
-              new FilterDialog.Group(
-                  getString(R.string.summary_category_filter_label),
-                  getString(R.string.summary_category_filter_title),
-                  categoryFilterOptions(data.categories),
-                  categoryId));
-          groups.add(
-              new FilterDialog.Group(
-                  getString(R.string.history_type_filter_label),
-                  getString(R.string.history_type_filter_title),
-                  typeFilterOptions(),
-                  typeId));
-          groups.add(
-              new FilterDialog.Group(
-                  getString(R.string.history_sort_label),
-                  getString(R.string.history_sort_title),
-                  sortOptions(),
-                  sortId));
-
-          FilterDialog.show(
-              requireContext(),
-              getString(R.string.history_filter_title),
-              getString(R.string.summary_range_apply),
-              getString(R.string.summary_filter_reset),
-              groups,
-              selectedIds -> {
-                selectedWalletId = selectedIds.get(0);
-                selectedCategoryId = selectedIds.get(1);
-                selectedTypeId = selectedIds.get(2);
-                selectedSortId = selectedIds.get(3);
-                reload();
-              },
-              () -> {
-                selectedWalletId = null;
-                selectedCategoryId = null;
-                selectedTypeId = null;
-                selectedSortId = null;
-                reload();
-              });
+          HistoryFilterBottomSheet sheet =
+              new HistoryFilterBottomSheet(
+                  requireContext(),
+                  data.wallets,
+                  data.categories,
+                  walletId,
+                  categoryId,
+                  typeId,
+                  sortId,
+                  (selectedWalletId1, selectedCategoryId1, selectedTypeId1, selectedSortId1) -> {
+                    selectedWalletId = selectedWalletId1;
+                    selectedCategoryId = selectedCategoryId1;
+                    selectedTypeId = selectedTypeId1;
+                    selectedSortId = selectedSortId1;
+                    reload();
+                  },
+                  () -> {
+                    selectedWalletId = null;
+                    selectedCategoryId = null;
+                    selectedTypeId = null;
+                    selectedSortId = null;
+                    reload();
+                  });
+          sheet.show();
         });
   }
 
   private void showDateRangeDialog() {
-    Context context = requireContext();
-    LocalDate defaultEnd = LocalDate.now();
-    LocalDate defaultStart = defaultEnd.withDayOfMonth(1);
-    LocalDate[] pendingStart = {selectedStartDate};
-    LocalDate[] pendingEnd = {selectedEndDate};
-
-    LinearLayout content = new LinearLayout(context);
-    content.setOrientation(LinearLayout.VERTICAL);
-    int horizontalPadding = UiComponentStyles.dp(context, 20);
-    int topPadding = UiComponentStyles.dp(context, 6);
-    content.setPadding(horizontalPadding, topPadding, horizontalPadding, 0);
-
-    TextView startValue =
-        createDateValue(context, pendingStart[0], getString(R.string.history_date_start_placeholder));
-    TextView endValue =
-        createDateValue(context, pendingEnd[0], getString(R.string.history_date_end_placeholder));
-    content.addView(createDateRow(context, R.string.summary_range_start_label, startValue));
-    content.addView(createDateRow(context, R.string.summary_range_end_label, endValue));
-
-    startValue.setOnClickListener(
-        v ->
-            showDatePicker(
-                R.string.summary_range_start_label,
-                datePickerInitialDate(pendingStart[0], pendingEnd[0], defaultStart),
-                selected -> {
-                  pendingStart[0] = selected;
-                  if (pendingEnd[0] == null || pendingEnd[0].isBefore(selected)) {
-                    pendingEnd[0] = selected;
-                  }
-                  setDateValue(
-                      startValue,
-                      pendingStart[0],
-                      getString(R.string.history_date_start_placeholder));
-                  setDateValue(
-                      endValue,
-                      pendingEnd[0],
-                      getString(R.string.history_date_end_placeholder));
-                }));
-    endValue.setOnClickListener(
-        v ->
-            showDatePicker(
-                R.string.summary_range_end_label,
-                datePickerInitialDate(pendingEnd[0], pendingStart[0], defaultEnd),
-                selected -> {
-                  pendingEnd[0] = selected;
-                  if (pendingStart[0] == null || pendingStart[0].isAfter(selected)) {
-                    pendingStart[0] = selected;
-                  }
-                  setDateValue(
-                      startValue,
-                      pendingStart[0],
-                      getString(R.string.history_date_start_placeholder));
-                  setDateValue(
-                      endValue,
-                      pendingEnd[0],
-                      getString(R.string.history_date_end_placeholder));
-                }));
-
-    new AlertDialog.Builder(context)
-        .setTitle(R.string.history_date_range_title)
-        .setView(content)
-        .setNeutralButton(
-            R.string.history_date_range_all,
-            (dialog, which) -> {
-              selectedStartDate = null;
-              selectedEndDate = null;
-              updateDateRangeView();
-              reload();
-            })
-        .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton(
-            R.string.summary_range_apply,
-            (dialog, which) -> {
-              selectedStartDate = pendingStart[0];
-              selectedEndDate = pendingEnd[0];
+    HistoryDateRangeBottomSheet sheet =
+        new HistoryDateRangeBottomSheet(
+            requireContext(),
+            selectedStartDate,
+            selectedEndDate,
+            (start, end) -> {
+              selectedStartDate = start;
+              selectedEndDate = end;
               normalizeDateRange();
               updateDateRangeView();
               reload();
-            })
-        .show();
+            });
+    sheet.show();
   }
 
   private void renderSummary(HistoryTotals totals) {
@@ -594,39 +496,6 @@ public final class HistoryFragment extends ScreenFragment {
     }
   }
 
-  private List<FilterDialog.Option> walletFilterOptions(List<Wallet> wallets) {
-    ArrayList<FilterDialog.Option> options = new ArrayList<>();
-    options.add(new FilterDialog.Option(null, getString(R.string.summary_all_wallets)));
-    for (Wallet wallet : wallets) {
-      options.add(new FilterDialog.Option(wallet.getId(), wallet.getName()));
-    }
-    return options;
-  }
-
-  private List<FilterDialog.Option> categoryFilterOptions(List<Category> categories) {
-    ArrayList<FilterDialog.Option> options = new ArrayList<>();
-    options.add(new FilterDialog.Option(null, getString(R.string.summary_all_categories)));
-    for (Category category : categories) {
-      options.add(new FilterDialog.Option(category.getId(), category.getName()));
-    }
-    return options;
-  }
-
-  private List<FilterDialog.Option> typeFilterOptions() {
-    ArrayList<FilterDialog.Option> options = new ArrayList<>();
-    options.add(new FilterDialog.Option(null, getString(R.string.history_all_types)));
-    options.add(new FilterDialog.Option(TYPE_EXPENSE_ID, getString(R.string.capture_type_expense)));
-    options.add(new FilterDialog.Option(TYPE_INCOME_ID, getString(R.string.capture_type_income)));
-    return options;
-  }
-
-  private List<FilterDialog.Option> sortOptions() {
-    ArrayList<FilterDialog.Option> options = new ArrayList<>();
-    options.add(new FilterDialog.Option(null, getString(R.string.history_sort_newest)));
-    options.add(new FilterDialog.Option(SORT_OLDEST_ID, getString(R.string.history_sort_oldest)));
-    return options;
-  }
-
   private void updateFilterButton() {
     if (filterButton == null) {
       return;
@@ -669,79 +538,6 @@ public final class HistoryFragment extends ScreenFragment {
     dateRangeView.setContentDescription(
         getString(R.string.history_date_range_content_description) + ": " + label);
     dateRangeView.setTooltipText(dateRangeView.getContentDescription());
-  }
-
-  private LinearLayout createDateRow(
-      Context context, @StringRes int labelRes, TextView valueView) {
-    LinearLayout row = new LinearLayout(context);
-    row.setOrientation(LinearLayout.VERTICAL);
-    LinearLayout.LayoutParams rowParams =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    rowParams.topMargin = UiComponentStyles.dp(context, 10);
-    row.setLayoutParams(rowParams);
-
-    TextView label = new TextView(context);
-    label.setText(labelRes);
-    label.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
-    label.setTextSize(12f);
-    label.setTypeface(label.getTypeface(), Typeface.BOLD);
-    row.addView(label);
-
-    LinearLayout.LayoutParams valueParams =
-        new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-    valueParams.topMargin = UiComponentStyles.dp(context, 6);
-    row.addView(valueView, valueParams);
-    return row;
-  }
-
-  private TextView createDateValue(
-      Context context, @Nullable LocalDate date, String placeholder) {
-    TextView value = new TextView(context);
-    value.setBackgroundResource(R.drawable.bg_control_surface);
-    value.setClickable(true);
-    value.setEllipsize(TextUtils.TruncateAt.END);
-    value.setFocusable(true);
-    value.setForeground(
-        ContextCompat.getDrawable(context, UiComponentStyles.selectableItemBackground(context)));
-    value.setGravity(Gravity.CENTER_VERTICAL);
-    value.setMaxLines(1);
-    value.setMinHeight(UiComponentStyles.dp(context, 46));
-    value.setPadding(
-        UiComponentStyles.dp(context, 12), 0, UiComponentStyles.dp(context, 12), 0);
-    value.setHintTextColor(ContextCompat.getColor(context, R.color.finan_text_hint));
-    setDateValue(value, date, placeholder);
-    value.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
-    value.setTextSize(15f);
-    return value;
-  }
-
-  private void setDateValue(TextView value, @Nullable LocalDate date, String placeholder) {
-    value.setHint(placeholder);
-    value.setText(date == null ? "" : formatDateLabel(date));
-  }
-
-  private LocalDate datePickerInitialDate(
-      @Nullable LocalDate selectedDate, @Nullable LocalDate fallbackDate, LocalDate defaultDate) {
-    if (selectedDate != null) {
-      return selectedDate;
-    }
-    return fallbackDate == null ? defaultDate : fallbackDate;
-  }
-
-  private void showDatePicker(
-      @StringRes int titleRes, LocalDate initialDate, DateSelectionListener listener) {
-    DatePickerDialog dialog =
-        new DatePickerDialog(
-            requireContext(),
-            (picker, year, monthOfYear, dayOfMonth) ->
-                listener.onDateSelected(LocalDate.of(year, monthOfYear + 1, dayOfMonth)),
-            initialDate.getYear(),
-            initialDate.getMonthValue() - 1,
-            initialDate.getDayOfMonth());
-    dialog.setTitle(titleRes);
-    dialog.show();
   }
 
   private void normalizeDateRange() {
@@ -815,8 +611,46 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private DateRange defaultDateRange() {
-    LocalDate today = LocalDate.now();
-    return new DateRange(today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
+    return cycleDateRange(0);
+  }
+
+  private DateRange cycleDateRange(int monthOffset) {
+    Context context = getContext();
+    int cutoffDay = 1;
+    if (context != null) {
+      cutoffDay = context.getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+          .getInt("cutoff_day", 1);
+    }
+    LocalDate date = LocalDate.now().plusMonths(monthOffset);
+    if (cutoffDay == 1) {
+      return new DateRange(date.withDayOfMonth(1), date.withDayOfMonth(date.lengthOfMonth()));
+    }
+    LocalDate start;
+    if (cutoffDay == -1) {
+      LocalDate thisMonthCutoff = lastBusinessDayOfMonth(date);
+      if (date.isBefore(thisMonthCutoff)) {
+        start = lastBusinessDayOfMonth(date.minusMonths(1));
+      } else {
+        start = thisMonthCutoff;
+      }
+    } else {
+      if (date.getDayOfMonth() >= cutoffDay) {
+        start = date.withDayOfMonth(cutoffDay);
+      } else {
+        start = date.minusMonths(1).withDayOfMonth(cutoffDay);
+      }
+    }
+    return new DateRange(start, start.plusMonths(1).minusDays(1));
+  }
+
+  private static LocalDate lastBusinessDayOfMonth(LocalDate date) {
+    LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
+    if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
+      return lastDay.minusDays(1);
+    } else if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+      return lastDay.minusDays(2);
+    }
+    return lastDay;
   }
 
   private static Long validWalletIdOrNull(Long walletId, Map<Long, Wallet> walletsById) {
@@ -886,10 +720,6 @@ public final class HistoryFragment extends ScreenFragment {
       return formatDateLabel(startDate);
     }
     return formatDateLabel(startDate) + " - " + formatDateLabel(endDate);
-  }
-
-  private interface DateSelectionListener {
-    void onDateSelected(LocalDate date);
   }
 
   private static final class DateRange {

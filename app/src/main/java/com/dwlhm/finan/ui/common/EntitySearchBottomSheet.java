@@ -2,6 +2,8 @@ package com.dwlhm.finan.ui.common;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -9,6 +11,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
@@ -98,13 +101,17 @@ public class EntitySearchBottomSheet<T> extends Dialog {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.dialog_search_bottom_sheet);
-    
-    WindowManager.LayoutParams params = getWindow().getAttributes();
-    params.width = WindowManager.LayoutParams.MATCH_PARENT;
-    params.height = (int) (getContext().getResources().getDisplayMetrics().heightPixels * 0.7);
-    params.gravity = Gravity.BOTTOM;
-    getWindow().setAttributes(params);
-    getWindow().setWindowAnimations(android.R.style.Animation_InputMethod);
+
+    Window window = getWindow();
+    if (window != null) {
+      window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+      WindowManager.LayoutParams params = window.getAttributes();
+      params.width = WindowManager.LayoutParams.MATCH_PARENT;
+      params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+      params.gravity = Gravity.BOTTOM;
+      window.setAttributes(params);
+      window.setWindowAnimations(android.R.style.Animation_InputMethod);
+    }
 
     searchInput = findViewById(R.id.search_input);
     ListView listView = findViewById(R.id.search_list);
