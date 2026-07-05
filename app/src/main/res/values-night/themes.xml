@@ -7,6 +7,8 @@
         <item name="android:windowBackground">@color/finan_background</item>
         <item name="android:textColorPrimary">@color/finan_text_primary</item>
         <item name="android:textColorSecondary">@color/finan_text_secondary</item>
+        <item name="android:statusBarColor">@color/finan_background</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="Finan.BottomSheetDialog" parent="@android:style/Theme.Material.Dialog">
