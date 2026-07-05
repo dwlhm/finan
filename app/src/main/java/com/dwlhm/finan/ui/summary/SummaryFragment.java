@@ -673,10 +673,12 @@ public final class SummaryFragment extends ScreenFragment {
     long startMillis = week.getStartDate().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
     long endMillis = week.getEndDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
     TransactionType filterType = showWeeklyChartIncome ? TransactionType.INCOME : TransactionType.EXPENSE;
+    long zoneOffsetMillis = java.time.ZoneId.systemDefault()
+        .getRules().getOffset(java.time.Instant.now()).getTotalSeconds() * 1000L;
 
     services.dbWorker.compute(
         () -> {
-          HistoryQuery query = new HistoryQuery(null, null, filterType, startMillis, endMillis, true, null);
+          HistoryQuery query = new HistoryQuery(selectedWalletId, selectedCategoryId, filterType, startMillis, endMillis, true, null);
           return services.transactionGateway.findHistoryPage(query, null, 10000).getItems();
         },
         transactions -> {
@@ -690,12 +692,12 @@ public final class SummaryFragment extends ScreenFragment {
 
           Map<Long, List<Transaction>> byDay = new java.util.LinkedHashMap<>();
           for (Transaction tx : transactions) {
-            long dayKey = tx.getOccurredAt() / 86400000;
+            long dayKey = (tx.getOccurredAt() + zoneOffsetMillis) / 86400000;
             byDay.computeIfAbsent(dayKey, k -> new ArrayList<>()).add(tx);
           }
 
           for (CashFlowReport.DailyTotal day : week.getDays()) {
-            long dayKey = day.getDateMillis() / 86400000;
+            long dayKey = (day.getDateMillis() + zoneOffsetMillis) / 86400000;
             List<Transaction> dayTxs = byDay.get(dayKey);
             if (dayTxs == null || dayTxs.isEmpty()) continue;
 
@@ -805,12 +807,17 @@ public final class SummaryFragment extends ScreenFragment {
 
               txRow.addView(txTextCol);
 
-              String amountStr = MoneyFormatter.format(tx.getAmountMinor());
               boolean isPositive = tx.getType().increasesBalance();
-              String signedAmount = isPositive ? "+" + amountStr : "-" + amountStr;
+              String txAmountStr;
+              if (showPercentageMode) {
+                txAmountStr = fmtPct(tx.getAmountMinor(), totalAmount, false);
+              } else {
+                String amountStr = MoneyFormatter.format(tx.getAmountMinor());
+                txAmountStr = isPositive ? "+" + amountStr : "-" + amountStr;
+              }
 
               TextView txAmount = new TextView(context);
-              txAmount.setText(signedAmount);
+              txAmount.setText(txAmountStr);
               txAmount.setTextColor(ContextCompat.getColor(context, isPositive ? R.color.finan_income : R.color.finan_expense));
               txAmount.setTextSize(13f);
               txAmount.setTypeface(txAmount.getTypeface(), Typeface.BOLD);
