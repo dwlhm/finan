@@ -195,17 +195,88 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp" />
 
-    <Button
-        android:id="@+id/capture_save"
-        style="@style/Finan.Button.Primary"
+    <FrameLayout
+        android:id="@+id/capture_save_container"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:layout_margin="16dp"
-        android:background="@drawable/bg_button_pill"
-        android:textColor="@color/btn_text_pill"
-        android:paddingHorizontal="24dp"
-        android:text="Record Transaction"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:layout_marginHorizontal="8dp"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <!-- State normal: area tombol kustom -->
+        <FrameLayout
+            android:id="@+id/capture_save_button_area"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_button_pill_ripple"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/capture_save_label"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="Simpan Pengeluaran"
+                android:textColor="@color/btn_text_pill"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04" />
+
+            <View
+                android:id="@+id/capture_hold_progress"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_gravity="bottom"
+                android:background="#4DFFFFFF"
+                android:scaleX="0"
+                android:transformPivotX="0dp" />
+        </FrameLayout>
+
+        <!-- State undo -->
+        <LinearLayout
+            android:id="@+id/capture_undo_row"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_button_pill"
+            android:backgroundTint="#E8F5E9"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="✓ Tersimpan"
+                android:textColor="@color/finan_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Batalkan ditaruh di dalam chip dengan warna merah hangat sebagai aksi pembatalan -->
+            <FrameLayout
+                android:id="@+id/capture_undo_action"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_undo_action_chip"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="Batalkan"
+                    android:textColor="@android:color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+        </LinearLayout>
+
+    </FrameLayout>
 
 </LinearLayout>
+

@@ -64,7 +64,14 @@ public final class CaptureFragment extends ScreenFragment {
   private TextView dateText;
   private EditText noteInput;
   private TextView validationBanner;
-  private Button saveButton;
+  private android.widget.FrameLayout captureSaveButtonArea;
+  private TextView captureSaveLabel;
+  private View captureUndoRow;
+  private View captureUndoAction;
+  private View captureHoldProgress;
+  private android.animation.ValueAnimator holdAnimator;
+  private android.os.Handler undoHandler;
+  private Runnable undoDismissRunnable;
   private CaptureFormValidation formValidation;
 
   private CalculatorStripView calculatorStrip;
@@ -115,7 +122,17 @@ public final class CaptureFragment extends ScreenFragment {
     walletText = view.findViewById(R.id.capture_wallet_text);
     dateText = view.findViewById(R.id.capture_date_text);
     noteInput = view.findViewById(R.id.capture_note);
-    saveButton = view.findViewById(R.id.capture_save);
+    captureSaveButtonArea = view.findViewById(R.id.capture_save_button_area);
+    captureSaveLabel = view.findViewById(R.id.capture_save_label);
+    captureUndoRow = view.findViewById(R.id.capture_undo_row);
+    captureUndoAction = view.findViewById(R.id.capture_undo_action);
+    captureHoldProgress = view.findViewById(R.id.capture_hold_progress);
+    undoHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    undoDismissRunnable = () -> hideUndoState();
+    captureUndoAction.setOnClickListener(v -> {
+        expireAmountAutoFocus();
+        performUndo();
+    });
 
     occurredAtMillis = System.currentTimeMillis();
     updateDateLabel();
@@ -233,19 +250,93 @@ public final class CaptureFragment extends ScreenFragment {
         openWalletSearchDialog(false);
     });
 
-    saveButton.setOnClickListener(
-        v -> {
-          expireAmountAutoFocus();
-          saveTransaction(false);
-        });
-
-    saveButton.setOnLongClickListener(v -> {
-        expireAmountAutoFocus();
-        saveTransaction(true);
-        return true;
-    });
-
     installAmountAutoFocusExpiry(view);
+
+    android.os.Handler holdTriggerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    
+    captureSaveButtonArea.setOnTouchListener(new android.view.View.OnTouchListener() {
+        private boolean isHolding = false;
+        private boolean isTapValid = true;
+
+        private Runnable startHoldRunnable = () -> {
+            isHolding = true;
+            isTapValid = false;
+            captureSaveLabel.setText("Tahan untuk Reset...");
+            captureHoldProgress.setScaleX(0f);
+            
+            holdAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f);
+            holdAnimator.setDuration(1500);
+            holdAnimator.setInterpolator(new android.view.animation.LinearInterpolator());
+            holdAnimator.addUpdateListener(anim -> {
+                captureHoldProgress.setScaleX((float) anim.getAnimatedValue());
+            });
+            holdAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+                boolean triggered = false;
+                @Override
+                public void onAnimationEnd(android.animation.Animator animation) {
+                    if (triggered || !isAdded()) return;
+                    triggered = true;
+                    hideHoldState(); // reset visual
+                    expireAmountAutoFocus();
+                    saveTransaction(true); // true = clear form
+                }
+            });
+            holdAnimator.start();
+        };
+
+        @Override
+        public boolean onTouch(android.view.View v, android.view.MotionEvent event) {
+            if (!captureSaveButtonArea.isEnabled()) return false;
+            
+            switch (event.getAction()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    isHolding = false;
+                    isTapValid = true;
+                    v.setPressed(true);
+                    holdTriggerHandler.postDelayed(startHoldRunnable, 500); // 500ms is standard long press timeout
+                    return true;
+                
+                case android.view.MotionEvent.ACTION_MOVE:
+                    // Cancel hold if finger slips outside the button with touch slop
+                    float x = event.getX();
+                    float y = event.getY();
+                    int slop = android.view.ViewConfiguration.get(v.getContext()).getScaledTouchSlop();
+                    if (x < -slop || x > v.getWidth() + slop || y < -slop || y > v.getHeight() + slop) {
+                        if (isTapValid) {
+                            isTapValid = false;
+                            v.setPressed(false);
+                            holdTriggerHandler.removeCallbacks(startHoldRunnable);
+                            if (isHolding) {
+                                hideHoldState();
+                            }
+                        }
+                    }
+                    return true;
+                    
+                case android.view.MotionEvent.ACTION_UP:
+                    v.setPressed(false);
+                    holdTriggerHandler.removeCallbacks(startHoldRunnable);
+                    if (isHolding) {
+                        hideHoldState(); // Canceled hold
+                    } else if (isTapValid) {
+                        // Short tap
+                        expireAmountAutoFocus();
+                        saveTransaction(false);
+                    }
+                    return true;
+                    
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    android.util.Log.d("CaptureFragment", "Touch CANCEL.");
+                    v.setPressed(false);
+                    holdTriggerHandler.removeCallbacks(startHoldRunnable);
+                    if (isHolding) {
+                        hideHoldState();
+                    }
+                    return true;
+            }
+            return false;
+        }
+    });
     updateCaptureMode();
   }
   private void updateInteractiveFieldTheme(TextView view, int textColorRes, int bgColorRes) {
@@ -473,13 +564,13 @@ public final class CaptureFragment extends ScreenFragment {
         sentencePrefix.setText("Transfer ");
         sentenceFor.setText(" ke ");
         sentenceFrom.setText(" dari ");
-        saveButton.setText("Simpan Transfer");
+        if (captureSaveLabel != null) captureSaveLabel.setText("Simpan Transfer");
         updateCategoryLabel(); // Will display destination wallet
     } else {
         sentencePrefix.setText(income ? "Masuk " : "Keluar ");
         sentenceFor.setText(" untuk ");
         sentenceFrom.setText(income ? " ke " : " dari ");
-        saveButton.setText(income ? "Simpan Pemasukan" : "Simpan Pengeluaran");
+        if (captureSaveLabel != null) captureSaveLabel.setText(income ? "Simpan Pemasukan" : "Simpan Pengeluaran");
         updateCategoryLabel();
     }
     applyCurrentTheme();
@@ -642,14 +733,13 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void checkSaveButtonState() {
-      if (saveButton == null) return;
+      if (captureSaveButtonArea == null) return;
       if (saveInProgress) return;
       String raw = getRawInput();
       long amount = raw.isEmpty() ? 0 : Long.parseLong(raw);
-      if (amount <= 0) {
-          saveButton.setEnabled(false);
-      } else {
-          saveButton.setEnabled(true);
+      boolean shouldEnable = amount > 0;
+      if (captureSaveButtonArea.isEnabled() != shouldEnable) {
+          captureSaveButtonArea.setEnabled(shouldEnable);
       }
   }
 
@@ -808,12 +898,7 @@ public final class CaptureFragment extends ScreenFragment {
               snapshotPendingSaveUndo(
                   savedId, amountMinor, savedNote);
           
-          saveButton.setText("✓ Tersimpan");
-          saveButton.setEnabled(false);
-          saveButton.postDelayed(() -> {
-              updateCaptureMode();
-              checkSaveButtonState();
-          }, 1500);
+          showUndoState();
 
           if (clearAfterSave) {
               forceClearSavedForm();
@@ -867,12 +952,7 @@ public final class CaptureFragment extends ScreenFragment {
                   occurredAt,
                   savedNote);
 
-          saveButton.setText("✓ Tersimpan");
-          saveButton.setEnabled(false);
-          saveButton.postDelayed(() -> {
-              updateCaptureMode();
-              checkSaveButtonState();
-          }, 1500);
+          showUndoState();
 
           if (clearAfterSave) {
               forceClearSavedForm();
@@ -899,11 +979,58 @@ public final class CaptureFragment extends ScreenFragment {
     });
   }
 
+  private void showUndoState() {
+    if (undoHandler != null) undoHandler.removeCallbacks(undoDismissRunnable);
+        if (captureSaveButtonArea != null && captureUndoRow != null) {
+          captureSaveButtonArea.setVisibility(View.GONE);
+          captureUndoRow.setVisibility(View.VISIBLE);
+          
+          undoHandler.removeCallbacks(undoDismissRunnable);
+          undoHandler.postDelayed(undoDismissRunnable, 4000);
+        }
+  }
+
+  private void hideUndoState() {
+    if (captureUndoRow != null) {
+      captureUndoRow.setVisibility(View.GONE);
+    }
+    if (captureSaveButtonArea != null) {
+      captureSaveButtonArea.setVisibility(View.VISIBLE);
+      checkSaveButtonState();
+    }
+  }
+
+  private void hideHoldState() {
+    if (holdAnimator != null) {
+        holdAnimator.cancel();
+        holdAnimator = null;
+    }
+    if (captureHoldProgress != null) captureHoldProgress.setScaleX(0f);
+    
+    int colorRes = selectedType == TransactionType.EXPENSE ? R.color.finan_expense : R.color.finan_income;
+    int color = androidx.core.content.ContextCompat.getColor(requireContext(), colorRes);
+    
+    if (captureSaveButtonArea != null) {
+      android.graphics.drawable.Drawable bg = captureSaveButtonArea.getBackground();
+      if (bg != null) {
+          bg = bg.mutate();
+          androidx.core.graphics.drawable.DrawableCompat.setTint(bg, color);
+      }
+    }
+    
+    if (captureSaveLabel != null) {
+      captureSaveLabel.setText(selectedType == TransactionType.EXPENSE ? "Simpan Pengeluaran" : "Simpan Pemasukan");
+    }
+  }
+
   private void dismissUndoBar() {
     pendingUndo = null;
     if (activeToast != null) {
       activeToast.dismiss();
       activeToast = null;
+    }
+    if (captureUndoRow != null && captureUndoRow.getVisibility() == View.VISIBLE) {
+      hideUndoState();
     }
   }
 
