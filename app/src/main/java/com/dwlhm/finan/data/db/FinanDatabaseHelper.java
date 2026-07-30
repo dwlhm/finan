@@ -14,12 +14,13 @@ import com.dwlhm.finan.data.migration.Migration006CategoryIcon;
 import com.dwlhm.finan.data.migration.Migration007WalletIcon;
 import com.dwlhm.finan.data.migration.Migration008RemoveTagsMerchants;
 import com.dwlhm.finan.data.migration.Migration009CategoryDefault;
+import com.dwlhm.finan.data.migration.Migration010NoOp;
 import com.dwlhm.finan.data.migration.MigrationRunner;
 
 public final class FinanDatabaseHelper extends SQLiteOpenHelper {
 
   public static final String DATABASE_NAME = "finan.db";
-  public static final int DATABASE_VERSION = 9;
+  public static final int DATABASE_VERSION = 10;
 
   private static final Migration[] MIGRATIONS = {
     new Migration001Initial(),
@@ -30,7 +31,8 @@ public final class FinanDatabaseHelper extends SQLiteOpenHelper {
     new Migration006CategoryIcon(),
     new Migration007WalletIcon(),
     new Migration008RemoveTagsMerchants(),
-    new Migration009CategoryDefault()
+    new Migration009CategoryDefault(),
+    new Migration010NoOp()
   };
 
   public FinanDatabaseHelper(Context context) {

@@ -85,9 +85,12 @@ public final class InfiniteScrollController<T, C> implements InfiniteScrollHandl
   }
 
   private void applyMorePage(int generation, @Nullable PageResult<T, C> page) {
+    if (pagingState.isStale(generation)) {
+      return;
+    }
     pagingState = pagingState.clearLoadMore();
     dataSink.setLoadingFooterVisible(false);
-    if (pagingState.isStale(generation) || page == null) {
+    if (page == null) {
       return;
     }
     if (page.getItems().isEmpty()) {

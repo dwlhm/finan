@@ -73,7 +73,7 @@ final class CaptureFormValidation {
   }
 
   void clearErrorBackground(TextView view) {
-    view.setBackgroundResource(R.drawable.bg_unselected_field);
+    view.setTextColor(view.getContext().getResources().getColor(R.color.finan_primary, null));
   }
 
   private void rebuildBanner() {

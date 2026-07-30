@@ -15,6 +15,9 @@ import java.util.List;
 
 public final class DonutChartView extends View {
 
+    private static final Typeface TF_NORMAL = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL);
+    private static final Typeface TF_BOLD = Typeface.create(Typeface.DEFAULT, Typeface.BOLD);
+
     public static final class DonutItem {
         private final String label;
         private final long value;
@@ -74,7 +77,22 @@ public final class DonutChartView extends View {
         paint.setStrokeCap(Paint.Cap.ROUND); // Premium visual style with rounded ends
     }
 
+    private boolean isSameData(List<DonutItem> oldList, List<DonutItem> newList) {
+        if (oldList.size() != newList.size()) return false;
+        for (int i = 0; i < oldList.size(); i++) {
+            DonutItem o = oldList.get(i);
+            DonutItem n = newList.get(i);
+            if (!o.getLabel().equals(n.getLabel()) || o.getValue() != n.getValue() || o.getColor() != n.getColor()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public void setData(List<DonutItem> inflows, List<DonutItem> outflows) {
+        if (isSameData(this.inflowItems, inflows) && isSameData(this.outflowItems, outflows)) {
+            return;
+        }
         this.inflowItems.clear();
         this.inflowItems.addAll(inflows);
         this.outflowItems.clear();
@@ -94,8 +112,11 @@ public final class DonutChartView extends View {
     }
 
     public void setCenterText(String line1, String line2) {
-        this.centerLine1 = line1 != null ? line1 : "";
-        this.centerLine2 = line2 != null ? line2 : "";
+        String newL1 = line1 != null ? line1 : "";
+        String newL2 = line2 != null ? line2 : "";
+        if (this.centerLine1.equals(newL1) && this.centerLine2.equals(newL2)) return;
+        this.centerLine1 = newL1;
+        this.centerLine2 = newL2;
         invalidate();
     }
 
@@ -200,7 +221,7 @@ public final class DonutChartView extends View {
             textPaint.setTextSize(size * 0.08f);
             textPaint.setColor(0xFF5C6B73); // finan_text_secondary (darker gray for high contrast)
             textPaint.setTextAlign(Paint.Align.CENTER);
-            textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+            textPaint.setTypeface(TF_NORMAL);
             canvas.drawText(centerLine1, centerX, centerY - size * 0.02f, textPaint);
         }
 
@@ -208,7 +229,7 @@ public final class DonutChartView extends View {
             textPaint.setTextSize(size * 0.12f);
             textPaint.setColor(0xFF2D6A6A); // finan_primary (bold theme teal)
             textPaint.setTextAlign(Paint.Align.CENTER);
-            textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+            textPaint.setTypeface(TF_BOLD);
             canvas.drawText(centerLine2, centerX, centerY + size * 0.09f, textPaint);
         }
     }

@@ -21,6 +21,8 @@ import com.dwlhm.finan.util.money.MoneyFormatter;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -53,6 +55,7 @@ public final class TransactionRecyclerAdapter
   private final SimpleDateFormat headerDateFormat =
       new SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("id-ID"));
   private OnTransactionClickListener clickListener;
+  private final Map<String, Long> dailyTotals = new HashMap<>();
 
   public interface OnTransactionClickListener {
     void onTransactionClick(Transaction transaction, int position);
@@ -66,8 +69,13 @@ public final class TransactionRecyclerAdapter
   public void setEntityLookups(
       Map<Long, Category> categoriesById,
       Map<Long, Wallet> walletsById) {
-    this.categoriesById = categoriesById != null ? categoriesById : Collections.emptyMap();
-    this.walletsById = walletsById != null ? walletsById : Collections.emptyMap();
+    Map<Long, Category> newCategories = categoriesById != null ? categoriesById : Collections.emptyMap();
+    Map<Long, Wallet> newWallets = walletsById != null ? walletsById : Collections.emptyMap();
+    if (this.categoriesById.equals(newCategories) && this.walletsById.equals(newWallets)) {
+      return;
+    }
+    this.categoriesById = newCategories;
+    this.walletsById = newWallets;
     notifyItemRangeChanged(0, getContentItemCount());
   }
 
@@ -75,9 +83,46 @@ public final class TransactionRecyclerAdapter
     this.clickListener = clickListener;
   }
 
+  public OnTransactionClickListener getClickListener() {
+    return clickListener;
+  }
+
   public void setMaskedMode(boolean masked) {
+    if (this.masked == masked) return;
     this.masked = masked;
     notifyItemRangeChanged(0, getContentItemCount());
+  }
+
+  @Override
+  public void replaceItems(List<Transaction> items) {
+    recomputeDailyTotals(items);
+    super.replaceItems(items);
+  }
+
+  @Override
+  public void appendItems(List<Transaction> items) {
+    if (items != null) {
+      for (Transaction t : items) {
+        String header = headerDateFormat.format(new Date(t.getOccurredAt()));
+        dailyTotals.put(header, getOrDefault(dailyTotals, header, 0L) + t.getAmountMinor());
+      }
+    }
+    super.appendItems(items);
+  }
+
+  private void recomputeDailyTotals(List<Transaction> items) {
+    dailyTotals.clear();
+    if (items != null) {
+      for (Transaction t : items) {
+        String header = headerDateFormat.format(new Date(t.getOccurredAt()));
+        dailyTotals.put(header, getOrDefault(dailyTotals, header, 0L) + t.getAmountMinor());
+      }
+    }
+  }
+
+  private Long getOrDefault(Map<String, Long> map, String key, Long defaultValue) {
+    Long val = map.get(key);
+    return val != null ? val : defaultValue;
   }
 
   public Transaction getTransactionAt(int position) {
@@ -88,7 +133,7 @@ public final class TransactionRecyclerAdapter
   @Override
   protected TransactionItemViewHolder onCreateContentViewHolder(@NonNull ViewGroup parent) {
     return new TransactionItemViewHolder(
-        LayoutInflater.from(context).inflate(R.layout.item_transaction, parent, false));
+        LayoutInflater.from(context).inflate(R.layout.item_transaction, parent, false), this);
   }
 
   @Override
@@ -104,12 +149,13 @@ public final class TransactionRecyclerAdapter
       holder.emoji.setVisibility(View.VISIBLE);
       holder.emoji.setText(category.getIcon().trim());
     } else {
-      setIndicatorColor(
-          holder.icon,
+      GradientDrawable bg = (GradientDrawable) holder.iconBackground.mutate();
+      bg.setColor(
           colorFor(
               CATEGORY_COLORS,
               transaction.getCategoryId(),
               category != null ? category.getName() : ""));
+      holder.icon.setBackground(bg);
       holder.icon.setImageResource(R.drawable.ic_summary_filter);
       holder.emoji.setVisibility(View.GONE);
     }
@@ -157,18 +203,8 @@ public final class TransactionRecyclerAdapter
       holder.dateHeader.setVisibility(View.VISIBLE);
       holder.dateLabel.setText(currentHeader);
 
-      long dailyTotal = transaction.getAmountMinor();
-      int nextPos = position + 1;
-      while (nextPos < getContentItemCount()) {
-        Transaction next = getItemAt(nextPos);
-        String nextHeader = headerDateFormat.format(new Date(next.getOccurredAt()));
-        if (nextHeader.equals(currentHeader)) {
-          dailyTotal += next.getAmountMinor();
-          nextPos++;
-        } else {
-          break;
-        }
-      }
+      Long total = dailyTotals.get(currentHeader);
+      long dailyTotal = total != null ? total : 0L;
 
       if (masked) {
         holder.dailyTotal.setText("Rp ***");
@@ -189,21 +225,6 @@ public final class TransactionRecyclerAdapter
     } else {
       holder.dateHeader.setVisibility(View.GONE);
     }
-
-    holder.itemView.setOnClickListener(
-        v -> {
-          if (clickListener != null) {
-            clickListener.onTransactionClick(transaction, position);
-          }
-        });
-  }
-
-  private void setIndicatorColor(View indicator, int color) {
-    GradientDrawable background = new GradientDrawable();
-    background.setColor(color);
-    background.setCornerRadius(
-        22f * context.getResources().getDisplayMetrics().density);
-    indicator.setBackground(background);
   }
 
   private int colorFor(int[] palette, long id, String name) {

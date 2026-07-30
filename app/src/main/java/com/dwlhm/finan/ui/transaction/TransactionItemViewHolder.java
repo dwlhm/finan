@@ -21,8 +21,9 @@ public final class TransactionItemViewHolder extends RecyclerView.ViewHolder {
   final TextView amount;
   final TextView meta;
   final TextView note;
+  final android.graphics.drawable.GradientDrawable iconBackground;
 
-  TransactionItemViewHolder(@NonNull View itemView) {
+  TransactionItemViewHolder(@NonNull View itemView, @NonNull TransactionRecyclerAdapter adapter) {
     super(itemView);
     dateHeader = itemView.findViewById(R.id.item_transaction_date_header);
     dateLabel = itemView.findViewById(R.id.item_transaction_date_label);
@@ -34,5 +35,19 @@ public final class TransactionItemViewHolder extends RecyclerView.ViewHolder {
     amount = itemView.findViewById(R.id.item_transaction_amount);
     meta = itemView.findViewById(R.id.item_transaction_meta);
     note = itemView.findViewById(R.id.item_transaction_note);
+
+    iconBackground = new android.graphics.drawable.GradientDrawable();
+    iconBackground.setCornerRadius(
+        22f * itemView.getContext().getResources().getDisplayMetrics().density);
+
+    itemView.setOnClickListener(v -> {
+      int pos = getBindingAdapterPosition();
+      if (pos != RecyclerView.NO_POSITION) {
+        TransactionRecyclerAdapter.OnTransactionClickListener listener = adapter.getClickListener();
+        if (listener != null) {
+          listener.onTransactionClick(adapter.getTransactionAt(pos), pos);
+        }
+      }
+    });
   }
 }

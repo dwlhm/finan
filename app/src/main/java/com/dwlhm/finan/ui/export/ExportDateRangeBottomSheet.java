@@ -1,6 +1,5 @@
 package com.dwlhm.finan.ui.export;
 
-import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
@@ -15,6 +14,7 @@ import androidx.annotation.Nullable;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
+import com.dwlhm.finan.ui.common.CustomDatePickerView;
 import com.dwlhm.finan.ui.common.DialogActionsView;
 
 import java.time.Instant;
@@ -33,8 +33,8 @@ public final class ExportDateRangeBottomSheet extends Dialog {
       DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("id-ID"));
 
   private final OnRangeSelectedListener listener;
-  private TextView startValue;
-  private TextView endValue;
+  private CustomDatePickerView datePicker;
+  private TextView rangePreview;
   @Nullable private Long startDate;
   @Nullable private Long endDate;
 
@@ -65,19 +65,36 @@ public final class ExportDateRangeBottomSheet extends Dialog {
       window.setWindowAnimations(android.R.style.Animation_InputMethod);
     }
 
-    startValue = findViewById(R.id.export_date_start_value);
-    endValue = findViewById(R.id.export_date_end_value);
+    rangePreview = findViewById(R.id.export_date_range_preview);
+    datePicker = findViewById(R.id.export_date_picker);
     TextView reset = findViewById(R.id.export_date_reset);
     DialogActionsView actions = findViewById(R.id.export_date_actions);
 
-    refreshDisplay();
+    datePicker.setRangeMode(true);
 
-    startValue.setOnClickListener(v -> showDatePicker(true));
-    endValue.setOnClickListener(v -> showDatePicker(false));
+    // Jika ada initial range, tampilkan di calendar
+    if (startDate != null && endDate != null) {
+      datePicker.setRange(startDate, endDate - 86400000L);
+    } else {
+      // Default ke bulan ini
+      LocalDate now = LocalDate.now();
+      long s = now.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      long e = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      datePicker.setRange(s, e);
+    }
+
+    datePicker.setOnRangeSelectedListener((s, e) -> {
+      startDate = s;
+      endDate = e + 86400000L; // end is exclusive (next day)
+      refreshPreview();
+    });
+
+    refreshPreview();
+
     reset.setOnClickListener(v -> {
       startDate = null;
       endDate = null;
-      refreshDisplay();
+      refreshPreview();
     });
 
     actions.setOnPrimaryClickListener(v -> {
@@ -89,39 +106,13 @@ public final class ExportDateRangeBottomSheet extends Dialog {
     BottomSheetHelper.makeDraggable(this);
   }
 
-  private void showDatePicker(boolean isStart) {
-    Context ctx = getContext();
-    long millis = isStart
-        ? (startDate != null ? startDate : System.currentTimeMillis())
-        : (endDate != null ? endDate - 86400000L : System.currentTimeMillis());
-    LocalDate date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate();
-
-    DatePickerDialog dialog = new DatePickerDialog(ctx, (view, year, month, dayOfMonth) -> {
-      long selected = LocalDate.of(year, month + 1, dayOfMonth)
-          .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      if (isStart) {
-        startDate = selected;
-      } else {
-        endDate = selected + 86400000L;
-      }
-      refreshDisplay();
-    }, date.getYear(), date.getMonthValue() - 1, date.getDayOfMonth());
-
-    if (isStart && endDate != null) {
-      dialog.getDatePicker().setMaxDate(endDate - 1);
-    } else if (!isStart && startDate != null) {
-      dialog.getDatePicker().setMinDate(startDate);
+  private void refreshPreview() {
+    if (startDate != null && endDate != null) {
+      String startStr = Instant.ofEpochMilli(startDate).atZone(ZoneId.systemDefault()).toLocalDate().format(FMT);
+      String endStr   = Instant.ofEpochMilli(endDate - 86400000L).atZone(ZoneId.systemDefault()).toLocalDate().format(FMT);
+      rangePreview.setText(startStr + "  →  " + endStr);
+    } else {
+      rangePreview.setText(getContext().getString(R.string.export_date_all_time));
     }
-
-    dialog.show();
-  }
-
-  private void refreshDisplay() {
-    startValue.setText(startDate != null
-        ? Instant.ofEpochMilli(startDate).atZone(ZoneId.systemDefault()).toLocalDate().format(FMT)
-        : getContext().getString(R.string.export_date_all_time));
-    endValue.setText(endDate != null
-        ? Instant.ofEpochMilli(endDate - 86400000L).atZone(ZoneId.systemDefault()).toLocalDate().format(FMT)
-        : getContext().getString(R.string.export_date_all_time));
   }
 }

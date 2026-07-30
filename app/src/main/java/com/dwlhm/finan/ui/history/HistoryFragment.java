@@ -91,6 +91,7 @@ public final class HistoryFragment extends ScreenFragment {
   private int reloadGeneration;
   private Map<Long, Category> categoriesById = Map.of();
   private Map<Long, Wallet> walletsById = Map.of();
+  private boolean isDataLoaded = false;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -227,7 +228,10 @@ public final class HistoryFragment extends ScreenFragment {
   public void onResume() {
     super.onResume();
     updateDateRangeView();
-    reload(true);
+    if (!isDataLoaded) {
+      reload(true);
+      isDataLoaded = true;
+    }
   }
 
   public void setCategoryFilter(long categoryId) {
@@ -354,6 +358,8 @@ public final class HistoryFragment extends ScreenFragment {
     List<Wallet> wallets = services.walletService.findAll();
     List<Category> categories = services.categoryDao.findAllOrdered();
     return new HistorySources(
+        wallets,
+        categories,
         EntityLookup.indexWallets(wallets),
         EntityLookup.indexCategories(categories),
         new TransactionSearchResolver(wallets, categories));
@@ -390,6 +396,10 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private void showHistoryFilterDialog() {
+    if (historySources != null) {
+      showFilterDialogWithData(historySources.wallets, historySources.categories);
+      return;
+    }
     services.dbWorker.compute(
         () -> {
           List<Wallet> wallets = services.walletService.findAll();
@@ -400,38 +410,42 @@ public final class HistoryFragment extends ScreenFragment {
           if (!isAdded() || data == null) {
             return;
           }
-          Long walletId = validWalletIdOrNull(selectedWalletId, EntityLookup.indexWallets(data.wallets));
-          Long categoryId =
-              validCategoryIdOrNull(
-                  selectedCategoryId, EntityLookup.indexCategories(data.categories));
-          Long typeId = validTypeIdOrNull(selectedTypeId);
-          Long sortId = validSortIdOrNull(selectedSortId);
-
-          HistoryFilterBottomSheet sheet =
-              new HistoryFilterBottomSheet(
-                  requireContext(),
-                  data.wallets,
-                  data.categories,
-                  walletId,
-                  categoryId,
-                  typeId,
-                  sortId,
-                  (selectedWalletId1, selectedCategoryId1, selectedTypeId1, selectedSortId1) -> {
-                    selectedWalletId = selectedWalletId1;
-                    selectedCategoryId = selectedCategoryId1;
-                    selectedTypeId = selectedTypeId1;
-                    selectedSortId = selectedSortId1;
-                    reload();
-                  },
-                  () -> {
-                    selectedWalletId = null;
-                    selectedCategoryId = null;
-                    selectedTypeId = null;
-                    selectedSortId = null;
-                    reload();
-                  });
-          sheet.show();
+          showFilterDialogWithData(data.wallets, data.categories);
         });
+  }
+
+  private void showFilterDialogWithData(List<Wallet> wallets, List<Category> categories) {
+    Long walletId = validWalletIdOrNull(selectedWalletId, EntityLookup.indexWallets(wallets));
+    Long categoryId =
+        validCategoryIdOrNull(
+            selectedCategoryId, EntityLookup.indexCategories(categories));
+    Long typeId = validTypeIdOrNull(selectedTypeId);
+    Long sortId = validSortIdOrNull(selectedSortId);
+
+    HistoryFilterBottomSheet sheet =
+        new HistoryFilterBottomSheet(
+            requireContext(),
+            wallets,
+            categories,
+            walletId,
+            categoryId,
+            typeId,
+            sortId,
+            (selectedWalletId1, selectedCategoryId1, selectedTypeId1, selectedSortId1) -> {
+              selectedWalletId = selectedWalletId1;
+              selectedCategoryId = selectedCategoryId1;
+              selectedTypeId = selectedTypeId1;
+              selectedSortId = selectedSortId1;
+              reload();
+            },
+            () -> {
+              selectedWalletId = null;
+              selectedCategoryId = null;
+              selectedTypeId = null;
+              selectedSortId = null;
+              reload();
+            });
+    sheet.show();
   }
 
   private void showDateRangeDialog() {
@@ -626,21 +640,26 @@ public final class HistoryFragment extends ScreenFragment {
       return new DateRange(date.withDayOfMonth(1), date.withDayOfMonth(date.lengthOfMonth()));
     }
     LocalDate start;
+    LocalDate nextCutoff;
     if (cutoffDay == -1) {
       LocalDate thisMonthCutoff = lastBusinessDayOfMonth(date);
       if (date.isBefore(thisMonthCutoff)) {
         start = lastBusinessDayOfMonth(date.minusMonths(1));
+        nextCutoff = thisMonthCutoff;
       } else {
         start = thisMonthCutoff;
+        nextCutoff = lastBusinessDayOfMonth(date.plusMonths(1));
       }
     } else {
       if (date.getDayOfMonth() >= cutoffDay) {
         start = date.withDayOfMonth(cutoffDay);
+        nextCutoff = date.plusMonths(1).withDayOfMonth(cutoffDay);
       } else {
         start = date.minusMonths(1).withDayOfMonth(cutoffDay);
+        nextCutoff = date.withDayOfMonth(cutoffDay);
       }
     }
-    return new DateRange(start, start.plusMonths(1).minusDays(1));
+    return new DateRange(start, nextCutoff.minusDays(1));
   }
 
   private static LocalDate lastBusinessDayOfMonth(LocalDate date) {
@@ -760,14 +779,20 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private static final class HistorySources {
+    private final List<Wallet> wallets;
+    private final List<Category> categories;
     private final Map<Long, Wallet> walletsById;
     private final Map<Long, Category> categoriesById;
     private final TransactionSearchResolver searchResolver;
 
     private HistorySources(
+        List<Wallet> wallets,
+        List<Category> categories,
         Map<Long, Wallet> walletsById,
         Map<Long, Category> categoriesById,
         TransactionSearchResolver searchResolver) {
+      this.wallets = wallets;
+      this.categories = categories;
       this.walletsById = walletsById;
       this.categoriesById = categoriesById;
       this.searchResolver = searchResolver;

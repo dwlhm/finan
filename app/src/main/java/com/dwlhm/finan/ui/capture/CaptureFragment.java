@@ -54,22 +54,17 @@ public final class CaptureFragment extends ScreenFragment {
   private TransactionService transactionService;
   private DefaultsStore defaultsStore;
 
-  private View typeExpenseWrapper;
-  private View typeIncomeWrapper;
-  private View typeTransferWrapper;
-
-  private TextView typeExpense;
-  private TextView typeIncome;
-  private TextView typeTransfer;
 
   private EditText amountInput;
+  private TextView sentencePrefix;
   private TextView sentenceFor;
   private TextView categoryText;
   private TextView sentenceFrom;
   private TextView walletText;
   private TextView dateText;
   private EditText noteInput;
-    private TextView validationBanner;
+  private TextView validationBanner;
+  private Button saveButton;
   private CaptureFormValidation formValidation;
 
   private CalculatorStripView calculatorStrip;
@@ -87,8 +82,9 @@ public final class CaptureFragment extends ScreenFragment {
 
   private List<Wallet> wallets = new ArrayList<>();
   private List<Category> allCategoriesForType = new ArrayList<>();
-    private boolean captureDraftRestored;
+  private boolean captureDraftRestored;
   private int refreshGeneration;
+  private boolean isDataLoaded = false;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -111,21 +107,15 @@ public final class CaptureFragment extends ScreenFragment {
     MoneyInputFormatter.attach(amountInput, false);
     amountInput.addTextChangedListener(calcTextWatcher);
     
-    typeExpenseWrapper = view.findViewById(R.id.capture_type_expense_wrapper);
-    typeIncomeWrapper = view.findViewById(R.id.capture_type_income_wrapper);
-    typeTransferWrapper = view.findViewById(R.id.capture_type_transfer_wrapper);
 
-    typeExpense = view.findViewById(R.id.capture_type_expense);
-    typeIncome = view.findViewById(R.id.capture_type_income);
-    typeTransfer = view.findViewById(R.id.capture_type_transfer);
-
+    sentencePrefix = view.findViewById(R.id.capture_sentence_prefix);
     sentenceFor = view.findViewById(R.id.capture_sentence_for);
     categoryText = view.findViewById(R.id.capture_category_text);
     sentenceFrom = view.findViewById(R.id.capture_sentence_from);
     walletText = view.findViewById(R.id.capture_wallet_text);
     dateText = view.findViewById(R.id.capture_date_text);
     noteInput = view.findViewById(R.id.capture_note);
-      Button saveButton = view.findViewById(R.id.capture_save);
+    saveButton = view.findViewById(R.id.capture_save);
 
     occurredAtMillis = System.currentTimeMillis();
     updateDateLabel();
@@ -179,6 +169,7 @@ public final class CaptureFragment extends ScreenFragment {
             calcOperand = null;
             keypadManager.onClear();
             calculatorStrip.show("");
+            calculatorStrip.showPreview(null);
         }
 
         @Override
@@ -226,9 +217,7 @@ public final class CaptureFragment extends ScreenFragment {
     calculatorStrip = view.findViewById(R.id.capture_calculator_strip);
     
 
-    typeExpenseWrapper.setOnClickListener(v -> setType(TransactionType.EXPENSE));
-    typeIncomeWrapper.setOnClickListener(v -> setType(TransactionType.INCOME));
-    typeTransferWrapper.setOnClickListener(v -> setType(TransactionType.TRANSFER_OUT));
+    sentencePrefix.setOnClickListener(v -> showTypeBottomSheet());
 
     categoryText.setOnClickListener(v -> {
         expireAmountAutoFocus();
@@ -247,13 +236,55 @@ public final class CaptureFragment extends ScreenFragment {
     saveButton.setOnClickListener(
         v -> {
           expireAmountAutoFocus();
-          saveTransaction();
+          saveTransaction(false);
         });
+
+    saveButton.setOnLongClickListener(v -> {
+        expireAmountAutoFocus();
+        saveTransaction(true);
+        return true;
+    });
 
     installAmountAutoFocusExpiry(view);
     updateCaptureMode();
   }
-  
+  private void updateInteractiveFieldTheme(TextView view, int textColorRes, int bgColorRes) {
+      view.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes));
+      view.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes)));
+      android.graphics.drawable.Drawable bg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_madlibs_field).mutate();
+      androidx.core.graphics.drawable.DrawableCompat.setTint(bg, androidx.core.content.ContextCompat.getColor(requireContext(), bgColorRes));
+      view.setBackground(bg);
+  }
+
+  private void showTypeBottomSheet() {
+      java.util.List<TransactionType> types = java.util.Arrays.asList(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER_OUT);
+      
+      com.dwlhm.finan.ui.common.EntitySearchBottomSheet<TransactionType> bottomSheet = new com.dwlhm.finan.ui.common.EntitySearchBottomSheet<>(
+          requireContext(),
+          types,
+          (long) selectedType.ordinal(),
+          new com.dwlhm.finan.ui.common.EntitySearchBottomSheet.ItemMapper<TransactionType>() {
+              @Override
+              public String getName(TransactionType item) {
+                  if (item == TransactionType.EXPENSE) return getString(R.string.capture_type_expense);
+                  if (item == TransactionType.INCOME) return getString(R.string.capture_type_income);
+                  return getString(R.string.capture_type_transfer);
+              }
+              @Override
+              public long getId(TransactionType item) {
+                  return item.ordinal();
+              }
+          },
+          item -> setType(item)
+      );
+      
+      bottomSheet.show();
+      android.view.View searchInput = bottomSheet.findViewById(R.id.search_input);
+      if (searchInput != null) {
+          searchInput.setVisibility(android.view.View.GONE);
+      }
+  }
+
   private void setType(TransactionType type) {
       expireAmountAutoFocus();
       selectedType = type;
@@ -267,7 +298,10 @@ public final class CaptureFragment extends ScreenFragment {
   @Override
   public void onResume() {
     super.onResume();
-    refreshCaptureData(true);
+    if (!isDataLoaded) {
+      refreshCaptureData(true);
+      isDataLoaded = true;
+    }
   }
 
   @Override
@@ -412,99 +446,79 @@ public final class CaptureFragment extends ScreenFragment {
     return -1;
   }
 
+  private void applyCurrentTheme() {
+      if (selectedType == null) return;
+      int textColorRes;
+      int bgColorRes;
+      if (selectedType == TransactionType.EXPENSE) {
+          textColorRes = R.color.finan_expense;
+          bgColorRes = R.color.finan_expense_bg;
+      } else if (selectedType == TransactionType.INCOME) {
+          textColorRes = R.color.finan_income;
+          bgColorRes = R.color.finan_income_bg;
+      } else {
+          textColorRes = R.color.finan_primary;
+          bgColorRes = R.color.finan_chip_bg;
+      }
+      
+      updateInteractiveFieldTheme(sentencePrefix, textColorRes, bgColorRes);
+  }
+
   private void updateCaptureMode() {
     boolean transfer = selectedType.isTransfer();
     boolean expense = selectedType == TransactionType.EXPENSE;
     boolean income = selectedType == TransactionType.INCOME;
 
-    typeExpenseWrapper.setBackgroundResource(expense ? R.drawable.bg_tab_active_expense : 0);
-    typeIncomeWrapper.setBackgroundResource(income ? R.drawable.bg_tab_active_income : 0);
-    typeTransferWrapper.setBackgroundResource(transfer ? R.drawable.bg_tab_active_transfer : 0);
-
-    int colorExpense = requireContext().getColor(expense ? R.color.finan_chip_text_selected : R.color.finan_text_secondary);
-    typeExpense.setTextColor(colorExpense);
-    typeExpense.setCompoundDrawableTintList(ColorStateList.valueOf(colorExpense));
-
-    int colorIncome = requireContext().getColor(income ? R.color.finan_chip_text_selected : R.color.finan_text_secondary);
-    typeIncome.setTextColor(colorIncome);
-    typeIncome.setCompoundDrawableTintList(ColorStateList.valueOf(colorIncome));
-
-    int colorTransfer = requireContext().getColor(transfer ? R.color.finan_chip_text_selected : R.color.finan_text_secondary);
-    typeTransfer.setTextColor(colorTransfer);
-    typeTransfer.setCompoundDrawableTintList(ColorStateList.valueOf(colorTransfer));
-
     if (transfer) {
-        sentenceFor.setText("to ");
-        sentenceFrom.setText(" from ");
+        sentencePrefix.setText("Transfer ");
+        sentenceFor.setText(" ke ");
+        sentenceFrom.setText(" dari ");
+        saveButton.setText("Simpan Transfer");
         updateCategoryLabel(); // Will display destination wallet
     } else {
-        sentenceFor.setText("for ");
-        sentenceFrom.setText(income ? " to " : " from ");
+        sentencePrefix.setText(income ? "Masuk " : "Keluar ");
+        sentenceFor.setText(" untuk ");
+        sentenceFrom.setText(income ? " ke " : " dari ");
+        saveButton.setText(income ? "Simpan Pemasukan" : "Simpan Pengeluaran");
         updateCategoryLabel();
     }
+    applyCurrentTheme();
   }
 
   private final Set<TextView> errorBackgroundFields = new HashSet<>();
 
   private void applyErrorBackground(TextView view) {
-      int paddingLeft = view.getPaddingLeft();
-      int paddingTop = view.getPaddingTop();
-      int paddingRight = view.getPaddingRight();
-      int paddingBottom = view.getPaddingBottom();
-      view.setBackgroundResource(R.drawable.bg_field_error);
-      view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+      view.setTextColor(getResources().getColor(R.color.finan_error, null));
       errorBackgroundFields.add(view);
   }
 
   private void clearErrorBackground(TextView view) {
       errorBackgroundFields.remove(view);
-      int paddingLeft = view.getPaddingLeft();
-      int paddingTop = view.getPaddingTop();
-      int paddingRight = view.getPaddingRight();
-      int paddingBottom = view.getPaddingBottom();
-      TypedValue outValue = new TypedValue();
-      requireActivity().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-      view.setBackgroundResource(outValue.resourceId);
-      view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
+      view.setTextColor(getResources().getColor(R.color.finan_primary, null));
   }
 
-  private void applySelectionBackground(TextView view, boolean isSelected) {
-      int paddingLeft = view.getPaddingLeft();
-      int paddingTop = view.getPaddingTop();
-      int paddingRight = view.getPaddingRight();
-      int paddingBottom = view.getPaddingBottom();
 
-      if (isSelected) {
-          TypedValue outValue = new TypedValue();
-          requireActivity().getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-          view.setBackgroundResource(outValue.resourceId);
-      } else {
-          view.setBackgroundResource(R.drawable.bg_unselected_field);
-      }
-      view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
-  }
 
   private void updateCategoryLabel() {
       if (selectedType.isTransfer()) {
           categoryText.setText(destinationWallet != null ? destinationWallet.getName() : "Wallet");
-          applySelectionBackground(categoryText, destinationWallet != null);
           categoryText.setOnClickListener(v -> {
               expireAmountAutoFocus();
               openWalletSearchDialog(true);
           });
       } else {
           categoryText.setText(selectedCategory != null ? "#" + selectedCategory.getName() : "#Category");
-          applySelectionBackground(categoryText, selectedCategory != null);
           categoryText.setOnClickListener(v -> {
               expireAmountAutoFocus();
               openCategorySearchDialog();
           });
       }
+      applyCurrentTheme();
   }
 
   private void updateWalletLabel() {
       walletText.setText(activeWallet != null ? activeWallet.getName() : "Wallet");
-      applySelectionBackground(walletText, activeWallet != null);
+      applyCurrentTheme();
   }
 
   private void updateDateLabel() {
@@ -620,7 +634,22 @@ public final class CaptureFragment extends ScreenFragment {
           setAmountInput(result);
           amountInput.addTextChangedListener(calcTextWatcher);
           calculatorStrip.show(fullExpr);
+          calculatorStrip.showPreview("= " + MoneyFormatter.formatWithoutCurrency(result));
       } catch (Exception ignored) {
+          calculatorStrip.showPreview(null);
+      }
+      checkSaveButtonState();
+  }
+
+  private void checkSaveButtonState() {
+      if (saveButton == null) return;
+      if (saveInProgress) return;
+      String raw = getRawInput();
+      long amount = raw.isEmpty() ? 0 : Long.parseLong(raw);
+      if (amount <= 0) {
+          saveButton.setEnabled(false);
+      } else {
+          saveButton.setEnabled(true);
       }
   }
 
@@ -652,7 +681,9 @@ public final class CaptureFragment extends ScreenFragment {
           } else if (calculatorStrip != null) {
               String raw = s.toString().replaceAll("[^0-9]", "");
               calculatorStrip.show(raw.isEmpty() ? "" : raw);
+              calculatorStrip.showPreview(null);
           }
+          checkSaveButtonState();
       }
   };
 
@@ -666,6 +697,7 @@ public final class CaptureFragment extends ScreenFragment {
           exprString = null;
           calcOperand = null;
           calculatorStrip.show(getRawInput());
+          calculatorStrip.showPreview(null);
           return;
       }
 
@@ -685,6 +717,7 @@ public final class CaptureFragment extends ScreenFragment {
           exprString = null;
           calcOperand = null;
           calculatorStrip.show(getRawInput());
+          calculatorStrip.showPreview(null);
       } else {
           updateCalcDisplay();
       }
@@ -710,7 +743,18 @@ public final class CaptureFragment extends ScreenFragment {
     amountInput.setSelection(formatted.length());
   }
 
-  private void saveTransaction() {
+  private void forceClearSavedForm() {
+    formValidation.clearAll();
+    validationBanner.setVisibility(View.GONE);
+    amountInput.setText("");
+    noteInput.setText("");
+    occurredAtMillis = System.currentTimeMillis();
+    updateDateLabel();
+    selectedCategory = null;
+    updateCategoryLabel();
+  }
+
+  private void saveTransaction(boolean clearAfterSave) {
     if (saveInProgress) return;
     ValidatedCaptureInput input = validateCaptureInput();
     if (input == null) {
@@ -718,7 +762,7 @@ public final class CaptureFragment extends ScreenFragment {
     }
     long amountMinor = input.amountMinor;
     if (selectedType.isTransfer()) {
-      saveTransfer(amountMinor);
+      saveTransfer(amountMinor, clearAfterSave);
       return;
     }
 
@@ -763,13 +807,24 @@ public final class CaptureFragment extends ScreenFragment {
           pendingUndo =
               snapshotPendingSaveUndo(
                   savedId, amountMinor, savedNote);
-          clearSavedForm();
-          showUndoBar();
+          
+          saveButton.setText("✓ Tersimpan");
+          saveButton.setEnabled(false);
+          saveButton.postDelayed(() -> {
+              updateCaptureMode();
+              checkSaveButtonState();
+          }, 1500);
+
+          if (clearAfterSave) {
+              forceClearSavedForm();
+          } else {
+              clearSavedForm();
+          }
           refreshCaptureData(false);
         });
   }
 
-  private void saveTransfer(long amountMinor) {
+  private void saveTransfer(long amountMinor, boolean clearAfterSave) {
     Wallet source = activeWallet;
     Wallet destination = destinationWallet;
     long occurredAt = occurredAtMillis;
@@ -811,8 +866,19 @@ public final class CaptureFragment extends ScreenFragment {
                   destination.getId(),
                   occurredAt,
                   savedNote);
-          clearSavedForm();
-          showUndoBar();
+
+          saveButton.setText("✓ Tersimpan");
+          saveButton.setEnabled(false);
+          saveButton.postDelayed(() -> {
+              updateCaptureMode();
+              checkSaveButtonState();
+          }, 1500);
+
+          if (clearAfterSave) {
+              forceClearSavedForm();
+          } else {
+              clearSavedForm();
+          }
           refreshCaptureData(false);
         });
   }
@@ -820,12 +886,7 @@ public final class CaptureFragment extends ScreenFragment {
   private void clearSavedForm() {
     formValidation.clearAll();
     validationBanner.setVisibility(View.GONE);
-    amountInput.setText("");
-    noteInput.setText("");
-    occurredAtMillis = System.currentTimeMillis();
-    updateDateLabel();
-    selectedCategory = null;
-    updateCategoryLabel();
+    // User requested to keep the last state including nominal amount, so we don't reset inputs here.
   }
 
   private void showUndoBar() {
@@ -969,17 +1030,24 @@ public final class CaptureFragment extends ScreenFragment {
 
     Long categoryId = draft.getCategoryId();
     if (!selectedType.isTransfer() && categoryId != null) {
-      Category category = services.categoryDao.findById(categoryId);
-      if (category != null && selectedType.name().equals(category.getTypeFilter())) {
-        selectedCategory = category;
-      } else {
-        selectedCategory = null;
-      }
+      services.dbWorker.compute(
+          () -> services.categoryDao.findById(categoryId),
+          category -> {
+            if (!isAdded()) return;
+            if (category != null && selectedType.name().equals(category.getTypeFilter())) {
+              selectedCategory = category;
+            } else {
+              selectedCategory = null;
+            }
+            formValidation.clearAll();
+            validationBanner.setVisibility(View.GONE);
+            updateCaptureMode();
+          });
+    } else {
+      formValidation.clearAll();
+      validationBanner.setVisibility(View.GONE);
+      updateCaptureMode();
     }
-
-    formValidation.clearAll();
-    validationBanner.setVisibility(View.GONE);
-    updateCaptureMode();
   }
 
   private void persistCaptureDraft() {

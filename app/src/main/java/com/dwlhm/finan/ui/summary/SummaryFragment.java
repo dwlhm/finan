@@ -90,6 +90,11 @@ public final class SummaryFragment extends ScreenFragment {
   private boolean showPercentageMode;
   private ViewGroup contentContainer;
   private SummaryLoadData cachedData;
+  private boolean isDataLoaded = false;
+  private androidx.recyclerview.widget.RecyclerView cashFlowRecycler;
+  private CashFlowAdapter cashFlowAdapter;
+  private androidx.recyclerview.widget.RecyclerView walletRecycler;
+  private WalletAdapter walletAdapter;
 
   private View inboxPrompt;
   private TextView inboxTitle;
@@ -135,6 +140,21 @@ public final class SummaryFragment extends ScreenFragment {
     monthIncome = view.findViewById(R.id.summary_month_income);
     cashFlowContainer = view.findViewById(R.id.summary_cash_flow_container);
     walletList = view.findViewById(R.id.summary_wallet_list);
+
+    cashFlowRecycler = new androidx.recyclerview.widget.RecyclerView(requireContext());
+    cashFlowRecycler.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(requireContext()));
+    cashFlowRecycler.setNestedScrollingEnabled(false);
+    cashFlowContainer.addView(cashFlowRecycler, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    cashFlowAdapter = new CashFlowAdapter();
+    cashFlowRecycler.setAdapter(cashFlowAdapter);
+
+    walletRecycler = new androidx.recyclerview.widget.RecyclerView(requireContext());
+    walletRecycler.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(requireContext()));
+    walletRecycler.setNestedScrollingEnabled(false);
+    walletList.addView(walletRecycler, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    walletAdapter = new WalletAdapter();
+    walletRecycler.setAdapter(walletAdapter);
+
     walletTotal = view.findViewById(R.id.summary_wallet_total);
     emptyMessage = view.findViewById(R.id.summary_empty);
     adviceCard = view.findViewById(R.id.summary_advice_card);
@@ -197,7 +217,10 @@ public final class SummaryFragment extends ScreenFragment {
   @Override
   public void onResume() {
     super.onResume();
-    loadSummaryAsync();
+    if (!isDataLoaded) {
+      loadSummaryAsync();
+      isDataLoaded = true;
+    }
   }
 
   @Override
@@ -355,14 +378,15 @@ public final class SummaryFragment extends ScreenFragment {
 
     bindInboxPrompt(unclassifiedCount, unclassifiedAmount);
 
-    cashFlowContainer.removeAllViews();
     boolean hasActivity = false;
+    List<CashFlowActivityTotal> activityTotals = new ArrayList<>();
     for (CashFlowReport report : reportResult.getAllReports()) {
       for (CashFlowActivityTotal act : report.getActivityTotals()) {
-        cashFlowContainer.addView(createActivityCard(act));
+        activityTotals.add(act);
         hasActivity = true;
       }
     }
+    cashFlowAdapter.setItems(activityTotals);
     emptyMessage.setVisibility(hasActivity ? View.GONE : View.VISIBLE);
 
     bindReconciliation(reportResult);
@@ -374,14 +398,10 @@ public final class SummaryFragment extends ScreenFragment {
     }
     walletTotal.setText(showPercentageMode ? "100%" : format(totalBalance));
 
-    walletList.removeAllViews();
     if (summary != null) {
-      for (WalletBalance wallet : summary.getWalletBalances()) {
-        if (walletList.getChildCount() > 0) {
-          walletList.addView(createDivider(requireContext()));
-        }
-        walletList.addView(createWalletRow(wallet, totalBalance));
-      }
+      walletAdapter.setItems(summary.getWalletBalances(), totalBalance);
+    } else {
+      walletAdapter.setItems(new ArrayList<>(), 0);
     }
   }
 
@@ -552,9 +572,16 @@ public final class SummaryFragment extends ScreenFragment {
 
     int barHeight = UiComponentStyles.dp(context, 28);
     int cornerRadius = UiComponentStyles.dp(context, 6);
+    
+    LinearLayout barContainer = new LinearLayout(context);
+    barContainer.setOrientation(LinearLayout.HORIZONTAL);
+    barContainer.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+    barContainer.setWeightSum((float) maxWeekTotal);
+
     LinearLayout bar = new LinearLayout(context);
     bar.setOrientation(LinearLayout.HORIZONTAL);
-    bar.setLayoutParams(new LinearLayout.LayoutParams(0, barHeight, 1f));
+    bar.setLayoutParams(new LinearLayout.LayoutParams(0, barHeight, (float) weekTotal));
+    bar.setMinimumWidth(barHeight);
 
     List<CashFlowReport.DailyTotal> days = week.getDays();
     float weightSum = 0f;
@@ -588,23 +615,13 @@ public final class SummaryFragment extends ScreenFragment {
       }
     }
 
-    row.addView(bar);
+    barContainer.addView(bar);
+    row.addView(barContainer);
 
     row.setClickable(true);
     row.setFocusable(true);
     row.setForeground(ContextCompat.getDrawable(context, UiComponentStyles.selectableItemBackground(context)));
     row.setOnClickListener(v -> showWeekDetailDialog(week, totalAmount));
-
-    row.post(() -> {
-      int availableWidth = row.getWidth() - UiComponentStyles.dp(context, 72) - UiComponentStyles.dp(context, 8);
-      if (availableWidth > 0 && maxWeekTotal > 0) {
-        int barWidth = (int) (availableWidth * (float) weekTotal / maxWeekTotal);
-        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) bar.getLayoutParams();
-        lp.width = Math.max(barWidth, barHeight);
-        lp.weight = 0;
-        bar.setLayoutParams(lp);
-      }
-    });
 
     return row;
   }
@@ -1435,6 +1452,207 @@ public final class SummaryFragment extends ScreenFragment {
     private SummaryFilterSource(List<Wallet> wallets, List<Category> categories) {
       this.wallets = wallets;
       this.categories = categories;
+    }
+  }
+
+  private class CashFlowAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<CashFlowAdapter.ViewHolder> {
+    private List<CashFlowActivityTotal> items = new ArrayList<>();
+
+    public void setItems(List<CashFlowActivityTotal> newItems) {
+      this.items = newItems;
+      notifyDataSetChanged();
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+      View view = getLayoutInflater().inflate(R.layout.item_cash_flow_card, parent, false);
+      return new ViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+      CashFlowActivityTotal actTotal = items.get(position);
+      holder.bind(actTotal);
+    }
+
+    @Override
+    public int getItemCount() {
+      return items.size();
+    }
+
+    class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
+      TextView title;
+      TextView netText;
+      TextView inflowText;
+      TextView outflowText;
+      DonutChartView donutChart;
+      LinearLayout legendList;
+      View chartContainer;
+      View divider;
+
+      ViewHolder(View card) {
+        super(card);
+        title = card.findViewById(R.id.item_cashflow_title);
+        netText = card.findViewById(R.id.item_cashflow_net);
+        inflowText = card.findViewById(R.id.item_cashflow_inflow);
+        outflowText = card.findViewById(R.id.item_cashflow_outflow);
+        donutChart = card.findViewById(R.id.item_cashflow_donut_chart);
+        legendList = card.findViewById(R.id.item_cashflow_chart_legend);
+        chartContainer = card.findViewById(R.id.item_cashflow_chart_container);
+        divider = card.findViewById(R.id.item_cashflow_divider);
+      }
+
+      void bind(CashFlowActivityTotal actTotal) {
+        Context context = itemView.getContext();
+        title.setText(getActivityTitle(actTotal.getActivity()));
+        long net = actTotal.getNetMinor();
+        long inflow = actTotal.getIncomeMinor();
+        long outflow = actTotal.getExpenseMinor();
+
+        if (showPercentageMode) {
+          long base = inflow > 0 ? inflow : (outflow > 0 ? outflow : 1);
+          netText.setText(fmtPct(net, base, true));
+          inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + fmtPct(inflow, base, false));
+          outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + fmtPct(outflow, base, false));
+        } else {
+          netText.setText((net >= 0 ? "+" : "") + format(net));
+          inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + format(inflow));
+          outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + format(outflow));
+        }
+        netText.setTextColor(ContextCompat.getColor(context, net >= 0 ? R.color.finan_income : R.color.finan_expense));
+
+        List<CategoryTotal> categories = new ArrayList<>();
+        categories.addAll(actTotal.getIncomeCategories());
+        categories.addAll(actTotal.getExpenseCategories());
+        if (categories.isEmpty()) {
+          chartContainer.setVisibility(View.GONE);
+          divider.setVisibility(View.GONE);
+        } else {
+          chartContainer.setVisibility(View.VISIBLE);
+          divider.setVisibility(View.VISIBLE);
+
+          List<CategoryTotal> inflowCategories = new ArrayList<>();
+          List<CategoryTotal> outflowCategories = new ArrayList<>();
+          for (CategoryTotal cat : categories) {
+            if (cat.isIncome()) {
+              inflowCategories.add(cat);
+            } else {
+              outflowCategories.add(cat);
+            }
+          }
+
+          long legendBase = inflow > 0 ? inflow : (outflow > 0 ? outflow : 1);
+
+          if (inflow > 0) {
+            long remaining = inflow - outflow;
+            donutChart.setCenterText("Sisa", String.format(Locale.getDefault(), "%.0f%%", Math.max(0.0, remaining * 100.0 / inflow)));
+          } else if (outflow > 0) {
+            donutChart.setCenterText("Keluar", showPercentageMode ? "100%" : formatCompact(outflow));
+          }
+
+          List<DonutChartView.DonutItem> inflowDonutItems = new ArrayList<>();
+          List<DonutChartView.DonutItem> outflowDonutItems = new ArrayList<>();
+          legendList.removeAllViews();
+
+          if (!inflowCategories.isEmpty()) {
+            legendList.addView(createLegendHeader(context, "PENDAPATAN"));
+            for (CategoryTotal cat : inflowCategories) {
+              int color = getCategoryColor(context, cat.getCategoryId());
+              inflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
+              double percentage = cat.getTotalMinor() * 100.0 / legendBase;
+              legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
+            }
+          }
+
+          if (!outflowCategories.isEmpty()) {
+            legendList.addView(createLegendHeader(context, "PENGELUARAN"));
+            for (CategoryTotal cat : outflowCategories) {
+              int color = getCategoryColor(context, cat.getCategoryId());
+              outflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
+              double percentage = cat.getTotalMinor() * 100.0 / legendBase;
+              legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
+            }
+          }
+
+          donutChart.setData(inflowDonutItems, outflowDonutItems);
+        }
+      }
+    }
+  }
+
+  private class WalletAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<WalletAdapter.ViewHolder> {
+    private List<WalletBalance> items = new ArrayList<>();
+    private long totalBalance = 0;
+
+    public void setItems(List<WalletBalance> newItems, long totalBalance) {
+      this.items = newItems;
+      this.totalBalance = totalBalance;
+      notifyDataSetChanged();
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+      Context context = parent.getContext();
+      LinearLayout root = new LinearLayout(context);
+      root.setOrientation(LinearLayout.VERTICAL);
+      root.setLayoutParams(new androidx.recyclerview.widget.RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+      View divider = createDivider(context);
+      root.addView(divider);
+
+      LinearLayout row = new LinearLayout(context);
+      row.setGravity(Gravity.CENTER_VERTICAL);
+      row.setOrientation(LinearLayout.HORIZONTAL);
+      row.setPadding(0, UiComponentStyles.dp(context, 10), 0, UiComponentStyles.dp(context, 10));
+
+      TextView name = new TextView(context);
+      name.setEllipsize(TextUtils.TruncateAt.END);
+      name.setMaxLines(1);
+      name.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
+      name.setTextSize(15f);
+      row.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+      TextView balance = new TextView(context);
+      balance.setMaxLines(1);
+      balance.setTextSize(15f);
+      balance.setTypeface(balance.getTypeface(), Typeface.BOLD);
+      row.addView(balance, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+      root.addView(row);
+      return new ViewHolder(root, divider, name, balance);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+      WalletBalance wallet = items.get(position);
+      holder.divider.setVisibility(position == 0 ? View.GONE : View.VISIBLE);
+      holder.name.setText(wallet.getWalletName());
+      if (showPercentageMode && totalBalance > 0) {
+        holder.balance.setText(fmtPct(wallet.getBalanceMinor(), totalBalance, false));
+      } else {
+        holder.balance.setText(format(wallet.getBalanceMinor()));
+      }
+      holder.balance.setTextColor(ContextCompat.getColor(holder.itemView.getContext(),
+          wallet.getBalanceMinor() < 0 ? R.color.finan_expense : R.color.finan_primary));
+    }
+
+    @Override
+    public int getItemCount() {
+      return items.size();
+    }
+
+    class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
+      View divider;
+      TextView name;
+      TextView balance;
+      ViewHolder(View itemView, View divider, TextView name, TextView balance) {
+        super(itemView);
+        this.divider = divider;
+        this.name = name;
+        this.balance = balance;
+      }
     }
   }
 }

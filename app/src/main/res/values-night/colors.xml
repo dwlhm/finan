@@ -45,6 +45,9 @@
     <color name="finan_key_action_text">#121212</color>
     <color name="finan_key_border">#2C2C2C</color>
 
+    <!-- Date range picker -->
+    <color name="finan_date_range_bg">#4DB6AC</color>
+
     <!-- Custom colors for Summary Hero Card in Dark Mode -->
     <color name="finan_summary_hero_bg_start">#1D4646</color>
     <color name="finan_summary_hero_bg_end">#0F2626</color>

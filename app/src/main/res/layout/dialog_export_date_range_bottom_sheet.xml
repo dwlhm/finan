@@ -23,51 +23,45 @@
         android:text="@string/export_date_range_title"
         android:textAppearance="@style/Finan.Text.Title" />
 
+    <!-- Preview tanggal range yang dipilih -->
     <TextView
-        style="@style/Finan.Text.SectionLabel"
+        android:id="@+id/export_date_range_preview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/export_date_start" />
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:textSize="14sp"
+        android:textColor="@color/finan_text_secondary"
+        android:fontFamily="sans-serif-medium" />
 
-    <TextView
-        android:id="@+id/export_date_start_value"
-        style="@style/Finan.Control.OccurredAtValue"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="4dp"
-        android:drawableStart="@drawable/ic_schedule" />
-
-    <TextView
-        style="@style/Finan.Text.SectionLabel"
+    <!-- Calendar range picker -->
+    <com.dwlhm.finan.ui.common.CustomDatePickerView
+        android:id="@+id/export_date_picker"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/export_date_end" />
+        android:layout_marginTop="8dp" />
 
-    <TextView
-        android:id="@+id/export_date_end_value"
-        style="@style/Finan.Control.OccurredAtValue"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="4dp"
-        android:drawableStart="@drawable/ic_schedule" />
-
+    <!-- Reset ke semua waktu -->
     <TextView
         android:id="@+id/export_date_reset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
         android:padding="4dp"
         android:text="@string/export_date_reset"
         android:textColor="@color/finan_primary"
-        android:textSize="14sp" />
+        android:textSize="13sp"
+        android:textStyle="bold" />
 
     <com.dwlhm.finan.ui.common.DialogActionsView
         android:id="@+id/export_date_actions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:primaryText="@string/export_date_apply"
         app:secondaryText="@string/export_date_cancel" />
+
 </LinearLayout>

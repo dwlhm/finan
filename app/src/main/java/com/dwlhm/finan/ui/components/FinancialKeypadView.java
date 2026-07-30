@@ -10,6 +10,7 @@ import android.graphics.drawable.StateListDrawable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -41,7 +42,6 @@ public class FinancialKeypadView extends ViewGroup {
     };
 
     private final View[] keyViews = new View[ROWS * COLS];
-    private Paint borderPaint;
 
     public FinancialKeypadView(Context context) {
         super(context);
@@ -63,10 +63,6 @@ public class FinancialKeypadView extends ViewGroup {
         setBackgroundColor(ContextCompat.getColor(context, R.color.finan_keypad_bg));
         setFocusable(false);
         setFocusableInTouchMode(false);
-
-        borderPaint = new Paint();
-        borderPaint.setColor(ContextCompat.getColor(context, R.color.finan_key_border));
-        borderPaint.setStrokeWidth(dpToPx(1));
 
         int horizontalPadding = 0;
         int verticalPadding = dpToPx(16);
@@ -99,8 +95,11 @@ public class FinancialKeypadView extends ViewGroup {
             }
 
             if (!"".equals(label)) {
-                setupKeyBackground(key);
-                key.setOnClickListener(v -> handleKeyClick(label));
+                setupKeyBackground(key, isOperator[i]);
+                key.setOnClickListener(v -> {
+                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                    handleKeyClick(label);
+                });
                 if ("⌫".equals(label)) {
                     key.setOnLongClickListener(v -> {
                         if (listener != null) listener.onClear();
@@ -118,21 +117,31 @@ public class FinancialKeypadView extends ViewGroup {
         }
     }
 
-    private void setupKeyBackground(View view) {
+    private void setupKeyBackground(View view, boolean isOperator) {
         Context context = getContext();
         StateListDrawable states = new StateListDrawable();
 
-        int normalColor = android.graphics.Color.TRANSPARENT;
+        // 10% opacity primary for operator background
+        int operatorBgColor = ContextCompat.getColor(context, R.color.finan_primary);
+        operatorBgColor = (operatorBgColor & 0x00FFFFFF) | 0x1A000000;
+        
+        // 5% opacity black/surface for number background
+        int numberBgColor = ContextCompat.getColor(context, R.color.finan_text_primary);
+        numberBgColor = (numberBgColor & 0x00FFFFFF) | 0x0A000000;
+
+        int normalColor = isOperator ? operatorBgColor : numberBgColor;
         int pressedColor = ContextCompat.getColor(context, R.color.finan_key_bg_pressed);
+
+        int cornerRadius = dpToPx(12);
 
         GradientDrawable normalShape = new GradientDrawable();
         normalShape.setShape(GradientDrawable.RECTANGLE);
-        normalShape.setCornerRadius(0);
+        normalShape.setCornerRadius(cornerRadius);
         normalShape.setColor(normalColor);
 
         GradientDrawable pressedShape = new GradientDrawable();
         pressedShape.setShape(GradientDrawable.RECTANGLE);
-        pressedShape.setCornerRadius(0);
+        pressedShape.setCornerRadius(cornerRadius);
         pressedShape.setColor(pressedColor);
 
         states.addState(new int[]{android.R.attr.state_pressed}, pressedShape);
@@ -179,7 +188,7 @@ public class FinancialKeypadView extends ViewGroup {
         int widthSize = MeasureSpec.getSize(widthMeasureSpec);
         int availableWidth = widthSize - getPaddingLeft() - getPaddingRight();
 
-        int spacing = 0;
+        int spacing = dpToPx(8);
         int keyWidth = (availableWidth - (COLS - 1) * spacing) / COLS;
         int keyHeight = (int) (keyWidth * 0.7f);
 
@@ -200,7 +209,7 @@ public class FinancialKeypadView extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         int paddingLeft = getPaddingLeft();
         int paddingTop = getPaddingTop();
-        int spacing = 0;
+        int spacing = dpToPx(8);
 
         int availableWidth = getWidth() - paddingLeft - getPaddingRight();
         int keyWidth = (availableWidth - (COLS - 1) * spacing) / COLS;
@@ -220,35 +229,6 @@ public class FinancialKeypadView extends ViewGroup {
 
                 child.layout(left, top, left + childMeasuredWidth, top + childMeasuredHeight);
                 childIndex++;
-            }
-        }
-    }
-
-    @Override
-    protected void dispatchDraw(Canvas canvas) {
-        super.dispatchDraw(canvas);
-
-        if (getChildCount() > 0) {
-            int paddingLeft = getPaddingLeft();
-            int paddingTop = getPaddingTop();
-            int paddingRight = getPaddingRight();
-            int paddingBottom = getPaddingBottom();
-
-            View firstChild = getChildAt(0);
-            int childWidth = firstChild.getWidth();
-            int childHeight = firstChild.getHeight();
-
-            int width = getWidth();
-            int height = getHeight();
-
-            for (int col = 1; col < COLS; col++) {
-                int x = paddingLeft + col * childWidth;
-                canvas.drawLine(x, paddingTop, x, height - paddingBottom, borderPaint);
-            }
-
-            for (int row = 1; row < ROWS; row++) {
-                int y = paddingTop + row * childHeight;
-                canvas.drawLine(paddingLeft, y, width - paddingRight, y, borderPaint);
             }
         }
     }

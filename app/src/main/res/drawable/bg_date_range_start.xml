@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Range start: kanan background strip + full oval primary di atas.
+  Trick: pakai clip drawable untuk potong rect di sisi kiri (50%).
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background strip hanya di sisi kanan (inset kiri = 50% width) -->
+    <!-- Tidak bisa pakai % → digambar via code di CustomDatePickerView -->
+    <!-- Fallback: gunakan full oval saja, tidak ada half-rect background -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/finan_primary" />
+        </shape>
+    </item>
+</layer-list>

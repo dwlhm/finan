@@ -27,18 +27,39 @@ public abstract class InfiniteScrollRecyclerAdapter<T, VH extends RecyclerView.V
     this.loadingFooterLayoutRes = loadingFooterLayoutRes;
   }
 
-  public void replaceItems(List<T> items) {
-    int previousSize = this.items.size();
+  public void replaceItems(List<T> newItems) {
+    final List<T> oldItems = new ArrayList<>(this.items);
+    final List<T> finalNewItems = newItems != null ? new ArrayList<>(newItems) : new ArrayList<>();
+
+    androidx.recyclerview.widget.DiffUtil.DiffResult result = androidx.recyclerview.widget.DiffUtil.calculateDiff(new androidx.recyclerview.widget.DiffUtil.Callback() {
+      @Override
+      public int getOldListSize() {
+        return oldItems.size();
+      }
+
+      @Override
+      public int getNewListSize() {
+        return finalNewItems.size();
+      }
+
+      @Override
+      public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
+        T oldItem = oldItems.get(oldItemPosition);
+        T newItem = finalNewItems.get(newItemPosition);
+        return oldItem == newItem || (oldItem != null && oldItem.equals(newItem));
+      }
+
+      @Override
+      public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
+        T oldItem = oldItems.get(oldItemPosition);
+        T newItem = finalNewItems.get(newItemPosition);
+        return oldItem == newItem || (oldItem != null && oldItem.equals(newItem));
+      }
+    });
+
     this.items.clear();
-    if (items != null) {
-      this.items.addAll(items);
-    }
-    if (previousSize > 0) {
-      notifyItemRangeRemoved(0, previousSize);
-    }
-    if (!this.items.isEmpty()) {
-      notifyItemRangeInserted(0, this.items.size());
-    }
+    this.items.addAll(finalNewItems);
+    result.dispatchUpdatesTo(this);
   }
 
   public void appendItems(List<T> items) {

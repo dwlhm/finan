@@ -4,6 +4,7 @@ import com.dwlhm.finan.ui.common.infinitescroll.PageLoadExecutor;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 
 import androidx.annotation.NonNull;
 
@@ -17,6 +18,7 @@ public final class DbWorker implements PageLoadExecutor {
 
   private final ExecutorService executor;
   private final Handler mainHandler;
+  private final Object token = new Object();
 
   public DbWorker() {
     executor =
@@ -37,12 +39,16 @@ public final class DbWorker implements PageLoadExecutor {
     executor.execute(
         () -> {
           background.run();
-          mainHandler.post(ui);
+          Message msg = Message.obtain(mainHandler, ui);
+          msg.obj = token;
+          mainHandler.sendMessage(msg);
         });
   }
 
   public void runOnUi(@NonNull Runnable ui) {
-    mainHandler.post(ui);
+    Message msg = Message.obtain(mainHandler, ui);
+    msg.obj = token;
+    mainHandler.sendMessage(msg);
   }
 
   @Override
@@ -53,15 +59,17 @@ public final class DbWorker implements PageLoadExecutor {
           try {
             value = background.call();
           } catch (Exception e) {
-            value = null;
+            throw new RuntimeException(e);
           }
           T result = value;
-          mainHandler.post(() -> ui.accept(result));
+          Message msg = Message.obtain(mainHandler, () -> ui.accept(result));
+          msg.obj = token;
+          mainHandler.sendMessage(msg);
         });
   }
 
   public void cancelUiCallbacks() {
-    mainHandler.removeCallbacksAndMessages(null);
+    mainHandler.removeCallbacksAndMessages(token);
   }
 
   public void shutdown() {
