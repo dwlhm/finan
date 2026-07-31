@@ -10,6 +10,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
@@ -73,6 +75,7 @@ public final class HistoryFragment extends ScreenFragment {
   private TextView expenseTotalView;
   private TextView emptyTitleView;
   private TextView emptyHintView;
+  private View headerContainer;
   private boolean maskedMode;
   private TextView modeNominal;
   private TextView modeMasked;
@@ -127,6 +130,85 @@ public final class HistoryFragment extends ScreenFragment {
     expenseTotalView = view.findViewById(R.id.history_expense_total);
     emptyTitleView = view.findViewById(R.id.history_empty_title);
     emptyHintView = view.findViewById(R.id.history_empty_hint);
+    headerContainer = view.findViewById(R.id.header_container);
+    
+    View historySummary = view.findViewById(R.id.history_summary);
+    if (historySummary != null) {
+        historySummary.setClickable(true);
+        historySummary.setOnTouchListener(new android.view.View.OnTouchListener() {
+            private float startX;
+            private float startY;
+            private boolean isSwiping;
+            private static final float SWIPE_THRESHOLD = 200f; // in pixels
+
+            @Override
+            public boolean onTouch(android.view.View v, android.view.MotionEvent event) {
+                switch (event.getAction()) {
+                    case android.view.MotionEvent.ACTION_DOWN:
+                        startX = event.getRawX();
+                        startY = event.getRawY();
+                        isSwiping = false;
+                        return true; // Consume the event to track movement
+                    case android.view.MotionEvent.ACTION_MOVE:
+                        float diffX = event.getRawX() - startX;
+                        float diffY = event.getRawY() - startY;
+
+                        // Start swiping if horizontal movement is greater than vertical and a small threshold
+                        if (!isSwiping && Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 20) {
+                            isSwiping = true;
+                            v.getParent().requestDisallowInterceptTouchEvent(true); // Prevent ScrollView/RecyclerView from intercepting
+                        }
+
+                        if (isSwiping) {
+                            // Add a visual resistance by halving the movement
+                            float translationX = diffX / 2.5f;
+
+                            // Calculate progress towards the threshold
+                            float progress = Math.min(Math.abs(diffX) / SWIPE_THRESHOLD, 1.0f);
+                            v.setTranslationX(translationX);
+                            
+                            // Visual feedback: fade slightly and scale down minimally
+                            v.setAlpha(1.0f - (progress * 0.3f));
+                            float scale = 1.0f - (progress * 0.05f);
+                            v.setScaleX(scale);
+                            v.setScaleY(scale);
+                        }
+                        return true;
+                    case android.view.MotionEvent.ACTION_UP:
+                    case android.view.MotionEvent.ACTION_CANCEL:
+                        if (isSwiping) {
+                            float finalDiffX = event.getRawX() - startX;
+                            if (Math.abs(finalDiffX) > SWIPE_THRESHOLD) {
+                                // Trigger haptic feedback for success
+                                v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+                                if (finalDiffX > 0) {
+                                    shiftDateRange(-1); // Swipe right -> previous month
+                                } else {
+                                    shiftDateRange(1); // Swipe left -> next month
+                                }
+                            }
+
+                            // Animate back to original position
+                            v.animate()
+                                    .translationX(0)
+                                    .alpha(1.0f)
+                                    .scaleX(1.0f)
+                                    .scaleY(1.0f)
+                                    .setDuration(300)
+                                    .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
+                                    .start();
+                        } else {
+                            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                                v.performClick();
+                            }
+                        }
+                        return true;
+                }
+                return false;
+            }
+        });
+    }
+    
     filterButton.setOnClickListener(v -> showHistoryFilterDialog());
     dateRangeView.setOnClickListener(v -> showDateRangeDialog());
     
@@ -146,6 +228,19 @@ public final class HistoryFragment extends ScreenFragment {
         selectedStartDate = range.start;
         selectedEndDate = range.end;
         updateDateRangeView();
+        reload();
+    });
+    
+    View incomeChip = view.findViewById(R.id.history_chip_income);
+    View expenseChip = view.findViewById(R.id.history_chip_expense);
+    
+    incomeChip.setOnClickListener(v -> {
+        selectedTypeId = (selectedTypeId != null && selectedTypeId == TYPE_INCOME_ID) ? null : TYPE_INCOME_ID;
+        reload();
+    });
+    
+    expenseChip.setOnClickListener(v -> {
+        selectedTypeId = (selectedTypeId != null && selectedTypeId == TYPE_EXPENSE_ID) ? null : TYPE_EXPENSE_ID;
         reload();
     });
     
@@ -186,6 +281,40 @@ public final class HistoryFragment extends ScreenFragment {
     adapter.setOnTransactionClickListener(
         (transaction, position) -> openTransactionDetail(position));
     historyList.setup(adapter, this::loadHistoryPage, services.dbWorker);
+    
+    // Add Sticky Header Decoration
+    com.dwlhm.finan.ui.transaction.StickyHeaderItemDecoration stickyDecoration =
+        new com.dwlhm.finan.ui.transaction.StickyHeaderItemDecoration(adapter);
+    historyList.getRecyclerView().addItemDecoration(stickyDecoration);
+    
+    // Add ItemTouchHelper for swipe-to-action
+
+    // Dynamically pad the RecyclerView so it sits perfectly under the fixed header
+    if (headerContainer != null) {
+        headerContainer.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                int newHeight = bottom - top;
+                int oldHeight = oldBottom - oldTop;
+                if (newHeight != oldHeight && newHeight > 0) {
+                    RecyclerView rv = historyList.getRecyclerView();
+                    if (rv.getPaddingTop() != newHeight) {
+                        rv.setPadding(rv.getPaddingLeft(), newHeight, rv.getPaddingRight(), rv.getPaddingBottom());
+                        stickyDecoration.setStickyYOffset(newHeight);
+                    }
+                }
+            }
+        });
+        
+        headerContainer.post(() -> {
+            int height = headerContainer.getHeight();
+            RecyclerView rv = historyList.getRecyclerView();
+            rv.setPadding(rv.getPaddingLeft(), height, rv.getPaddingRight(), rv.getPaddingBottom());
+            stickyDecoration.setStickyYOffset(height);
+        });
+    }
+
     normalizeDateRange();
     updateDateRangeView();
     updateSearchControls();
@@ -376,8 +505,28 @@ public final class HistoryFragment extends ScreenFragment {
     emptyTitleView.setText(searching ? R.string.history_search_empty : R.string.history_empty);
     emptyHintView.setText(
         searching ? R.string.history_search_empty_hint : R.string.history_empty_hint);
-    emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
-    historyList.setVisibility(empty ? View.GONE : View.VISIBLE);
+    
+    if (empty && emptyView.getVisibility() != View.VISIBLE) {
+        emptyView.setAlpha(0f);
+        emptyView.setVisibility(View.VISIBLE);
+        emptyView.animate().alpha(1f).setDuration(200).setListener(null);
+        historyList.animate().alpha(0f).setDuration(200).setListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                historyList.setVisibility(View.GONE);
+            }
+        });
+    } else if (!empty && historyList.getVisibility() != View.VISIBLE) {
+        historyList.setAlpha(0f);
+        historyList.setVisibility(View.VISIBLE);
+        historyList.animate().alpha(1f).setDuration(200).setListener(null);
+        emptyView.animate().alpha(0f).setDuration(200).setListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                emptyView.setVisibility(View.GONE);
+            }
+        });
+    }
   }
 
   private void updateSearchControls() {
@@ -387,12 +536,11 @@ public final class HistoryFragment extends ScreenFragment {
   }
 
   private void openTransactionDetail(int position) {
-    new TransactionDetailDialog(
+    com.dwlhm.finan.ui.common.BottomSheetHelper.show(new TransactionDetailDialog(
             requireContext(),
             services,
             adapter.getTransactionAt(position),
-            () -> reload(true))
-        .show();
+            () -> reload(true)));
   }
 
   private void showHistoryFilterDialog() {
@@ -660,6 +808,16 @@ public final class HistoryFragment extends ScreenFragment {
       }
     }
     return new DateRange(start, nextCutoff.minusDays(1));
+  }
+
+  private void shiftDateRange(int months) {
+    if (selectedStartDate != null && selectedEndDate != null) {
+      selectedStartDate = selectedStartDate.plusMonths(months);
+      selectedEndDate = selectedEndDate.plusMonths(months);
+      normalizeDateRange();
+      updateDateRangeView();
+      reload();
+    }
   }
 
   private static LocalDate lastBusinessDayOfMonth(LocalDate date) {

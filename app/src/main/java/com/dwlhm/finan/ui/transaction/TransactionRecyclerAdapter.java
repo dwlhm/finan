@@ -27,7 +27,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class TransactionRecyclerAdapter
-    extends InfiniteScrollRecyclerAdapter<Transaction, TransactionItemViewHolder> {
+    extends InfiniteScrollRecyclerAdapter<Transaction, TransactionItemViewHolder>
+    implements StickyHeaderItemDecoration.StickyHeaderInterface {
 
   private static final int[] CATEGORY_COLORS = {
     Color.rgb(84, 105, 212),
@@ -233,5 +234,65 @@ public final class TransactionRecyclerAdapter
       hash = (31 * hash) + name.hashCode();
     }
     return palette[Math.floorMod(hash, palette.length)];
+  }
+
+  @Override
+  public int getHeaderPositionForItem(int itemPosition) {
+    int headerPos = itemPosition;
+    while (headerPos >= 0) {
+      if (isHeader(headerPos)) {
+        return headerPos;
+      }
+      headerPos--;
+    }
+    return 0;
+  }
+
+  @Override
+  public int getHeaderLayout(int headerPosition) {
+    return R.layout.item_transaction_header_only;
+  }
+
+  @Override
+  public void bindHeaderData(View header, int headerPosition) {
+    if (headerPosition < 0 || headerPosition >= getContentItemCount()) return;
+    Transaction transaction = getItemAt(headerPosition);
+    if (transaction == null) return;
+    String currentHeader = headerDateFormat.format(new Date(transaction.getOccurredAt()));
+    
+    android.widget.TextView dateLabel = header.findViewById(R.id.item_transaction_date_label);
+    android.widget.TextView dailyTotalTv = header.findViewById(R.id.item_transaction_daily_total);
+    
+    if (dateLabel != null) dateLabel.setText(currentHeader);
+    
+    if (dailyTotalTv != null) {
+      Long total = dailyTotals.get(currentHeader);
+      long dailyTotal = total != null ? total : 0L;
+      if (masked) {
+        dailyTotalTv.setText("Rp ***");
+        dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+      } else {
+        String formatted = MoneyFormatter.format(dailyTotal);
+        if (dailyTotal >= 0) {
+          dailyTotalTv.setText("+" + formatted);
+          dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_income));
+        } else {
+          dailyTotalTv.setText(formatted);
+          dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_expense));
+        }
+      }
+    }
+  }
+
+  @Override
+  public boolean isHeader(int itemPosition) {
+    if (itemPosition == 0) return true;
+    if (itemPosition < 0 || itemPosition >= getContentItemCount()) return false;
+    Transaction current = getItemAt(itemPosition);
+    Transaction prev = getItemAt(itemPosition - 1);
+    if (current == null || prev == null) return false;
+    String currentHeader = headerDateFormat.format(new Date(current.getOccurredAt()));
+    String prevHeader = headerDateFormat.format(new Date(prev.getOccurredAt()));
+    return !currentHeader.equals(prevHeader);
   }
 }
