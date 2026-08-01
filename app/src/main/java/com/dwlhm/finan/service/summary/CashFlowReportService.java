@@ -239,33 +239,64 @@ public final class CashFlowReportService {
   private List<CashFlowReport.WeekSummary> buildWeekSummaries(
       LocalDate periodStart, LocalDate periodEnd,
       List<SummaryDao.DailyTotalRow> dailyRows) {
-    java.util.Map<Long, SummaryDao.DailyTotalRow> byDay = new java.util.LinkedHashMap<>();
-    for (SummaryDao.DailyTotalRow row : dailyRows) {
-      byDay.put(row.dateMillis, row);
-    }
-
-    List<CashFlowReport.WeekSummary> weeks = new ArrayList<>();
-    List<CashFlowReport.DailyTotal> currentDays = new ArrayList<>();
-    LocalDate weekStart = null;
-
-    for (LocalDate date = periodStart; !date.isAfter(periodEnd); date = date.plusDays(1)) {
-      long dayMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli();
-      SummaryDao.DailyTotalRow row = byDay.get(dayMillis);
-      long income = row != null ? row.incomeMinor : 0L;
-      long expense = row != null ? row.expenseMinor : 0L;
-
-      if (weekStart == null) weekStart = date;
-      currentDays.add(new CashFlowReport.DailyTotal(dayMillis, income, expense));
-
-      if (date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY || date.equals(periodEnd)) {
-        weeks.add(new CashFlowReport.WeekSummary(weekStart, date, new ArrayList<>(currentDays)));
-        currentDays.clear();
-        weekStart = null;
+      java.util.Map<Long, SummaryDao.DailyTotalRow> byDay = new java.util.LinkedHashMap<>();
+      for (SummaryDao.DailyTotalRow row : dailyRows) {
+        byDay.put(row.dateMillis, row);
       }
+  
+      List<CashFlowReport.WeekSummary> weeks = new ArrayList<>();
+      List<CashFlowReport.DailyTotal> currentDays = new ArrayList<>();
+      
+      boolean isYearly = java.time.temporal.ChronoUnit.DAYS.between(periodStart, periodEnd) > 300;
+      
+      if (isYearly) {
+          // Aggregate by month, but return 12 WeekSummaries
+          for (int month = 1; month <= 12; month++) {
+              LocalDate monthStart = LocalDate.of(periodStart.getYear(), month, 1);
+              LocalDate monthEnd = monthStart.plusMonths(1).minusDays(1);
+              List<CashFlowReport.DailyTotal> weekTotals = new ArrayList<>();
+              
+              LocalDate weekStart = null;
+              long weekIncome = 0L;
+              long weekExpense = 0L;
+              for (LocalDate date = monthStart; !date.isAfter(monthEnd); date = date.plusDays(1)) {
+                  long dayMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli();
+                  SummaryDao.DailyTotalRow row = byDay.get(dayMillis);
+                  if (row != null) {
+                      weekIncome += row.incomeMinor;
+                      weekExpense += row.expenseMinor;
+                  }
+                  if (weekStart == null) weekStart = date;
+                  if (date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY || date.equals(monthEnd)) {
+                      weekTotals.add(new CashFlowReport.DailyTotal(weekStart.atStartOfDay(zoneId).toInstant().toEpochMilli(), weekIncome, weekExpense));
+                      weekIncome = 0;
+                      weekExpense = 0;
+                      weekStart = null;
+                  }
+              }
+              weeks.add(new CashFlowReport.WeekSummary(monthStart, monthEnd, weekTotals));
+          }
+      } else {
+          LocalDate weekStart = null;
+          for (LocalDate date = periodStart; !date.isAfter(periodEnd); date = date.plusDays(1)) {
+            long dayMillis = date.atStartOfDay(zoneId).toInstant().toEpochMilli();
+            SummaryDao.DailyTotalRow row = byDay.get(dayMillis);
+            long income = row != null ? row.incomeMinor : 0L;
+            long expense = row != null ? row.expenseMinor : 0L;
+      
+            if (weekStart == null) weekStart = date;
+            currentDays.add(new CashFlowReport.DailyTotal(dayMillis, income, expense));
+      
+            if (date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY || date.equals(periodEnd)) {
+              weeks.add(new CashFlowReport.WeekSummary(weekStart, date, new ArrayList<>(currentDays)));
+              currentDays.clear();
+              weekStart = null;
+            }
+          }
+      }
+  
+      return weeks;
     }
-
-    return weeks;
-  }
 
   private static void mergeCategoryTotals(List<CategoryTotal> target, List<CategoryTotal> source) {
     for (CategoryTotal st : source) {

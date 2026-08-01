@@ -169,14 +169,12 @@ public final class DonutChartView extends View {
         paint.setStrokeWidth(strokeWidth);
 
         // 1. Draw Outer Ring Inflow
-        // 1a. Draw background track (light-gray)
         paint.setColor(0xFFE9EEF2);
         canvas.drawArc(outerRect, -90f, 360f, false, paint);
 
-        // 1b. Draw Inflow slices
         if (totalInflow > 0) {
             float startAngle = -90f;
-            float gapAngle = inflowItems.size() > 1 ? 6f : 0f; // spacing between rounded cap slices
+            float gapAngle = inflowItems.size() > 1 ? 6f : 0f;
             for (DonutItem item : inflowItems) {
                 float sweepAngle = (item.getValue() / (float) totalInflow) * 360f;
                 paint.setColor(item.getColor());
@@ -189,11 +187,9 @@ public final class DonutChartView extends View {
         }
 
         // 2. Draw Inner Ring Outflow relative to Inflow
-        // 2a. Draw background track (light-gray)
         paint.setColor(0xFFE9EEF2);
         canvas.drawArc(innerRect, -90f, 360f, false, paint);
 
-        // 2b. Draw Outflow slices
         if (totalOutflow > 0) {
             float totalSweep = 360f;
             if (totalInflow > 0) {
@@ -214,23 +210,6 @@ public final class DonutChartView extends View {
                 }
                 startAngle += sweepAngle;
             }
-        }
-
-        // 3. Draw Center Text
-        if (!centerLine1.isEmpty()) {
-            textPaint.setTextSize(size * 0.08f);
-            textPaint.setColor(0xFF5C6B73); // finan_text_secondary (darker gray for high contrast)
-            textPaint.setTextAlign(Paint.Align.CENTER);
-            textPaint.setTypeface(TF_NORMAL);
-            canvas.drawText(centerLine1, centerX, centerY - size * 0.02f, textPaint);
-        }
-
-        if (!centerLine2.isEmpty()) {
-            textPaint.setTextSize(size * 0.12f);
-            textPaint.setColor(0xFF2D6A6A); // finan_primary (bold theme teal)
-            textPaint.setTextAlign(Paint.Align.CENTER);
-            textPaint.setTypeface(TF_BOLD);
-            canvas.drawText(centerLine2, centerX, centerY + size * 0.09f, textPaint);
         }
     }
 }

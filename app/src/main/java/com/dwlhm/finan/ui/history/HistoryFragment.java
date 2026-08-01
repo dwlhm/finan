@@ -277,7 +277,7 @@ public final class HistoryFragment extends ScreenFragment {
           }
         });
     adapter = new TransactionRecyclerAdapter(requireContext());
-    adapter.setMaskedMode(maskedMode);
+    adapter.setDisplayMode(maskedMode ? com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED : com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.NOMINAL, 0L);
     adapter.setOnTransactionClickListener(
         (transaction, position) -> openTransactionDetail(position));
     historyList.setup(adapter, this::loadHistoryPage, services.dbWorker);
@@ -640,7 +640,7 @@ public final class HistoryFragment extends ScreenFragment {
     if (cachedTotals != null) {
       renderSummary(cachedTotals);
     }
-    adapter.setMaskedMode(masked);
+    adapter.setDisplayMode(masked ? com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED : com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.NOMINAL, 0L);
   }
 
   private void updateModeToggle() {

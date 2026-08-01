@@ -48,7 +48,8 @@ public final class TransactionRecyclerAdapter
   };
 
   private final Context context;
-  private boolean masked;
+  private com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode displayMode = com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.NOMINAL;
+  private long totalIncomeMinor = 0L;
   private Map<Long, Category> categoriesById = Collections.emptyMap();
   private Map<Long, Wallet> walletsById = Collections.emptyMap();
   private final SimpleDateFormat dateFormat =
@@ -88,9 +89,10 @@ public final class TransactionRecyclerAdapter
     return clickListener;
   }
 
-  public void setMaskedMode(boolean masked) {
-    if (this.masked == masked) return;
-    this.masked = masked;
+  public void setDisplayMode(com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode mode, long totalIncome) {
+    if (this.displayMode == mode && this.totalIncomeMinor == totalIncome) return;
+    this.displayMode = mode;
+    this.totalIncomeMinor = totalIncome;
     notifyItemRangeChanged(0, getContentItemCount());
   }
 
@@ -161,10 +163,19 @@ public final class TransactionRecyclerAdapter
       holder.emoji.setVisibility(View.GONE);
     }
 
-    if (masked) {
+    if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED) {
       holder.amount.setText("Rp ***");
       holder.amount.setTextColor(
           ContextCompat.getColor(context, R.color.finan_text_secondary));
+    } else if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.PERCENTAGE) {
+      if (totalIncomeMinor > 0) {
+          float pct = (transaction.getAmountMinor() * 100f) / totalIncomeMinor;
+          holder.amount.setText(String.format(Locale.getDefault(), "%.1f%%", pct));
+      } else {
+          holder.amount.setText("-");
+      }
+      holder.amount.setTextColor(
+          ContextCompat.getColor(context, TransactionRowLabels.amountColor(transaction.getType())));
     } else {
       String formatted = MoneyFormatter.format(transaction.getAmountMinor());
       holder.amount.setText(
@@ -207,10 +218,23 @@ public final class TransactionRecyclerAdapter
       Long total = dailyTotals.get(currentHeader);
       long dailyTotal = total != null ? total : 0L;
 
-      if (masked) {
+      if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED) {
         holder.dailyTotal.setText("Rp ***");
         holder.dailyTotal.setTextColor(
             ContextCompat.getColor(context, R.color.finan_text_secondary));
+      } else if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.PERCENTAGE) {
+        if (totalIncomeMinor > 0) {
+            float pct = (Math.abs(dailyTotal) * 100f) / totalIncomeMinor;
+            String sign = dailyTotal > 0 ? "+" : (dailyTotal < 0 ? "-" : "");
+            holder.dailyTotal.setText(sign + String.format(Locale.getDefault(), "%.1f%%", pct));
+        } else {
+            holder.dailyTotal.setText("-");
+        }
+        if (dailyTotal >= 0) {
+            holder.dailyTotal.setTextColor(ContextCompat.getColor(context, R.color.finan_income));
+        } else {
+            holder.dailyTotal.setTextColor(ContextCompat.getColor(context, R.color.finan_expense));
+        }
       } else {
         String formatted = MoneyFormatter.format(dailyTotal);
         if (dailyTotal >= 0) {
@@ -268,9 +292,22 @@ public final class TransactionRecyclerAdapter
     if (dailyTotalTv != null) {
       Long total = dailyTotals.get(currentHeader);
       long dailyTotal = total != null ? total : 0L;
-      if (masked) {
+      if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED) {
         dailyTotalTv.setText("Rp ***");
         dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
+      } else if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.PERCENTAGE) {
+        if (totalIncomeMinor > 0) {
+            float pct = (Math.abs(dailyTotal) * 100f) / totalIncomeMinor;
+            String sign = dailyTotal > 0 ? "+" : (dailyTotal < 0 ? "-" : "");
+            dailyTotalTv.setText(sign + String.format(Locale.getDefault(), "%.1f%%", pct));
+        } else {
+            dailyTotalTv.setText("-");
+        }
+        if (dailyTotal >= 0) {
+            dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_income));
+        } else {
+            dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_expense));
+        }
       } else {
         String formatted = MoneyFormatter.format(dailyTotal);
         if (dailyTotal >= 0) {

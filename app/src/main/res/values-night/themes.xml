@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Finan" parent="@android:style/Theme.Material.NoActionBar">
+    <style name="Theme.Finan" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/finan_primary</item>
+        <item name="colorPrimaryDark">@color/finan_primary_dark</item>
+        <item name="colorAccent">@color/finan_accent</item>
         <item name="android:colorPrimary">@color/finan_primary</item>
         <item name="android:colorPrimaryDark">@color/finan_primary_dark</item>
         <item name="android:colorAccent">@color/finan_accent</item>
@@ -9,13 +12,23 @@
         <item name="android:textColorSecondary">@color/finan_text_secondary</item>
         <item name="android:statusBarColor">@color/finan_background</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="bottomSheetDialogTheme">@style/Finan.BottomSheetDialog</item>
     </style>
 
-    <style name="Finan.BottomSheetDialog" parent="@android:style/Theme.Material.Dialog">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowIsFloating">true</item>
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:backgroundDimEnabled">true</item>
+    <style name="Finan.ShapeAppearance.BottomSheet" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+    </style>
+
+    <style name="Finan.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="shapeAppearance">@style/Finan.ShapeAppearance.BottomSheet</item>
+        <item name="backgroundTint">@color/finan_surface</item>
+    </style>
+
+    <style name="Finan.BottomSheetDialog" parent="Theme.MaterialComponents.DayNight.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Finan.BottomSheet</item>
     </style>
 </resources>

@@ -179,4 +179,9 @@
         <item name="android:autoSizeMaxTextSize">11sp</item>
         <item name="android:autoSizeStepGranularity">1sp</item>
     </style>
+    <style name="Finan.TabTextAppearance" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>

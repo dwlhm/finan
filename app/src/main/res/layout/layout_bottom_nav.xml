@@ -23,24 +23,14 @@
         android:drawableTop="@drawable/ic_nav_capture" />
 
     <TextView
-        android:id="@+id/nav_history"
+        android:id="@+id/nav_dashboard"
         style="@style/Finan.BottomNavItem"
         android:layout_width="0dp"
         android:layout_height="52dp"
         android:layout_weight="1"
-        android:text="@string/nav_history"
+        android:text="Buku Kas"
         android:drawableTint="@color/bottom_nav_icon"
         android:drawableTop="@drawable/ic_nav_history" />
-
-    <TextView
-        android:id="@+id/nav_summary"
-        style="@style/Finan.BottomNavItem"
-        android:layout_width="0dp"
-        android:layout_height="52dp"
-        android:layout_weight="1"
-        android:text="@string/nav_summary"
-        android:drawableTint="@color/bottom_nav_icon"
-        android:drawableTop="@drawable/ic_nav_summary" />
 
     <TextView
         android:id="@+id/nav_settings"

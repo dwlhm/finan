@@ -16,9 +16,8 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.capture.CaptureFragment;
 import com.dwlhm.finan.ui.category.CategoryListFragment;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
-import com.dwlhm.finan.ui.history.HistoryFragment;
+import com.dwlhm.finan.ui.dashboard.DashboardFragment;
 import com.dwlhm.finan.ui.settings.SettingsFragment;
-import com.dwlhm.finan.ui.summary.SummaryFragment;
 import com.dwlhm.finan.ui.wallet.WalletListFragment;
 
 public final class MainActivity extends FragmentActivity implements ScreenNavigator {
@@ -75,36 +74,20 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
 
   @Override
   public void openHistoryForCategory(long categoryId) {
-    showScreen(Screen.HISTORY, true);
-    getSupportFragmentManager().executePendingTransactions();
-    Fragment fragment = getSupportFragmentManager().findFragmentByTag(Screen.HISTORY.tag);
-    if (fragment instanceof HistoryFragment) {
-      ((HistoryFragment) fragment).setCategoryFilter(categoryId);
-    }
+    showScreen(Screen.DASHBOARD, true);
+    // TODO: implement navigation to specific category in Dashboard
   }
 
   @Override
   public void openHistoryWithFilter(String type, long startDate, long endDate, Long walletId, Long categoryId) {
-    showScreen(Screen.HISTORY, true);
-    getSupportFragmentManager().executePendingTransactions();
-    Fragment fragment = getSupportFragmentManager().findFragmentByTag(Screen.HISTORY.tag);
-    if (fragment instanceof HistoryFragment) {
-      HistoryFragment hf = (HistoryFragment) fragment;
-      hf.setDateRange(startDate, endDate);
-      hf.setTypeFilter(type);
-      if (walletId != null) hf.setWalletFilter(walletId);
-      if (categoryId != null) hf.setCategoryFilter(categoryId);
-    }
+    showScreen(Screen.DASHBOARD, true);
+    // TODO: implement navigation with filters in Dashboard
   }
 
   @Override
   public void openHistoryForActivity(String activity) {
-    showScreen(Screen.HISTORY, true);
-    getSupportFragmentManager().executePendingTransactions();
-    Fragment fragment = getSupportFragmentManager().findFragmentByTag(Screen.HISTORY.tag);
-    if (fragment instanceof HistoryFragment) {
-      ((HistoryFragment) fragment).setActivityFilter(activity);
-    }
+    showScreen(Screen.DASHBOARD, true);
+    // TODO: implement navigation with activity filter in Dashboard
   }
 
   private void openSettingsChild(Fragment fragment, String tag, String backStackName) {
@@ -141,8 +124,7 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
 
   private void setupBottomNav() {
     setNavClick(R.id.nav_capture, Screen.CAPTURE);
-    setNavClick(R.id.nav_history, Screen.HISTORY);
-    setNavClick(R.id.nav_summary, Screen.SUMMARY);
+    setNavClick(R.id.nav_dashboard, Screen.DASHBOARD);
     setNavClick(R.id.nav_settings, Screen.SETTINGS);
     syncBottomNav();
   }
@@ -200,8 +182,7 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
 
   private void syncBottomNav() {
     setSelected(R.id.nav_capture, selectedScreen == Screen.CAPTURE);
-    setSelected(R.id.nav_history, selectedScreen == Screen.HISTORY);
-    setSelected(R.id.nav_summary, selectedScreen == Screen.SUMMARY);
+    setSelected(R.id.nav_dashboard, selectedScreen == Screen.DASHBOARD);
     setSelected(R.id.nav_settings, selectedScreen == Screen.SETTINGS);
   }
 
@@ -212,8 +193,7 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
 
   private enum Screen {
     CAPTURE("capture"),
-    HISTORY("history"),
-    SUMMARY("summary"),
+    DASHBOARD("dashboard"),
     SETTINGS("settings");
 
     private final String tag;
@@ -224,10 +204,8 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
 
     private Fragment createFragment() {
       switch (this) {
-        case HISTORY:
-          return new HistoryFragment();
-        case SUMMARY:
-          return new SummaryFragment();
+        case DASHBOARD:
+          return new DashboardFragment();
         case SETTINGS:
           return new SettingsFragment();
         case CAPTURE:
