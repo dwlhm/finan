@@ -21,7 +21,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:drawableStart="@drawable/ic_add"
+        app:drawableStartCompat="@drawable/ic_add"
         android:drawablePadding="4dp"
         android:gravity="center"
         android:minHeight="42dp"

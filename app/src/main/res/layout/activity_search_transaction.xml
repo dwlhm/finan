@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:background="?android:colorBackground">
+
+    <com.dwlhm.finan.ui.common.infinitescroll.InfiniteScrollListView
+        android:id="@+id/search_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
+        app:infiniteScrollItemSpacing="8dp"
+        app:infiniteScrollLoadThreshold="5"
+        app:infiniteScrollPageSize="30" />
+
+    <LinearLayout
+        android:id="@+id/header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="?android:colorBackground">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp">
+
+            <ImageButton
+                android:id="@+id/search_back_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="Kembali"
+                android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_back"
+                app:tint="@color/finan_text_primary" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_control_surface"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/search_input"
+                    style="@style/Finan.EditText.Transparent"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    app:drawableStartCompat="@drawable/ic_search"
+                    android:drawablePadding="8dp"
+                    android:hint="@string/history_search_hint"
+                    android:imeOptions="actionSearch"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="8dp"
+                    android:textColor="@color/finan_text_primary"
+                    android:textColorHint="@color/finan_text_hint"
+                    android:textSize="14sp" />
+
+                <ImageButton
+                    android:id="@+id/search_clear"
+                    android:layout_width="44dp"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:contentDescription="@string/history_search_clear"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_close"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/search_filter_button"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_control_surface"
+                    android:contentDescription="@string/history_filter_content_description"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                    android:padding="10dp"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_summary_filter" />
+
+                <TextView
+                    android:id="@+id/search_date_range"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_control_surface"
+                    android:clickable="true"
+                    android:contentDescription="@string/history_date_range_content_description"
+                    android:drawablePadding="6dp"
+                    android:ellipsize="end"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:maxLines="1"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:textColor="@color/finan_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:drawableStartCompat="@drawable/ic_summary_calendar" />
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/search_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_card"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/search_empty_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/history_search_empty"
+            android:textColor="@color/finan_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/search_empty_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="@string/history_search_empty_hint"
+            android:textColor="@color/finan_text_secondary"
+            android:textSize="14sp" />
+    </LinearLayout>
+</FrameLayout>

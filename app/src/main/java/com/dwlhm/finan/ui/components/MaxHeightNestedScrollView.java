@@ -24,6 +24,7 @@ public class MaxHeightNestedScrollView extends NestedScrollView {
         init(context, attrs);
     }
 
+    @SuppressWarnings("ResourceType")
     private void init(Context context, AttributeSet attrs) {
         if (attrs != null) {
             int[] attrsArray = {android.R.attr.maxHeight};

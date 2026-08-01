@@ -36,6 +36,7 @@ public class WeeklyDetailBottomSheetDialog {
         }
     }
 
+    @android.annotation.SuppressLint("InflateParams")
     public static void show(Context context, CashFlowReport.WeekSummary weekSummary, boolean isIncome, DashboardViewModel.DisplayMode mode, long monthTotalIncomeMinor, Map<Long, List<CategoryDetail>> categoryDetails, boolean isYearly) {
         BottomSheetDialog dialog = new BottomSheetDialog(context);
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_weekly_detail, null);
@@ -56,7 +57,7 @@ public class WeeklyDetailBottomSheetDialog {
             dateRange.setText("Tahun " + weekSummary.getStartDate().getYear());
         } else {
             title.setText(isIncome ? "Pemasukan Mingguan" : "Pengeluaran Mingguan");
-            SimpleDateFormat rangeFormat = new SimpleDateFormat("d MMM yyyy", new Locale("id", "ID"));
+            SimpleDateFormat rangeFormat = new SimpleDateFormat("d MMM yyyy", java.util.Locale.forLanguageTag("id-ID"));
             String startStr = rangeFormat.format(java.sql.Date.valueOf(weekSummary.getStartDate().toString()));
             String endStr = rangeFormat.format(java.sql.Date.valueOf(weekSummary.getEndDate().toString()));
             dateRange.setText(startStr + " - " + endStr);
@@ -94,10 +95,10 @@ public class WeeklyDetailBottomSheetDialog {
         private final long monthTotalIncomeMinor;
         private final Map<Long, List<CategoryDetail>> categoryDetails;
         private final boolean isYearly;
-        private final SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", new Locale("id", "ID"));
-        private final SimpleDateFormat dateFormat = new SimpleDateFormat("d MMM yyyy", new Locale("id", "ID"));
-        private final SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM", new Locale("id", "ID"));
-        private final SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", new Locale("id", "ID"));
+        private final SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", java.util.Locale.forLanguageTag("id-ID"));
+        private final SimpleDateFormat dateFormat = new SimpleDateFormat("d MMM yyyy", java.util.Locale.forLanguageTag("id-ID"));
+        private final SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM", java.util.Locale.forLanguageTag("id-ID"));
+        private final SimpleDateFormat yearFormat = new SimpleDateFormat("yyyy", java.util.Locale.forLanguageTag("id-ID"));
 
         public WeeklyDetailAdapter(Context context, CashFlowReport.WeekSummary weekSummary, boolean isIncome, DashboardViewModel.DisplayMode mode, long monthTotalIncomeMinor, Map<Long, List<CategoryDetail>> categoryDetails, boolean isYearly) {
             this.context = context;

@@ -43,7 +43,7 @@ public class StickyHeaderItemDecoration extends RecyclerView.ItemDecoration {
         View childInContact = getChildInContact(parent, contactPoint, headerPos);
 
         if (childInContact != null && mListener.isHeader(parent.getChildAdapterPosition(childInContact))) {
-            moveHeader(c, currentHeader, childInContact);
+            moveHeader(c, currentHeader, childInContact, parent);
             return;
         }
 
@@ -70,15 +70,15 @@ public class StickyHeaderItemDecoration extends RecyclerView.ItemDecoration {
             naturalTop = mStickyYOffset;
         }
         
-        c.translate(0, Math.max(mStickyYOffset, naturalTop));
+        c.translate(parent.getPaddingLeft(), Math.max(mStickyYOffset, naturalTop));
         header.draw(c);
         c.restore();
     }
 
-    private void moveHeader(Canvas c, View currentHeader, View nextHeader) {
+    private void moveHeader(Canvas c, View currentHeader, View nextHeader, RecyclerView parent) {
         c.save();
         int targetY = nextHeader.getTop() - currentHeader.getHeight();
-        c.translate(0, Math.min(mStickyYOffset, targetY));
+        c.translate(parent.getPaddingLeft(), Math.min(mStickyYOffset, targetY));
         currentHeader.draw(c);
         c.restore();
     }

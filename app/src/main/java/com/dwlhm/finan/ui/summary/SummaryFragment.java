@@ -367,11 +367,7 @@ public final class SummaryFragment extends ScreenFragment {
       adviceIcon.setImageResource(advice.iconRes);
       adviceIcon.setColorFilter(ContextCompat.getColor(requireContext(), advice.colorRes));
       adviceTitle.setText(advice.title);
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-        adviceMessage.setText(android.text.Html.fromHtml(advice.message, android.text.Html.FROM_HTML_MODE_LEGACY));
-      } else {
-        adviceMessage.setText(android.text.Html.fromHtml(advice.message));
-      }
+      adviceMessage.setText(android.text.Html.fromHtml(advice.message, android.text.Html.FROM_HTML_MODE_LEGACY));
     } else {
       adviceCard.setVisibility(View.GONE);
     }
@@ -1031,6 +1027,7 @@ public final class SummaryFragment extends ScreenFragment {
     }
   }
 
+  @android.annotation.SuppressLint("InflateParams")
   private View createCategoryRow(CategoryTotal row, long maxTotalMinor) {
     View rowView = getLayoutInflater().inflate(R.layout.item_cash_flow_category, null, false);
     
@@ -1458,8 +1455,10 @@ public final class SummaryFragment extends ScreenFragment {
   private class CashFlowAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<CashFlowAdapter.ViewHolder> {
     private List<CashFlowActivityTotal> items = new ArrayList<>();
 
+    @android.annotation.SuppressLint("NotifyDataSetChanged")
     public void setItems(List<CashFlowActivityTotal> newItems) {
       this.items = newItems;
+      //noinspection NotifyDataSetChanged
       notifyDataSetChanged();
     }
 
@@ -1585,9 +1584,11 @@ public final class SummaryFragment extends ScreenFragment {
     private List<WalletBalance> items = new ArrayList<>();
     private long totalBalance = 0;
 
+    @android.annotation.SuppressLint("NotifyDataSetChanged")
     public void setItems(List<WalletBalance> newItems, long totalBalance) {
       this.items = newItems;
       this.totalBalance = totalBalance;
+      //noinspection NotifyDataSetChanged
       notifyDataSetChanged();
     }
 

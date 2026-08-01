@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UseCompoundDrawables,Overdraw,DisableBaselineAlignment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:colorBackground">
@@ -34,7 +36,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
                     android:background="@drawable/bg_month_picker"
-                    android:drawableEnd="@drawable/ic_expand_more"
+                    app:drawableEndCompat="@drawable/ic_expand_more"
                     android:drawablePadding="8dp"
                     android:gravity="center"
                     android:paddingStart="16dp"
@@ -269,12 +271,13 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Content (RecyclerView) -->
-    <!-- We don't use InfiniteScrollListView here because we need it to work with AppBarLayout. -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/monthly_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="80dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 

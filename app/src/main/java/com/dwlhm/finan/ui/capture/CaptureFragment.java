@@ -340,7 +340,7 @@ public final class CaptureFragment extends ScreenFragment {
   }
   private void updateInteractiveFieldTheme(TextView view, int textColorRes, int bgColorRes) {
       view.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes));
-      view.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes)));
+      androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(view, android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes)));
       android.graphics.drawable.Drawable bg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_madlibs_field).mutate();
       androidx.core.graphics.drawable.DrawableCompat.setTint(bg, androidx.core.content.ContextCompat.getColor(requireContext(), bgColorRes));
       view.setBackground(bg);
@@ -654,7 +654,7 @@ public final class CaptureFragment extends ScreenFragment {
     if (d.equals(today)) datePart = "@hari ini";
     else if (d.equals(today.minusDays(1))) datePart = "@kemarin";
     else if (d.equals(today.plusDays(1))) datePart = "@besok";
-    else datePart = "@" + dt.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy", new java.util.Locale("id", "ID")));
+    else datePart = "@" + dt.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy", java.util.Locale.forLanguageTag("id-ID")));
     dateText.setText(datePart + ", " + dt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
   }
 

@@ -207,7 +207,7 @@ public final class CustomDatePickerView extends LinearLayout {
    * untuk middle) langsung di Canvas sebelum konten teks, sehingga tidak butuh
    * drawable XML terpisah dengan sintaks yang tidak didukung.
    */
-  private class DayCell extends TextView {
+  private class DayCell extends androidx.appcompat.widget.AppCompatTextView {
     private int rangeType = TAG_NORMAL; // TAG_NORMAL / TAG_RANGE_S / TAG_RANGE_E / TAG_RANGE_M
     private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
@@ -289,12 +289,17 @@ public final class CustomDatePickerView extends LinearLayout {
 
     boolean inRange = false, isRangeStart = false, isRangeEnd = false, isSingleDay = false;
 
-    if (rangeMode && rangeStartDay != null && rangeEndDay != null) {
+    if (rangeMode && rangeStartDay != null) {
       isRangeStart = day == rangeStartDay && m == rangeStartMonth && y == rangeStartYear;
-      isRangeEnd   = day == rangeEndDay   && m == rangeEndMonth   && y == rangeEndYear;
-      isSingleDay  = isRangeStart && isRangeEnd;
-      inRange      = !isRangeStart && !isRangeEnd
-          && !beforeRangeStart(day, m, y) && !afterRangeEnd(day, m, y);
+      if (rangeEndDay != null) {
+        isRangeEnd   = day == rangeEndDay   && m == rangeEndMonth   && y == rangeEndYear;
+        isSingleDay  = isRangeStart && isRangeEnd;
+        inRange      = !isRangeStart && !isRangeEnd
+            && !beforeRangeStart(day, m, y) && !afterRangeEnd(day, m, y);
+      } else {
+        isSingleDay = isRangeStart;
+        isRangeStart = false;
+      }
     }
 
     // Foreground ripple: disable for range/selected cells, re-enable for normal

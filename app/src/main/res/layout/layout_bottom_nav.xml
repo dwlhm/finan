@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/bottom_nav"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -19,8 +20,8 @@
         android:layout_height="52dp"
         android:layout_weight="1"
         android:text="@string/nav_capture"
-        android:drawableTint="@color/bottom_nav_icon"
-        android:drawableTop="@drawable/ic_nav_capture" />
+        app:drawableTint="@color/bottom_nav_icon"
+        app:drawableTopCompat="@drawable/ic_nav_capture" />
 
     <TextView
         android:id="@+id/nav_dashboard"
@@ -29,8 +30,8 @@
         android:layout_height="52dp"
         android:layout_weight="1"
         android:text="Buku Kas"
-        android:drawableTint="@color/bottom_nav_icon"
-        android:drawableTop="@drawable/ic_nav_history" />
+        app:drawableTint="@color/bottom_nav_icon"
+        app:drawableTopCompat="@drawable/ic_nav_history" />
 
     <TextView
         android:id="@+id/nav_settings"
@@ -39,6 +40,6 @@
         android:layout_height="52dp"
         android:layout_weight="1"
         android:text="@string/nav_settings"
-        android:drawableTint="@color/bottom_nav_icon"
-        android:drawableTop="@drawable/ic_nav_settings" />
+        app:drawableTint="@color/bottom_nav_icon"
+        app:drawableTopCompat="@drawable/ic_nav_settings" />
 </LinearLayout>

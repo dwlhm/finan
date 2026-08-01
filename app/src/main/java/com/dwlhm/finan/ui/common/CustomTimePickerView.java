@@ -79,8 +79,8 @@ public final class CustomTimePickerView extends LinearLayout {
   }
 
   private void refreshDisplay() {
-    hourDisplay.setText(String.format("%02d", hour));
-    minuteDisplay.setText(String.format("%02d", minute));
+    hourDisplay.setText(String.format(java.util.Locale.getDefault(), "%02d", hour));
+    minuteDisplay.setText(String.format(java.util.Locale.getDefault(), "%02d", minute));
     if (listener != null) listener.onTimeSelected(hour, minute);
   }
 
@@ -106,7 +106,7 @@ public final class CustomTimePickerView extends LinearLayout {
     col.addView(upBtn);
 
     TextView val = new TextView(ctx);
-    val.setText(String.format("%02d", initial));
+    val.setText(String.format(java.util.Locale.getDefault(), "%02d", initial));
     val.setTextSize(28f);
     val.setTextColor(textPrim);
     val.setTypeface(val.getTypeface(), android.graphics.Typeface.BOLD);

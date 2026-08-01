@@ -185,7 +185,7 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <Switch
+            <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/category_default_switch"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"

@@ -38,6 +38,7 @@ public class MonthlyDetailBottomSheetDialog {
         }
     }
 
+    @android.annotation.SuppressLint("InflateParams")
     public static void show(Context context, CashFlowReport.WeekSummary monthSummary, boolean isIncome, DashboardViewModel.DisplayMode mode, long monthTotalIncomeMinor, Map<Long, List<CategoryDetail>> categoryDetails) {
         BottomSheetDialog dialog = new BottomSheetDialog(context);
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_weekly_detail, null);
@@ -54,7 +55,7 @@ public class MonthlyDetailBottomSheetDialog {
         closeBtn.setOnClickListener(v -> dialog.dismiss());
 
         title.setText(isIncome ? "Pemasukan Bulanan" : "Pengeluaran Bulanan");
-        SimpleDateFormat rangeFormat = new SimpleDateFormat("MMMM yyyy", new Locale("id", "ID"));
+        SimpleDateFormat rangeFormat = new SimpleDateFormat("MMMM yyyy", java.util.Locale.forLanguageTag("id-ID"));
         String dateStr = rangeFormat.format(java.sql.Date.valueOf(monthSummary.getStartDate().toString()));
         dateRange.setText(dateStr);
 
@@ -89,7 +90,7 @@ public class MonthlyDetailBottomSheetDialog {
         private final DashboardViewModel.DisplayMode mode;
         private final long monthTotalIncomeMinor;
         private final Map<Long, List<CategoryDetail>> categoryDetails;
-        private final SimpleDateFormat dateFormat = new SimpleDateFormat("d MMM yyyy", new Locale("id", "ID"));
+        private final SimpleDateFormat dateFormat = new SimpleDateFormat("d MMM yyyy", java.util.Locale.forLanguageTag("id-ID"));
 
         public MonthlyDetailAdapter(Context context, CashFlowReport.WeekSummary monthSummary, boolean isIncome, DashboardViewModel.DisplayMode mode, long monthTotalIncomeMinor, Map<Long, List<CategoryDetail>> categoryDetails) {
             this.context = context;

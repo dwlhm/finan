@@ -247,7 +247,8 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         });
 
         // Setup Infinite Scroll Handle manually
-        InfiniteScrollConfig config = InfiniteScrollConfig.defaults();
+        int spacingPx = (int) (8 * getResources().getDisplayMetrics().density);
+        InfiniteScrollConfig config = new InfiniteScrollConfig(InfiniteScrollConfig.DEFAULT_PAGE_SIZE, InfiniteScrollConfig.DEFAULT_LOAD_MORE_THRESHOLD, spacingPx);
         recyclerView.addItemDecoration(InfiniteScrollItemDecorations.bottomSpacing(config.getItemSpacingPx()));
         scrollHandle = new InfiniteScrollController<>(
                 config,
@@ -280,7 +281,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             }
         });
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", new java.util.Locale("id", "ID"));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", java.util.Locale.forLanguageTag("id-ID"));
         
         if (month == -1) {
             monthTitle.setText(String.valueOf(year));
@@ -402,8 +403,12 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             data -> {
                 if (!isAdded() || generation != reloadGeneration || data == null) return;
                 
-                walletsById = (Map<Long, Wallet>) data[0];
-                categoriesById = (Map<Long, Category>) data[1];
+                @SuppressWarnings("unchecked")
+                Map<Long, Wallet> w = (Map<Long, Wallet>) data[0];
+                walletsById = w;
+                @SuppressWarnings("unchecked")
+                Map<Long, Category> c = (Map<Long, Category>) data[1];
+                categoriesById = c;
                 searchResolver = (TransactionSearchResolver) data[2];
                 activeQuery = (HistoryQuery) data[3];
                 cachedTotals = (HistoryTotals) data[4];
@@ -447,7 +452,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             if (month == -1) {
                 monthTitle.setText(String.valueOf(year));
             } else {
-                monthTitle.setText(startDate.format(DateTimeFormatter.ofPattern("MMMM yyyy", new java.util.Locale("id", "ID"))));
+                monthTitle.setText(startDate.format(DateTimeFormatter.ofPattern("MMMM yyyy", java.util.Locale.forLanguageTag("id-ID"))));
             }
         } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
             collapsedBalanceText.setText("100%");
@@ -1203,8 +1208,10 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private class CashFlowAdapter extends RecyclerView.Adapter<CashFlowAdapter.ViewHolder> {
         private java.util.List<CashFlowActivityTotal> items = new ArrayList<>();
 
+        @android.annotation.SuppressLint("NotifyDataSetChanged")
         public void setItems(java.util.List<CashFlowActivityTotal> newItems) {
             this.items = newItems;
+            //noinspection NotifyDataSetChanged
             notifyDataSetChanged();
         }
 
@@ -1326,9 +1333,11 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         private java.util.List<WalletBalance> items = new ArrayList<>();
         private long totalBalance = 0;
 
+        @android.annotation.SuppressLint("NotifyDataSetChanged")
         public void setItems(java.util.List<WalletBalance> newItems, long totalBalance) {
             this.items = newItems;
             this.totalBalance = totalBalance;
+            //noinspection NotifyDataSetChanged
             notifyDataSetChanged();
         }
 

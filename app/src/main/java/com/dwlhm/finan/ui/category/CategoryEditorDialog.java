@@ -14,7 +14,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.app.AlertDialog;
-import android.widget.Switch;
+import androidx.appcompat.widget.SwitchCompat;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
@@ -82,7 +82,7 @@ public final class CategoryEditorDialog extends Dialog {
     TextView countView = findViewById(R.id.category_transaction_count);
     Button transactionsButton = findViewById(R.id.category_view_transactions);
     Button deleteButton = findViewById(R.id.category_delete);
-    Switch defaultSwitch = findViewById(R.id.category_default_switch);
+    SwitchCompat defaultSwitch = findViewById(R.id.category_default_switch);
     DialogActionsView actions = findViewById(R.id.category_editor_actions);
 
     EditorDraft draft =
@@ -267,7 +267,7 @@ public final class CategoryEditorDialog extends Dialog {
     private final CheckBox expenseInput;
     private final CheckBox incomeInput;
     private final RadioGroup activityGroup;
-    private final Switch defaultSwitch;
+    private final SwitchCompat defaultSwitch;
 
     private EditorDraft(
         Category original,
@@ -276,7 +276,7 @@ public final class CategoryEditorDialog extends Dialog {
         CheckBox expenseInput,
         CheckBox incomeInput,
         RadioGroup activityGroup,
-        Switch defaultSwitch) {
+        SwitchCompat defaultSwitch) {
       this.original = original;
       this.nameInput = nameInput;
       this.iconInput = iconInput;

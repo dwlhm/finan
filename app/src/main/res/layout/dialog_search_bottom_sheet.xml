@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_bottom_sheet"
@@ -23,7 +24,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
         android:background="@drawable/bg_search_input"
-        android:drawableStart="@drawable/ic_search"
+        app:drawableStartCompat="@drawable/ic_search"
         android:drawablePadding="8dp"
         android:hint="Search"
         android:imeOptions="actionDone"

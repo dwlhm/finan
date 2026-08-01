@@ -38,7 +38,7 @@
         android:layout_marginTop="4dp"
         android:clickable="true"
         android:focusable="true"
-        android:drawableEnd="@drawable/ic_occurred_at_chevron"
+        app:drawableEndCompat="@drawable/ic_occurred_at_chevron"
         android:foreground="?android:attr/selectableItemBackground" />
 
     <TextView
@@ -56,7 +56,7 @@
         android:layout_marginTop="4dp"
         android:clickable="true"
         android:focusable="true"
-        android:drawableEnd="@drawable/ic_occurred_at_chevron"
+        app:drawableEndCompat="@drawable/ic_occurred_at_chevron"
         android:foreground="?android:attr/selectableItemBackground" />
 
     <TextView
@@ -74,7 +74,7 @@
         android:layout_marginTop="4dp"
         android:clickable="true"
         android:focusable="true"
-        android:drawableEnd="@drawable/ic_occurred_at_chevron"
+        app:drawableEndCompat="@drawable/ic_occurred_at_chevron"
         android:foreground="?android:attr/selectableItemBackground" />
 
     <TextView
@@ -92,7 +92,7 @@
         android:layout_marginTop="4dp"
         android:clickable="true"
         android:focusable="true"
-        android:drawableEnd="@drawable/ic_occurred_at_chevron"
+        app:drawableEndCompat="@drawable/ic_occurred_at_chevron"
         android:foreground="?android:attr/selectableItemBackground" />
 
     <TextView

@@ -14,6 +14,7 @@ import com.dwlhm.finan.util.money.MoneyFormatter;
 
 public class FinancialAdviceDialog {
 
+    @android.annotation.SuppressLint("InflateParams")
     public static void show(Context context, FinancialAdvisor.Advice advice, MonthlySummary summary, com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode mode) {
         if (advice == null || summary == null) return;
         
@@ -30,11 +31,7 @@ public class FinancialAdviceDialog {
         
         titleText.setText(advice.title);
         
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            messageText.setText(android.text.Html.fromHtml(advice.message, android.text.Html.FROM_HTML_MODE_LEGACY));
-        } else {
-            messageText.setText(android.text.Html.fromHtml(advice.message));
-        }
+        messageText.setText(android.text.Html.fromHtml(advice.message, android.text.Html.FROM_HTML_MODE_LEGACY));
         
         long income = summary.getMonthIncomeMinor();
         long expense = summary.getMonthExpenseMinor();

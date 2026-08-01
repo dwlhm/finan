@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
@@ -12,7 +13,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:contentDescription="@string/transaction_date_picker_title"
-        android:drawableStart="@drawable/ic_summary_calendar" />
+        app:drawableStartCompat="@drawable/ic_summary_calendar" />
 
     <TextView
         android:id="@+id/transaction_occurred_time"
@@ -22,5 +23,5 @@
         android:layout_marginStart="8dp"
         android:layout_weight="1"
         android:contentDescription="@string/transaction_time_picker_title"
-        android:drawableStart="@drawable/ic_schedule" />
+        app:drawableStartCompat="@drawable/ic_schedule" />
 </LinearLayout>

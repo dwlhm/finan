@@ -41,7 +41,6 @@ public class DashboardFragment extends ScreenFragment {
     
     private EditText searchInput;
     private ImageButton searchClear;
-    private ImageButton filterButton;
     
     private DebouncedTextWatcher searchWatcher;
 
@@ -74,8 +73,6 @@ public class DashboardFragment extends ScreenFragment {
         modeMasked = view.findViewById(R.id.dashboard_mode_masked);
         searchInput = view.findViewById(R.id.dashboard_search_input);
         searchClear = view.findViewById(R.id.dashboard_search_clear);
-        filterButton = view.findViewById(R.id.dashboard_filter_button);
-        filterButton = view.findViewById(R.id.dashboard_filter_button);
         
         setupViewPager();
         setupGlobalControls();
@@ -185,34 +182,51 @@ public class DashboardFragment extends ScreenFragment {
         modePercentage.setOnClickListener(v -> setDisplayMode(DashboardViewModel.DisplayMode.PERCENTAGE));
         modeMasked.setOnClickListener(v -> setDisplayMode(DashboardViewModel.DisplayMode.MASKED));
         
-        searchWatcher = new DebouncedTextWatcher(300L, value -> {
-            viewModel.setSearchQuery(value.trim());
+        searchWatcher = new DebouncedTextWatcher(500L, value -> {
+            String query = value.trim();
+            if (query.length() > 3) {
+                openSearchPage(query);
+            }
         });
         searchInput.addTextChangedListener(searchWatcher);
+        searchInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                searchClear.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
+            }
+        });
+
+        searchInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.getKeyCode() == android.view.KeyEvent.KEYCODE_ENTER && event.getAction() == android.view.KeyEvent.ACTION_DOWN)) {
+                String query = searchInput.getText().toString().trim();
+                if (!query.isEmpty()) {
+                    openSearchPage(query);
+                }
+                return true;
+            }
+            return false;
+        });
         
         searchClear.setOnClickListener(v -> {
             searchInput.setText("");
-            viewModel.setSearchQuery("");
         });
-        
-        filterButton.setOnClickListener(v -> openFilterDialog());
-        
+    }
 
+    private void openSearchPage(String query) {
+        searchInput.setText(""); // clear so it doesn't re-trigger when returning
+        android.content.Intent intent = new android.content.Intent(requireContext(), com.dwlhm.finan.ui.search.SearchTransactionActivity.class);
+        intent.putExtra("EXTRA_QUERY", query);
+        startActivity(intent);
     }
 
     private void observeViewModel() {
         viewModel.getDisplayMode().observe(getViewLifecycleOwner(), this::updateDisplayModeUi);
         
-        viewModel.getSearchQuery().observe(getViewLifecycleOwner(), query -> {
-            searchClear.setVisibility(query == null || query.isEmpty() ? View.GONE : View.VISIBLE);
-        });
-        
         viewModel.getTimeRangeState().observe(getViewLifecycleOwner(), state -> {
             updateViewPagerWithTimeRange(state);
         });
-        
-        viewModel.getWalletFilter().observe(getViewLifecycleOwner(), w -> updateFilterButtonUi());
-        viewModel.getCategoryFilter().observe(getViewLifecycleOwner(), c -> updateFilterButtonUi());
     }
 
     private void updateDisplayModeUi(DashboardViewModel.DisplayMode mode) {
@@ -237,62 +251,6 @@ public class DashboardFragment extends ScreenFragment {
                 .edit()
                 .putInt(PREF_DISPLAY_MODE, mode.ordinal())
                 .apply();
-    }
-
-    private void updateFilterButtonUi() {
-        boolean active = viewModel.getWalletFilter().getValue() != null 
-                || viewModel.getCategoryFilter().getValue() != null
-                || viewModel.getTransactionTypeFilter().getValue() != null;
-        
-        filterButton.setAlpha(active ? 1f : 0.82f);
-        filterButton.setColorFilter(ContextCompat.getColor(requireContext(), 
-                active ? R.color.finan_warm_accent : R.color.finan_primary));
-    }
-
-    private void openFilterDialog() {
-        services.dbWorker.compute(
-            () -> {
-                List<Wallet> wallets = services.walletService.findAll();
-                List<Category> categories = services.categoryDao.findAllOrdered();
-                return new Object[]{wallets, categories};
-            },
-            data -> {
-                if (!isAdded() || data == null) return;
-                List<Wallet> wallets = (List<Wallet>) data[0];
-                List<Category> categories = (List<Category>) data[1];
-                
-                Long selectedWallet = viewModel.getWalletFilter().getValue();
-                Long selectedCategory = viewModel.getCategoryFilter().getValue();
-                String typeStr = viewModel.getTransactionTypeFilter().getValue();
-                Long selectedType = null;
-                if ("INCOME".equals(typeStr)) selectedType = 2L;
-                else if ("EXPENSE".equals(typeStr)) selectedType = 1L;
-                
-                HistoryFilterBottomSheet sheet = new HistoryFilterBottomSheet(
-                        requireContext(),
-                        wallets,
-                        categories,
-                        selectedWallet,
-                        selectedCategory,
-                        selectedType,
-                        null, // sortId not universally supported here yet, or we can add it to ViewModel
-                        (w, c, t, s) -> {
-                            viewModel.setWalletFilter(w);
-                            viewModel.setCategoryFilter(c);
-                            if (t != null) {
-                                viewModel.setTransactionTypeFilter(t == 2L ? "INCOME" : "EXPENSE");
-                            } else {
-                                viewModel.setTransactionTypeFilter(null);
-                            }
-                        },
-                        () -> {
-                            viewModel.setWalletFilter(null);
-                            viewModel.setCategoryFilter(null);
-                            viewModel.setTransactionTypeFilter(null);
-                        });
-                sheet.show();
-            }
-        );
     }
 
     @Override

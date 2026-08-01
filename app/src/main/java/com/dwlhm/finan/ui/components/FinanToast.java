@@ -31,6 +31,7 @@ public class FinanToast {
     private float initialTouchY;
     private boolean isDismissing = false;
 
+    @android.annotation.SuppressLint("InflateParams")
     private FinanToast(Activity activity, String message, String actionText, Runnable onAction) {
         this.activity = activity;
         this.handler = new Handler(Looper.getMainLooper());

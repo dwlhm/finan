@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -54,7 +55,7 @@
                 android:contentDescription="@string/desc_btn_summary_filter"
                 android:padding="12dp"
                 android:src="@drawable/ic_summary_filter"
-                android:tint="@android:color/white" />
+                app:tint="@android:color/white" />
 
             <TextView
                 android:id="@+id/item_transaction_emoji"
