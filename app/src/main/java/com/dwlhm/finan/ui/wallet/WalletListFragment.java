@@ -428,12 +428,10 @@ public final class WalletListFragment extends ScreenFragment {
     Dialog dialog = new Dialog(requireContext(), R.style.Finan_BottomSheetDialog);
     dialog.setContentView(R.layout.dialog_confirm_delete);
     ((TextView) dialog.findViewById(R.id.confirm_delete_title))
-        .setText("Hapus dompet");
+        .setText(R.string.java_WalletListFragment_hapus_dompet);
     ((TextView) dialog.findViewById(R.id.confirm_delete_message))
         .setText(
-            "Apakah Anda yakin ingin menghapus dompet \""
-                + wallet.getName()
-                + "\"? Semua transaksi terkait juga akan dihapus.");
+            getString(R.string.delete_wallet_confirmation, wallet.getName()));
     dialog.findViewById(R.id.confirm_delete_cancel)
         .setOnClickListener(v -> dialog.dismiss());
     dialog.findViewById(R.id.confirm_delete_confirm)

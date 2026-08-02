@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.export;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
@@ -23,6 +24,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+@SuppressLint("SetTextI18n")
 public final class ExportDateRangeBottomSheet extends Dialog {
 
   public interface OnRangeSelectedListener {

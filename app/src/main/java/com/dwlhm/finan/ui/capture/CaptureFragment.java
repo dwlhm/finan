@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@SuppressLint("SetTextI18n")
 public final class CaptureFragment extends ScreenFragment {
 
     private AppServices services;
@@ -260,7 +261,7 @@ public final class CaptureFragment extends ScreenFragment {
         private Runnable startHoldRunnable = () -> {
             isHolding = true;
             isTapValid = false;
-            captureSaveLabel.setText("Tahan untuk Pertahankan...");
+            captureSaveLabel.setText(R.string.java_CaptureFragment_tahan_untuk_pertahankan);
             captureHoldProgress.setScaleX(0f);
             
             holdAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f);
@@ -560,14 +561,14 @@ public final class CaptureFragment extends ScreenFragment {
     boolean income = selectedType == TransactionType.INCOME;
 
     if (transfer) {
-        sentencePrefix.setText("Transfer ");
-        sentenceFor.setText(" ke ");
-        sentenceFrom.setText(" dari ");
-        if (captureSaveLabel != null) captureSaveLabel.setText("Simpan Transfer");
+        sentencePrefix.setText(R.string.java_CaptureFragment_transfer);
+        sentenceFor.setText(R.string.java_CaptureFragment_ke);
+        sentenceFrom.setText(R.string.java_CaptureFragment_dari);
+        if (captureSaveLabel != null) captureSaveLabel.setText(R.string.java_CaptureFragment_simpan_transfer);
         updateCategoryLabel(); // Will display destination wallet
     } else {
         sentencePrefix.setText(income ? "Masuk " : "Keluar ");
-        sentenceFor.setText(" untuk ");
+        sentenceFor.setText(R.string.java_CaptureFragment_untuk);
         sentenceFrom.setText(income ? " ke " : " dari ");
         if (captureSaveLabel != null) captureSaveLabel.setText(income ? "Simpan Pemasukan" : "Simpan Pengeluaran");
         updateCategoryLabel();
@@ -1025,7 +1026,7 @@ public final class CaptureFragment extends ScreenFragment {
           public void onTick(long millisUntilFinished) {
               if (captureUndoActionText != null) {
                   int seconds = (int) (millisUntilFinished / 1000) + 1;
-                  captureUndoActionText.setText("Batalkan (" + seconds + ")");
+                  captureUndoActionText.setText(getString(R.string.java_CaptureFragment_batalkan) + seconds + ")");
               }
           }
 

@@ -23,7 +23,7 @@
         android:orientation="vertical"
         android:background="?android:colorBackground">
 
-        <LinearLayout
+        <LinearLayout android:baselineAligned="false"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -68,9 +68,9 @@
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackgroundBorderless"
                 android:gravity="center"
-                android:text="Rp"
+                android:text="@string/hc_activity_history_rp"
                 android:textColor="#FFFFFF"
-                android:textSize="9sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -81,9 +81,9 @@
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackgroundBorderless"
                 android:gravity="center"
-                android:text="***"
+                android:text="@string/auto_str_fbe930c2"
                 android:textColor="#4A9E7F"
-                android:textSize="9sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
@@ -189,7 +189,7 @@
                 android:gravity="center_vertical"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Bulan Ini"
+                android:text="@string/hc_activity_history_bulan_ini"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -206,7 +206,7 @@
                 android:gravity="center_vertical"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Bulan Lalu"
+                android:text="@string/hc_activity_history_bulan_lalu"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -222,7 +222,7 @@
                 android:gravity="center_vertical"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Pemasukan"
+                android:text="@string/hc_activity_history_pemasukan"
                 android:textColor="@color/finan_income"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -239,7 +239,7 @@
                 android:gravity="center_vertical"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:text="Pengeluaran"
+                android:text="@string/hc_activity_history_pengeluaran"
                 android:textColor="@color/finan_expense"
                 android:textSize="13sp"
                 android:textStyle="bold" />

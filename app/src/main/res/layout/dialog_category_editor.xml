@@ -180,7 +180,7 @@
                     style="@style/Finan.Button.Nav"
                     android:layout_width="wrap_content"
                     android:layout_height="48dp"
-                    android:text="Hapus"
+                    android:text="@string/hc_dialog_category_editor_hapus"
                     android:textColor="@color/finan_error"
                     android:visibility="gone" />
             </LinearLayout>

@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.summary;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -26,6 +27,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+@SuppressLint("SetTextI18n")
 public final class SummaryDateRangeBottomSheet extends Dialog {
 
   public interface OnRangeConfirmedListener {

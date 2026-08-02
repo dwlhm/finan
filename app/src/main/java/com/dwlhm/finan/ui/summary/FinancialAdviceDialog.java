@@ -37,10 +37,10 @@ public class FinancialAdviceDialog {
         long expense = summary.getMonthExpenseMinor();
         
         if (mode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED) {
-            incomeText.setText("Rp ***");
-            expenseText.setText("Rp ***");
+            incomeText.setText(R.string.java_FinancialAdviceDialog_rp);
+            expenseText.setText(R.string.java_FinancialAdviceDialog_rp);
         } else if (mode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.PERCENTAGE) {
-            incomeText.setText("100%");
+            incomeText.setText(R.string.java_FinancialAdviceDialog_100);
             if (income > 0) {
                 float ratio = (expense * 100f) / income;
                 expenseText.setText(String.format(java.util.Locale.getDefault(), "%.0f%%", ratio));

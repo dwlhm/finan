@@ -25,12 +25,12 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Pemasukan Minggu 1"
+            android:text="@string/hc_dialog_weekly_detail_pemasukan_minggu_1"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="@color/finan_text_primary" />
             
-        <ImageView
+        <ImageView android:contentDescription="@string/app_name"
             android:id="@+id/weekly_detail_close"
             android:layout_width="24dp"
             android:layout_height="24dp"
@@ -51,7 +51,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Total"
+        android:text="@string/hc_dialog_weekly_detail_total"
         android:textSize="12sp"
         android:textColor="@color/finan_text_secondary"
         android:textAllCaps="true"

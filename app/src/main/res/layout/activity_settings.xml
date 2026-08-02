@@ -40,9 +40,9 @@
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
-                    android:text="Rp"
+                    android:text="@string/hc_activity_settings_rp"
                     android:textColor="#FFFFFF"
-                    android:textSize="9sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -53,9 +53,9 @@
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
-                    android:text="***"
+                    android:text="@string/auto_str_698031c4"
                     android:textColor="#4A9E7F"
-                    android:textSize="9sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
@@ -79,7 +79,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
-                    android:text="Kategori Sering Digunakan"
+                    android:text="@string/hc_activity_settings_kategori_sering_digunakan"
                     android:textAppearance="@style/Finan.Text.SectionLabel"
                     android:textColor="@color/finan_primary"
                     android:textStyle="bold" />
@@ -90,7 +90,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:text="+ Tambah Baru"
+                    android:text="@string/hc_activity_settings_tambah_baru"
                     android:textColor="@color/finan_primary"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -113,7 +113,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:padding="16dp"
-                android:text="Belum ada data kategori"
+                android:text="@string/hc_activity_settings_belum_ada_data_kategori"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="14sp"
                 android:visibility="gone" />
@@ -148,7 +148,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
-                    android:text="Dompet &amp; Rekening"
+                    android:text="@string/auto_dompet_rekening"
                     android:textAppearance="@style/Finan.Text.SectionLabel"
                     android:textColor="@color/finan_primary"
                     android:textStyle="bold" />
@@ -159,7 +159,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:text="+ Tambah Baru"
+                    android:text="@string/hc_activity_settings_tambah_baru"
                     android:textColor="@color/finan_primary"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -181,7 +181,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Total Saldo"
+                    android:text="@string/hc_activity_settings_total_saldo"
                     android:textColor="@color/finan_text_secondary"
                     android:textSize="14sp" />
 
@@ -209,7 +209,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:padding="16dp"
-                android:text="Belum ada data dompet"
+                android:text="@string/hc_activity_settings_belum_ada_data_dompet"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="14sp"
                 android:visibility="gone" />
@@ -238,7 +238,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Data"
+                android:text="@string/hc_activity_settings_data"
                 android:textAppearance="@style/Finan.Text.SectionLabel"
                 android:textColor="@color/finan_primary"
                 android:textStyle="bold" />

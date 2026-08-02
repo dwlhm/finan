@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.dashboard;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
@@ -25,6 +26,7 @@ import com.dwlhm.finan.ui.history.HistoryFilterBottomSheet;
 import java.time.LocalDate;
 import java.util.List;
 
+@SuppressLint("SetTextI18n")
 public class DashboardFragment extends ScreenFragment {
 
     private static final String PREF_DISPLAY_MODE = "dashboard_display_mode";
@@ -109,7 +111,7 @@ public class DashboardFragment extends ScreenFragment {
                     TextView msg = inboxPrompt.findViewById(R.id.dashboard_inbox_message);
                     
                     title.setText(getString(R.string.cashflow_unclassified));
-                    msg.setText(count + " kategori belum dikelompokkan");
+                    msg.setText(count + " " + getString(R.string.java_DashboardFragment_kategori_belum_dikelompokkan));
                     
                     inboxPrompt.setOnClickListener(v -> {
                         ((com.dwlhm.finan.ui.common.ScreenNavigator) requireActivity()).openCategoriesFiltered("UNCLASSIFIED");

@@ -619,9 +619,9 @@ public final class HistoryFragment extends ScreenFragment {
         getResources().getQuantityString(R.plurals.history_count, count, count));
     
     if (maskedMode) {
-      totalBalanceView.setText("Rp ***");
-      incomeTotalView.setText("Rp ***");
-      expenseTotalView.setText("Rp ***");
+      totalBalanceView.setText(R.string.java_HistoryFragment_rp);
+      incomeTotalView.setText(R.string.java_HistoryFragment_rp);
+      expenseTotalView.setText(R.string.java_HistoryFragment_rp);
     } else {
       long netBalance = totals.getIncomeMinor() - totals.getExpenseMinor();
       totalBalanceView.setText(MoneyFormatter.format(netBalance));

@@ -102,7 +102,7 @@ public final class WalletOverviewBottomSheet extends Dialog {
     int usage = wallet.getUsageCount();
     if (usage > 0) {
       transactionRow.setVisibility(View.VISIBLE);
-      transactionCountView.setText(usage + " transaksi");
+      transactionCountView.setText(usage + transactionCountView.getContext().getString(R.string.java_WalletOverviewBottomSheet_transaksi));
     }
 
     TextView createdAtView = findViewById(R.id.wallet_overview_created_at);
@@ -374,12 +374,10 @@ public final class WalletOverviewBottomSheet extends Dialog {
     Dialog dialog = new Dialog(getContext(), R.style.Finan_BottomSheetDialog);
     dialog.setContentView(R.layout.dialog_confirm_delete);
     ((TextView) dialog.findViewById(R.id.confirm_delete_title))
-        .setText("Hapus dompet");
+        .setText(R.string.java_WalletOverviewBottomSheet_hapus_dompet);
     ((TextView) dialog.findViewById(R.id.confirm_delete_message))
         .setText(
-            "Apakah Anda yakin ingin menghapus dompet \""
-                + wallet.getName()
-                + "\"? Semua transaksi terkait juga akan dihapus.");
+            getContext().getString(R.string.delete_wallet_confirmation, wallet.getName()));
     dialog.findViewById(R.id.confirm_delete_cancel)
         .setOnClickListener(v -> dialog.dismiss());
     dialog.findViewById(R.id.confirm_delete_confirm)

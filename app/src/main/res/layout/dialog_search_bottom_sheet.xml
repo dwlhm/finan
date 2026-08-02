@@ -15,7 +15,7 @@
         android:layout_marginBottom="16dp"
         android:background="@drawable/bg_bottom_sheet_handle" />
 
-    <EditText
+    <EditText android:importantForAutofill="no"
         android:id="@+id/search_input"
         style="@style/Finan.EditText.Transparent"
         android:layout_width="match_parent"
@@ -26,7 +26,7 @@
         android:background="@drawable/bg_search_input"
         app:drawableStartCompat="@drawable/ic_search"
         android:drawablePadding="8dp"
-        android:hint="Search"
+        android:hint="@string/hc_dialog_search_bottom_sheet_search"
         android:imeOptions="actionDone"
         android:inputType="textNoSuggestions"
         android:maxLines="1"

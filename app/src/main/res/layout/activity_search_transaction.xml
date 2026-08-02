@@ -40,7 +40,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="@android:color/transparent"
-                android:contentDescription="Kembali"
+                android:contentDescription="@string/hc_activity_search_transaction_kembali"
                 android:foreground="?android:attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_back"
                 app:tint="@color/finan_text_primary" />

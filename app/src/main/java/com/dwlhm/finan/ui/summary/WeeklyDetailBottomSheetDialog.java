@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.summary;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@SuppressLint("SetTextI18n")
 public class WeeklyDetailBottomSheetDialog {
 
     public static class CategoryDetail {
@@ -54,7 +56,7 @@ public class WeeklyDetailBottomSheetDialog {
 
         if (isYearly) {
             title.setText(isIncome ? "Pemasukan Bulanan" : "Pengeluaran Bulanan");
-            dateRange.setText("Tahun " + weekSummary.getStartDate().getYear());
+            dateRange.setText(dateRange.getContext().getString(R.string.java_WeeklyDetailBottomSheetDialog_tahun) + weekSummary.getStartDate().getYear());
         } else {
             title.setText(isIncome ? "Pemasukan Mingguan" : "Pengeluaran Mingguan");
             SimpleDateFormat rangeFormat = new SimpleDateFormat("d MMM yyyy", java.util.Locale.forLanguageTag("id-ID"));
@@ -66,7 +68,7 @@ public class WeeklyDetailBottomSheetDialog {
         long weekTotal = isIncome ? weekSummary.getWeekIncome() : weekSummary.getWeekExpense();
 
         if (mode == DashboardViewModel.DisplayMode.MASKED) {
-            totalText.setText("Rp ***");
+            totalText.setText(R.string.java_WeeklyDetailBottomSheetDialog_rp);
             totalText.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
         } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
             if (monthTotalIncomeMinor > 0) {
@@ -132,7 +134,7 @@ public class WeeklyDetailBottomSheetDialog {
             }
 
             if (mode == DashboardViewModel.DisplayMode.MASKED) {
-                holder.amount.setText("Rp ***");
+                holder.amount.setText(R.string.java_WeeklyDetailBottomSheetDialog_rp);
                 holder.amount.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
             } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
                 if (monthTotalIncomeMinor > 0) {
@@ -168,7 +170,7 @@ public class WeeklyDetailBottomSheetDialog {
                     catAmount.setTextSize(12f);
 
                     if (mode == DashboardViewModel.DisplayMode.MASKED) {
-                        catAmount.setText("Rp ***");
+                        catAmount.setText(R.string.java_WeeklyDetailBottomSheetDialog_rp);
                     } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
                         if (monthTotalIncomeMinor > 0) {
                             float pct = (cat.amount * 100f) / monthTotalIncomeMinor;

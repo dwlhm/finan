@@ -10,7 +10,7 @@
         android:id="@+id/advice_dialog_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Nasihat Keuangan"
+        android:text="@string/hc_dialog_financial_advice_nasihat_keuangan"
         android:textColor="@color/finan_text_primary"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -28,7 +28,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Data Pendukung"
+        android:text="@string/hc_dialog_financial_advice_data_pendukung"
         android:textColor="@color/finan_text_primary"
         android:textSize="14sp"
         android:textStyle="bold"
@@ -43,7 +43,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Pemasukan"
+            android:text="@string/hc_dialog_financial_advice_pemasukan"
             android:textColor="@color/finan_text_secondary"
             android:textSize="14sp" />
         <TextView
@@ -64,7 +64,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Pengeluaran"
+            android:text="@string/hc_dialog_financial_advice_pengeluaran"
             android:textColor="@color/finan_text_secondary"
             android:textSize="14sp" />
         <TextView
@@ -84,7 +84,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Rasio Pengeluaran"
+            android:text="@string/hc_dialog_financial_advice_rasio_pengeluaran"
             android:textColor="@color/finan_text_secondary"
             android:textSize="14sp" />
         <TextView
@@ -102,6 +102,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Tutup"
+        android:text="@string/hc_dialog_financial_advice_tutup"
         android:textColor="@color/finan_primary" />
 </LinearLayout>

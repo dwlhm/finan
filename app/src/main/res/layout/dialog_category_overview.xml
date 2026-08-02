@@ -102,7 +102,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Penggunaan"
+                android:text="@string/hc_dialog_category_overview_penggunaan"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="13sp" />
 
@@ -127,7 +127,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Terakhir digunakan"
+                android:text="@string/hc_dialog_category_overview_terakhir_digunakan"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="13sp" />
 
@@ -150,7 +150,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Aktivitas"
+                android:text="@string/hc_dialog_category_overview_aktivitas"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="13sp" />
 
@@ -178,7 +178,7 @@
         android:drawablePadding="12dp"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:text="✏️  Edit kategori"
+        android:text="@string/hc_dialog_category_overview_edit_kategori"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
         android:clickable="true"
@@ -192,7 +192,7 @@
         android:drawablePadding="12dp"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:text="📋  Lihat transaksi"
+        android:text="@string/hc_dialog_category_overview_lihat_transaksi"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
         android:clickable="true"
@@ -206,7 +206,7 @@
         android:drawablePadding="12dp"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:text="🗑️  Hapus kategori"
+        android:text="@string/hc_dialog_category_overview_hapus_kategori"
         android:textColor="@color/finan_error"
         android:textSize="15sp"
         android:clickable="true"

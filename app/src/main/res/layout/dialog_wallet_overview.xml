@@ -122,7 +122,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Total transaksi"
+                android:text="@string/hc_dialog_wallet_overview_total_transaksi"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="13sp" />
 
@@ -146,7 +146,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Dibuat"
+                android:text="@string/hc_dialog_wallet_overview_dibuat"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="13sp" />
 
@@ -174,7 +174,7 @@
         android:drawablePadding="12dp"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:text="✏️  Edit dompet"
+        android:text="@string/hc_dialog_wallet_overview_edit_dompet"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
         android:clickable="true"
@@ -188,7 +188,7 @@
         android:drawablePadding="12dp"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:text="💰  Sesuaikan saldo"
+        android:text="@string/hc_dialog_wallet_overview_sesuaikan_saldo"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
         android:clickable="true"
@@ -202,7 +202,7 @@
         android:drawablePadding="12dp"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:text="↔️  Transfer"
+        android:text="@string/hc_dialog_wallet_overview_transfer"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
         android:clickable="true"
@@ -216,7 +216,7 @@
         android:drawablePadding="12dp"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
-        android:text="🗑️  Hapus dompet"
+        android:text="@string/hc_dialog_wallet_overview_hapus_dompet"
         android:textColor="@color/finan_error"
         android:textSize="15sp"
         android:clickable="true"

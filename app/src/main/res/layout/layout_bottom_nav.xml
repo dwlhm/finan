@@ -29,7 +29,7 @@
         android:layout_width="0dp"
         android:layout_height="52dp"
         android:layout_weight="1"
-        android:text="Buku Kas"
+        android:text="@string/hc_layout_bottom_nav_buku_kas"
         app:drawableTint="@color/bottom_nav_icon"
         app:drawableTopCompat="@drawable/ic_nav_history" />
 

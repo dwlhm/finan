@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.common;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.widget.TextView;
 
@@ -20,6 +21,7 @@ import java.util.Locale;
  * Tap pada dateView atau timeView akan membuka DateTimeBottomSheet
  * (menggunakan custom calendar + custom time picker).
  */
+@SuppressLint("SetTextI18n")
 public final class TransactionOccurredAtPicker {
 
   private static final Locale LOCALE = Locale.forLanguageTag("id-ID");
@@ -67,11 +69,11 @@ public final class TransactionOccurredAtPicker {
     LocalDate today = LocalDate.now(zoneId);
 
     if (date.equals(today)) {
-      dateView.setText("@hari ini");
+      dateView.setText(R.string.java_TransactionOccurredAtPicker_hari_ini);
     } else if (date.equals(today.minusDays(1))) {
-      dateView.setText("@kemarin");
+      dateView.setText(R.string.java_TransactionOccurredAtPicker_kemarin);
     } else if (date.equals(today.plusDays(1))) {
-      dateView.setText("@besok");
+      dateView.setText(R.string.java_TransactionOccurredAtPicker_besok);
     } else {
       dateView.setText("@" + dateTime.format(DATE_FORMAT));
     }

@@ -18,7 +18,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Pilih Waktu"
+        android:text="@string/hc_dialog_month_year_picker_pilih_waktu"
         android:textColor="@color/finan_text_primary"
         android:textSize="20sp"
         android:textStyle="bold" />
@@ -59,7 +59,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:text="Batal"
+            android:text="@string/hc_dialog_month_year_picker_batal"
             android:textColor="@color/finan_primary"
             android:textAllCaps="false" />
 
@@ -68,7 +68,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:backgroundTint="@color/finan_primary"
-            android:text="Terapkan"
+            android:text="@string/hc_dialog_month_year_picker_terapkan"
             android:textColor="@color/finan_surface"
             app:cornerRadius="8dp"
             android:textAllCaps="false" />

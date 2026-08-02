@@ -14,7 +14,7 @@
         android:orientation="vertical"
         android:background="?android:colorBackground">
 
-        <LinearLayout
+        <LinearLayout android:baselineAligned="false"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -33,7 +33,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Buku Kas"
+                    android:text="@string/hc_fragment_dashboard_buku_kas"
                     android:textAppearance="@style/Finan.Text.Title" />
             </LinearLayout>
 
@@ -51,9 +51,9 @@
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
-                    android:text="Rp"
+                    android:text="@string/hc_fragment_dashboard_rp"
                     android:textColor="#FFFFFF"
-                    android:textSize="9sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -64,9 +64,9 @@
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
-                    android:text="%"
+                    android:text="@string/hc_fragment_dashboard_text_d8c8"
                     android:textColor="#4A9E7F"
-                    android:textSize="9sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -77,9 +77,9 @@
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackgroundBorderless"
                     android:gravity="center"
-                    android:text="***"
+                    android:text="@string/auto_str_598bfe6d"
                     android:textColor="#4A9E7F"
-                    android:textSize="9sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>

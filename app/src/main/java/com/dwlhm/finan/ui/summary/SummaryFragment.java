@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.summary;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Typeface;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@SuppressLint("SetTextI18n")
 public final class SummaryFragment extends ScreenFragment {
 
   private static final String START_DATE_STATE_KEY = "summary_start_date";
@@ -404,8 +406,8 @@ public final class SummaryFragment extends ScreenFragment {
   private void bindInboxPrompt(long unclassifiedCount, long unclassifiedAmount) {
     if (unclassifiedCount > 0) {
       inboxPrompt.setVisibility(View.VISIBLE);
-      inboxTitle.setText("Rapikan arus kas");
-      inboxMessage.setText(unclassifiedCount + " kategori belum dikelompokkan · " + format(unclassifiedAmount));
+      inboxTitle.setText(R.string.java_SummaryFragment_rapikan_arus_kas);
+      inboxMessage.setText(unclassifiedCount + getString(R.string.java_SummaryFragment_kategori_belum_dikelompokkan) + format(unclassifiedAmount));
     } else {
       inboxPrompt.setVisibility(View.GONE);
     }
@@ -670,7 +672,7 @@ public final class SummaryFragment extends ScreenFragment {
     content.setOrientation(LinearLayout.VERTICAL);
 
     TextView loadingView = new TextView(context);
-    loadingView.setText("Memuat transaksi...");
+    loadingView.setText(R.string.java_SummaryFragment_memuat_transaksi);
     loadingView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
     loadingView.setTextSize(13f);
     loadingView.setPadding(0, UiComponentStyles.dp(context, 12), 0, UiComponentStyles.dp(context, 12));

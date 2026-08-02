@@ -38,7 +38,7 @@
                     android:background="@drawable/bg_madlibs_field"
                     android:paddingVertical="2dp"
                     android:paddingHorizontal="6dp"
-                    android:text="Keluar "
+                    android:text="@string/hc_activity_capture_keluar"
                     android:textColor="@color/finan_primary"
                     android:textSize="32sp"
                     android:textStyle="bold" />
@@ -47,19 +47,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="4dp"
-                    android:text="Rp"
+                    android:text="@string/hc_activity_capture_rp"
                     android:textColor="@color/finan_primary"
                     android:textSize="32sp"
                     android:textStyle="bold" />
 
-                <EditText
+                <EditText android:importantForAutofill="no"
                     android:id="@+id/capture_amount"
                     style="@style/Finan.EditText.Transparent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:minWidth="48dp"
                     android:maxWidth="200dp"
-                    android:hint="0"
+                    android:hint="@string/hc_activity_capture_0"
                     android:focusable="false"
                     android:cursorVisible="false"
                     android:singleLine="true"
@@ -80,7 +80,7 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
                 android:layout_marginEnd="4dp"
-                android:text=" untuk "
+                android:text="@string/hc_activity_capture_untuk"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="32sp" />
 
@@ -93,7 +93,7 @@
                 android:background="@drawable/bg_madlibs_field"
                 android:paddingVertical="2dp"
                 android:paddingHorizontal="6dp"
-                android:text="#Category"
+                android:text="@string/hc_activity_capture_category"
                 android:textColor="@color/finan_primary"
                 android:textSize="32sp"
                 android:textStyle="bold" />
@@ -105,7 +105,7 @@
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
                 android:layout_marginEnd="4dp"
-                android:text=" dari "
+                android:text="@string/hc_activity_capture_dari"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="32sp" />
 
@@ -121,7 +121,7 @@
                 app:drawableStartCompat="@drawable/ic_wallet"
                 android:drawablePadding="4dp"
                 app:drawableTint="@color/finan_primary"
-                android:text="Wallet"
+                android:text="@string/hc_activity_capture_wallet"
                 android:textColor="@color/finan_primary"
                 android:textSize="32sp"
                 android:textStyle="bold" />
@@ -140,7 +140,7 @@
                 android:background="@drawable/bg_chip"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:text="\@Now"
+                android:text="@string/auto_now"
                 android:textColor="@color/finan_text_secondary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -153,7 +153,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_chip"
-                android:hint="add note..."
+                android:hint="@string/hc_activity_capture_add_note"
                 android:importantForAutofill="no"
                 android:inputType="textCapSentences"
                 android:paddingHorizontal="12dp"
@@ -219,7 +219,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:text="Simpan Pengeluaran"
+                android:text="@string/hc_activity_capture_simpan_pengeluaran"
                 android:textColor="@color/btn_text_pill"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -251,7 +251,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="✓ Tersimpan"
+                android:text="@string/hc_activity_capture_tersimpan"
                 android:textColor="@color/finan_text_primary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -271,7 +271,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="Batalkan"
+                    android:text="@string/hc_activity_capture_batalkan"
                     android:textColor="@android:color/white"
                     android:textSize="13sp"
                     android:textStyle="bold" />

@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.common;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -19,6 +20,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+@SuppressLint("SetTextI18n")
 public final class CustomDatePickerView extends LinearLayout {
 
   public interface OnDateSelectedListener {

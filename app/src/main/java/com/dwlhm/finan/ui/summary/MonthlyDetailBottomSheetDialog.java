@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.summary;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.time.ZoneId;
 import java.time.LocalDate;
 
+@SuppressLint("SetTextI18n")
 public class MonthlyDetailBottomSheetDialog {
 
     public static class CategoryDetail {
@@ -62,7 +64,7 @@ public class MonthlyDetailBottomSheetDialog {
         long monthTotal = isIncome ? monthSummary.getWeekIncome() : monthSummary.getWeekExpense();
 
         if (mode == DashboardViewModel.DisplayMode.MASKED) {
-            totalText.setText("Rp ***");
+            totalText.setText(R.string.java_MonthlyDetailBottomSheetDialog_rp);
             totalText.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
         } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
             if (monthTotalIncomeMinor > 0) {
@@ -113,7 +115,7 @@ public class MonthlyDetailBottomSheetDialog {
             CashFlowReport.DailyTotal weekData = monthSummary.getDays().get(position);
             long amount = isIncome ? weekData.getIncomeMinor() : weekData.getExpenseMinor();
 
-            holder.dayName.setText("Minggu " + (position + 1));
+            holder.dayName.setText(holder.dayName.getContext().getString(R.string.java_MonthlyDetailBottomSheetDialog_minggu) + (position + 1));
             
             long startOfWeek = weekData.getDateMillis();
             LocalDate weekStart = java.time.Instant.ofEpochMilli(startOfWeek).atZone(ZoneId.systemDefault()).toLocalDate();
@@ -125,7 +127,7 @@ public class MonthlyDetailBottomSheetDialog {
             holder.dayDate.setText(startStr + " - " + endStr);
 
             if (mode == DashboardViewModel.DisplayMode.MASKED) {
-                holder.amount.setText("Rp ***");
+                holder.amount.setText(R.string.java_MonthlyDetailBottomSheetDialog_rp);
                 holder.amount.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
             } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
                 if (monthTotalIncomeMinor > 0) {
@@ -161,7 +163,7 @@ public class MonthlyDetailBottomSheetDialog {
                     catAmount.setTextSize(12f);
 
                     if (mode == DashboardViewModel.DisplayMode.MASKED) {
-                        catAmount.setText("Rp ***");
+                        catAmount.setText(R.string.java_MonthlyDetailBottomSheetDialog_rp);
                     } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
                         if (monthTotalIncomeMinor > 0) {
                             float pct = (cat.amount * 100f) / monthTotalIncomeMinor;

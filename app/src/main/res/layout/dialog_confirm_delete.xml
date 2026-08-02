@@ -61,7 +61,7 @@
             android:gravity="center"
             android:paddingStart="20dp"
             android:paddingEnd="20dp"
-            android:text="Hapus"
+            android:text="@string/hc_dialog_confirm_delete_hapus"
             android:textColor="@color/finan_error"
             android:textSize="15sp"
             android:textStyle="bold"

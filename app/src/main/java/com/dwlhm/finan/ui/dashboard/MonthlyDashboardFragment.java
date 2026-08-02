@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.dashboard;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -66,6 +67,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@SuppressLint("SetTextI18n")
 public class MonthlyDashboardFragment extends ScreenFragment {
 
     private static final String ARG_YEAR = "arg_year";
@@ -448,14 +450,14 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         
         DashboardViewModel.DisplayMode mode = sharedViewModel.getDisplayMode().getValue();
         if (mode == DashboardViewModel.DisplayMode.MASKED) {
-            collapsedBalanceText.setText("Rp ***");
+            collapsedBalanceText.setText(R.string.java_MonthlyDashboardFragment_rp);
             if (month == -1) {
                 monthTitle.setText(String.valueOf(year));
             } else {
                 monthTitle.setText(startDate.format(DateTimeFormatter.ofPattern("MMMM yyyy", java.util.Locale.forLanguageTag("id-ID"))));
             }
         } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
-            collapsedBalanceText.setText("100%");
+            collapsedBalanceText.setText(R.string.java_MonthlyDashboardFragment_100);
         } else {
             long netBalance = cachedTotals.getIncomeMinor() - cachedTotals.getExpenseMinor();
             collapsedBalanceText.setText(MoneyFormatter.format(netBalance));
@@ -486,9 +488,9 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         TextView heroNetBalance = requireView().findViewById(R.id.monthly_hero_net_balance);
         if (heroNetBalance != null) {
             if (mode == DashboardViewModel.DisplayMode.MASKED) {
-                heroNetBalance.setText("Rp ***");
+                heroNetBalance.setText(R.string.java_MonthlyDashboardFragment_rp);
             } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
-                heroNetBalance.setText("100%");
+                heroNetBalance.setText(R.string.java_MonthlyDashboardFragment_100);
             } else {
                 heroNetBalance.setText(MoneyFormatter.format(cachedTotals.getIncomeMinor() - cachedTotals.getExpenseMinor()));
             }
@@ -496,9 +498,9 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         TextView heroIncome = requireView().findViewById(R.id.monthly_hero_income);
         if (heroIncome != null) {
             if (mode == DashboardViewModel.DisplayMode.MASKED) {
-                heroIncome.setText("Rp ***");
+                heroIncome.setText(R.string.java_MonthlyDashboardFragment_rp);
             } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
-                heroIncome.setText("100%");
+                heroIncome.setText(R.string.java_MonthlyDashboardFragment_100);
             } else {
                 heroIncome.setText(MoneyFormatter.format(cachedTotals.getIncomeMinor()));
             }
@@ -506,7 +508,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         TextView heroExpense = requireView().findViewById(R.id.monthly_hero_expense);
         if (heroExpense != null) {
             if (mode == DashboardViewModel.DisplayMode.MASKED) {
-                heroExpense.setText("Rp ***");
+                heroExpense.setText(R.string.java_MonthlyDashboardFragment_rp);
             } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
                 if (cachedTotals.getIncomeMinor() > 0) {
                     float ratio = (cachedTotals.getExpenseMinor() * 100f) / cachedTotals.getIncomeMinor();
@@ -731,7 +733,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         TextView amountLabel = new TextView(context);
         DashboardViewModel.DisplayMode mode = sharedViewModel.getDisplayMode().getValue();
         if (mode == DashboardViewModel.DisplayMode.MASKED) {
-            amountLabel.setText("Rp ***");
+            amountLabel.setText(R.string.java_MonthlyDashboardFragment_rp);
         } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
             double percent = totalAmount > 0 ? (amount * 100.0 / totalAmount) : 0;
             amountLabel.setText(String.format(java.util.Locale.getDefault(), "%.0f%%", percent));
@@ -754,7 +756,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         int totalDataPoints = 0;
         
         if (month == -1) {
-            weeklyChartTitle.setText("Aktivitas Mingguan");
+            weeklyChartTitle.setText(R.string.java_MonthlyDashboardFragment_aktivitas_mingguan);
             populateChartLegend(true);
             for (CashFlowReport report : reportResult.getAllReports()) {
                 for (CashFlowReport.WeekSummary monthSummary : report.getWeekSummaries()) {
@@ -765,7 +767,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 }
             }
         } else {
-            weeklyChartTitle.setText("Aktivitas Harian");
+            weeklyChartTitle.setText(R.string.java_MonthlyDashboardFragment_aktivitas_harian);
             populateChartLegend(false);
             for (CashFlowReport report : reportResult.getAllReports()) {
                 totalDataPoints += report.getWeekSummaries().size() * 7;
@@ -1112,7 +1114,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
 
         TextView labelView = new TextView(context);
         labelView.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        labelView.setText("Total Saldo Bersih");
+        labelView.setText(R.string.java_MonthlyDashboardFragment_total_saldo_bersih);
         labelView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
         labelView.setTextSize(14f);
         labelView.setTypeface(labelView.getTypeface(), android.graphics.Typeface.BOLD);

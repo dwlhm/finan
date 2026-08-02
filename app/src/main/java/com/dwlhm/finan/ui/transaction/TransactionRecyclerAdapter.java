@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.transaction;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -164,7 +165,7 @@ public final class TransactionRecyclerAdapter
     }
 
     if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED) {
-      holder.amount.setText("Rp ***");
+      holder.amount.setText(R.string.java_TransactionRecyclerAdapter_rp);
       holder.amount.setTextColor(
           ContextCompat.getColor(context, R.color.finan_text_secondary));
     } else if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.PERCENTAGE) {
@@ -219,7 +220,7 @@ public final class TransactionRecyclerAdapter
       long dailyTotal = total != null ? total : 0L;
 
       if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED) {
-        holder.dailyTotal.setText("Rp ***");
+        holder.dailyTotal.setText(R.string.java_TransactionRecyclerAdapter_rp);
         holder.dailyTotal.setTextColor(
             ContextCompat.getColor(context, R.color.finan_text_secondary));
       } else if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.PERCENTAGE) {
@@ -293,7 +294,7 @@ public final class TransactionRecyclerAdapter
       Long total = dailyTotals.get(currentHeader);
       long dailyTotal = total != null ? total : 0L;
       if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.MASKED) {
-        dailyTotalTv.setText("Rp ***");
+        dailyTotalTv.setText(R.string.java_TransactionRecyclerAdapter_rp);
         dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
       } else if (displayMode == com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.PERCENTAGE) {
         if (totalIncomeMinor > 0) {

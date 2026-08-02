@@ -1,5 +1,6 @@
 package com.dwlhm.finan.ui.category;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.view.View;
@@ -19,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+@SuppressLint("SetTextI18n")
 public final class CategoryOverviewBottomSheet extends Dialog {
 
   private final AppServices services;
@@ -61,11 +63,11 @@ public final class CategoryOverviewBottomSheet extends Dialog {
 
     String typeFilter = category.getTypeFilter();
     if ("EXPENSE".equals(typeFilter)) {
-      typeBadge.setText("Pengeluaran");
+      typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_pengeluaran);
     } else if ("INCOME".equals(typeFilter)) {
-      typeBadge.setText("Pemasukan");
+      typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_pemasukan);
     } else {
-      typeBadge.setText("Campuran");
+      typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_campuran);
     }
 
     usageView.setText(category.getUsageCount() + "x");
@@ -81,13 +83,13 @@ public final class CategoryOverviewBottomSheet extends Dialog {
 
     String activity = category.getCashFlowActivity();
     if ("OPERATING".equals(activity)) {
-      activityView.setText("Aktivitas harian");
+      activityView.setText(R.string.java_CategoryOverviewBottomSheet_aktivitas_harian);
     } else if ("INVESTING".equals(activity)) {
-      activityView.setText("Aset & investasi");
+      activityView.setText(R.string.java_CategoryOverviewBottomSheet_aset_investasi);
     } else if ("FINANCING".equals(activity)) {
-      activityView.setText("Pendanaan");
+      activityView.setText(R.string.java_CategoryOverviewBottomSheet_pendanaan);
     } else {
-      activityView.setText("Belum diklasifikasi");
+      activityView.setText(R.string.java_CategoryOverviewBottomSheet_belum_diklasifikasi);
     }
 
     TextView editAction = findViewById(R.id.category_action_edit);
