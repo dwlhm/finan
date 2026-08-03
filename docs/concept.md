@@ -133,14 +133,11 @@ Prioritas layar utama:
 Transaction Input > Recent Transactions > Summary > Reports
 ```
 
-Home screen sebaiknya langsung menyediakan:
-
-* Numeric input.
+* Numeric input (Catat).
 * Quick category.
 * Default wallet indicator.
 * Save action.
-* Recent transactions.
-
+* Modern Floating Liquid Glass navigation (Catat, Buku Kas, Pengaturan) dengan auto hide/show saat scroll.
 ## Success Metrics
 
 Keberhasilan aplikasi tidak hanya diukur dari jumlah fitur, tetapi dari seberapa cepat user bisa mencatat transaksi.

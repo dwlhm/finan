@@ -428,6 +428,20 @@ Jika tidak, elemen tersebut tidak masuk layar utama.
 
 ---
 
+## 16. Modern Liquid Glass Navigation & Breathing Space
+
+Navigasi utama harus mendukung fokus pencatatan tanpa menyita ruang layar atau mengganggu estetika visual.
+
+### Principles
+
+1. **Expanding Side-by-Side Active Pill**:
+   - Item yang tidak aktif hanya menampilkan ikon sederhana untuk menghemat ruang visual.
+2. **Auto-Hide & Show pada Scroll**:
+3. **Dual-Layer Translucent Glass**:
+4. **Ruang Bernapas & Tanpa Obstruksi (*Breathing Space*)**:
+5. **Dukungan Adaptif Light & Dark Mode**:
+
+
 # Versi ringkas prinsipnya
 
 ```txt
@@ -441,4 +455,6 @@ Jika tidak, elemen tersebut tidak masuk layar utama.
 8. Frequent actions are direct.
 9. Rare actions are hidden.
 10. Reports are secondary.
+11. Floating Liquid Glass navigation provides breathing space.
+12. Auto-hide on scroll maximizes content visibility.
 ```

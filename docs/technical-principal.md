@@ -445,3 +445,23 @@ R8 dan resource shrink adalah pengaman terakhir, bukan pembenaran teknis.
 Prinsipnya:
 
 > Shrinking membantu mengurangi bloat, tapi keputusan utama tetap mencegah bloat dari awal.
+
+---
+
+## 16. Floating Navigation & UI Performance Architecture
+
+Komponen UI utama seperti menu navigasi bawah harus memiliki arsitektur berperforma tinggi yang bebas dari *frame drop* dan masalah *rendering*.
+
+### Architecture Rules
+
+1. **Custom View Encapsulation (`FloatingBottomNavView`)**:
+   - Komponen navigasi melayang dibungkus secara modular sebagai Custom View (`MaterialCardView`) yang mengisolasi penanganan UI, warna, animasi, dan *state* navigasi.
+2. **Dual-Layer Glass Architecture**:
+   - Pemisahan *backdrop layer* (Layer 1) untuk efek *frosted glass blur* dan *foreground layer* (Layer 2) untuk ikon & teks.
+   - Efek `RenderEffect` (API 31+) hanya diaplikasikan pada Layer 1 agar teks dan ikon pada Layer 2 tidak pernah ikut buram.
+3. **Non-blocking Fragment Navigation**:
+   - Menghindari pemanggilan `executePendingTransactions()` dan `popBackStackImmediate()` secara sinkron di tengah callback UI listener.
+   - Menggunakan guard flag (`isSyncingBottomNav`) untuk mencegah eksekusi rekursif callback item selection.
+4. **CoordinatorLayout & NestedScrollView Integration**:
+   - Penggunaan `HideBottomViewOnScrollBehavior` dipadukan dengan `NestedScrollView` pada layar bertipe scroll (`MonthlyDashboardFragment`, `SettingsFragment`, `CaptureFragment`).
+   - Memberikan padding bawah terdedikasi (`96dp`) pada kontainer agar tombol aksi utama (*Save Button*) tidak pernah tertutup oleh elemen navigasi melayang.
