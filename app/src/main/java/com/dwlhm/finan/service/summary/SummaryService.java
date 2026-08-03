@@ -9,7 +9,9 @@ import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.CategoryTotal;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.WalletBalance;
+import com.dwlhm.finan.util.date.DateRange;
 import com.dwlhm.finan.util.date.MonthRange;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 import com.dwlhm.finan.util.date.TimeProvider;
 
 import java.time.LocalDate;
@@ -38,9 +40,9 @@ public final class SummaryService {
     this.zoneId = zoneId;
   }
 
-  public MonthlySummary loadCurrentMonth() {
+  public MonthlySummary loadCurrentMonth(int cutoffDay) {
     LocalDate today = InstantToLocalDate(timeProvider.currentTimeMillis(), zoneId);
-    return loadMonth(today.getYear(), today.getMonthValue(), today);
+    return loadMonth(today.getYear(), today.getMonthValue(), cutoffDay);
   }
 
   public MonthlySummary loadRange(LocalDate startDate, LocalDate endDate) {
@@ -128,10 +130,9 @@ public final class SummaryService {
         balances);
   }
 
-  public MonthlySummary loadMonth(int year, int month, LocalDate today) {
-    LocalDate start = LocalDate.of(year, month, 1);
-    LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
-    return loadRange(start, end);
+  public MonthlySummary loadMonth(int year, int month, int cutoffDay) {
+    DateRange range = PayrollCycleResolver.forMonth(year, month, cutoffDay);
+    return loadRange(range.getStart(), range.getEnd());
   }
 
   private static LocalDate InstantToLocalDate(long epochMillis, ZoneId zoneId) {

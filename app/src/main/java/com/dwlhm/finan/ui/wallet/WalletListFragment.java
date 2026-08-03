@@ -455,13 +455,11 @@ public final class WalletListFragment extends ScreenFragment {
                       requireActivity(),
                       "Dompet \"" + deleteName + "\" dihapus",
                       "Urungkan",
-                      () -> {
-                        services.dbWorker.compute(
-                            () -> services.walletService.insertUndo(
-                                deleteName, deleteCurrencyCode, deleteIsDefault,
-                                deleteOpeningBalanceMinor, deleteCreatedAt, deleteIcon),
-                            id -> reload());
-                      });
+                      () -> services.dbWorker.compute(
+                          () -> services.walletService.insertUndo(
+                              deleteName, deleteCurrencyCode, deleteIsDefault,
+                              deleteOpeningBalanceMinor, deleteCreatedAt, deleteIcon),
+                          id -> reload()));
                   reload();
                 } else {
                   Toast.makeText(requireContext(), "Gagal menghapus dompet", Toast.LENGTH_SHORT).show();

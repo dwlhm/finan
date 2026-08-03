@@ -10,6 +10,7 @@ import com.dwlhm.finan.domain.model.CashFlowActivityTotal;
 import com.dwlhm.finan.domain.model.CashFlowReport;
 import com.dwlhm.finan.domain.model.CashFlowReportResult;
 import com.dwlhm.finan.domain.model.CategoryTotal;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 import com.dwlhm.finan.util.date.TimeProvider;
 
 import java.time.LocalDate;
@@ -40,7 +41,7 @@ public final class CashFlowReportService {
     this.zoneId = zoneId;
   }
 
-  public CashFlowReportResult buildReport(LocalDate startDate, LocalDate endDate, Long walletId) {
+  public CashFlowReportResult buildReport(LocalDate startDate, LocalDate endDate, int cutoffDay, Long walletId) {
     LocalDate normalizedStart = startDate.isAfter(endDate) ? endDate : startDate;
     LocalDate normalizedEnd = startDate.isAfter(endDate) ? startDate : endDate;
 
@@ -58,13 +59,13 @@ public final class CashFlowReportService {
 
       if (walletId != null) {
         currencyReports.add(buildSingleReport(normalizedStart, normalizedEnd,
-            startInclusive, endExclusive, currency, walletId));
+            startInclusive, endExclusive, currency, walletId, cutoffDay));
       } else if (currencyWallets.size() == 1) {
         currencyReports.add(buildSingleReport(normalizedStart, normalizedEnd,
-            startInclusive, endExclusive, currency, currencyWallets.get(0).getId()));
+            startInclusive, endExclusive, currency, currencyWallets.get(0).getId(), cutoffDay));
       } else {
         currencyReports.add(buildCombinedReport(normalizedStart, normalizedEnd,
-            startInclusive, endExclusive, currency, currencyWallets));
+            startInclusive, endExclusive, currency, currencyWallets, cutoffDay));
       }
 
       reportsByCurrency.put(currency, currencyReports);
@@ -76,7 +77,7 @@ public final class CashFlowReportService {
   private CashFlowReport buildSingleReport(
       LocalDate startDate, LocalDate endDate,
       long startInclusive, long endExclusive,
-      String currencyCode, long walletId) {
+      String currencyCode, long walletId, int cutoffDay) {
     long openingBalance = summaryDao.walletBalanceBefore(walletId, startInclusive);
     long closingBalance = summaryDao.walletBalanceBefore(walletId, endExclusive);
     SummaryDao.CashFlowTotalsRow totals =
@@ -86,7 +87,7 @@ public final class CashFlowReportService {
     List<CategoryTotal> incomeCategories = loadTopCategories("INCOME", startInclusive, endExclusive, walletId, 5);
     List<CategoryTotal> expenseCategories = loadTopCategories("EXPENSE", startInclusive, endExclusive, walletId, 5);
     long zoneOffsetMillis = zoneId.getRules().getOffset(java.time.Instant.now()).getTotalSeconds() * 1000L;
-    List<CashFlowReport.WeekSummary> weeks = buildWeekSummaries(startDate, endDate,
+    List<CashFlowReport.WeekSummary> weeks = buildWeekSummaries(startDate, endDate, cutoffDay,
         summaryDao.dailyTotalsBetween(startInclusive, endExclusive, walletId, zoneOffsetMillis));
 
     return verifyInvariant(new CashFlowReport(
@@ -103,7 +104,7 @@ public final class CashFlowReportService {
   private CashFlowReport buildCombinedReport(
       LocalDate startDate, LocalDate endDate,
       long startInclusive, long endExclusive,
-      String currencyCode, List<Wallet> wallets) {
+      String currencyCode, List<Wallet> wallets, int cutoffDay) {
     long openingBalance = 0L;
     long closingBalance = 0L;
     long income = 0L, expense = 0L;
@@ -143,7 +144,7 @@ public final class CashFlowReportService {
     if (expenseCategories.size() > 5) expenseCategories = expenseCategories.subList(0, 5);
 
     long zoneOffsetMillis = zoneId.getRules().getOffset(java.time.Instant.now()).getTotalSeconds() * 1000L;
-    List<CashFlowReport.WeekSummary> weeks = buildWeekSummaries(startDate, endDate,
+    List<CashFlowReport.WeekSummary> weeks = buildWeekSummaries(startDate, endDate, cutoffDay,
         summaryDao.dailyTotalsBetween(startInclusive, endExclusive, null, zoneOffsetMillis));
 
     return verifyInvariant(new CashFlowReport(
@@ -237,7 +238,7 @@ public final class CashFlowReportService {
   }
 
   private List<CashFlowReport.WeekSummary> buildWeekSummaries(
-      LocalDate periodStart, LocalDate periodEnd,
+      LocalDate periodStart, LocalDate periodEnd, int cutoffDay,
       List<SummaryDao.DailyTotalRow> dailyRows) {
       java.util.Map<Long, SummaryDao.DailyTotalRow> byDay = new java.util.LinkedHashMap<>();
       for (SummaryDao.DailyTotalRow row : dailyRows) {
@@ -250,12 +251,12 @@ public final class CashFlowReportService {
       boolean isYearly = java.time.temporal.ChronoUnit.DAYS.between(periodStart, periodEnd) > 300;
       
       if (isYearly) {
-          // Aggregate by month, but return 12 WeekSummaries
-          for (int month = 1; month <= 12; month++) {
-              LocalDate monthStart = LocalDate.of(periodStart.getYear(), month, 1);
-              LocalDate monthEnd = monthStart.plusMonths(1).minusDays(1);
+          // Aggregate by 12 financial months, but return 12 WeekSummaries
+          LocalDate monthStart = periodStart;
+          for (int i = 0; i < 12; i++) {
+              LocalDate monthEnd = PayrollCycleResolver.endForStart(monthStart, cutoffDay);
               List<CashFlowReport.DailyTotal> weekTotals = new ArrayList<>();
-              
+
               LocalDate weekStart = null;
               long weekIncome = 0L;
               long weekExpense = 0L;
@@ -275,6 +276,7 @@ public final class CashFlowReportService {
                   }
               }
               weeks.add(new CashFlowReport.WeekSummary(monthStart, monthEnd, weekTotals));
+              monthStart = monthEnd.plusDays(1);
           }
       } else {
           LocalDate weekStart = null;

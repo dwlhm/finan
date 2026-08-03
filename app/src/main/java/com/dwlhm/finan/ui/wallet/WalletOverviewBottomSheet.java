@@ -102,7 +102,7 @@ public final class WalletOverviewBottomSheet extends Dialog {
     int usage = wallet.getUsageCount();
     if (usage > 0) {
       transactionRow.setVisibility(View.VISIBLE);
-      transactionCountView.setText(usage + transactionCountView.getContext().getString(R.string.java_WalletOverviewBottomSheet_transaksi));
+      transactionCountView.setText(transactionCountView.getContext().getString(R.string.java_WalletOverviewBottomSheet_transaksi, usage));
     }
 
     TextView createdAtView = findViewById(R.id.wallet_overview_created_at);
@@ -401,13 +401,11 @@ public final class WalletOverviewBottomSheet extends Dialog {
                       activity,
                       "Dompet \"" + deleteName + "\" dihapus",
                       "Urungkan",
-                      () -> {
-                        services.dbWorker.compute(
-                            () -> services.walletService.insertUndo(
-                                deleteName, deleteCurrencyCode, deleteIsDefault,
-                                deleteOpeningBalanceMinor, deleteCreatedAt, deleteIcon),
-                            id -> onDataChanged.run());
-                      });
+                      () -> services.dbWorker.compute(
+                          () -> services.walletService.insertUndo(
+                              deleteName, deleteCurrencyCode, deleteIsDefault,
+                              deleteOpeningBalanceMinor, deleteCreatedAt, deleteIcon),
+                          id -> onDataChanged.run()));
                   onDataChanged.run();
                 } else {
                   Toast.makeText(getContext(), "Gagal menghapus dompet", Toast.LENGTH_SHORT).show();

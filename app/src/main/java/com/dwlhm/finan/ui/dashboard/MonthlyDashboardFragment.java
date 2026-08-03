@@ -39,6 +39,8 @@ import com.dwlhm.finan.ui.summary.FinancialAdvisor;
 import com.dwlhm.finan.ui.transaction.StickyHeaderItemDecoration;
 import com.dwlhm.finan.ui.transaction.TransactionDetailDialog;
 import com.dwlhm.finan.ui.transaction.TransactionRecyclerAdapter;
+import com.dwlhm.finan.util.date.DateRange;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.tabs.TabLayout;
@@ -48,17 +50,13 @@ import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.CashFlowActivityTotal;
 import com.dwlhm.finan.domain.model.CashFlowReport;
 import com.dwlhm.finan.domain.model.CategoryTotal;
-import com.dwlhm.finan.domain.model.WalletBalance;
 import com.dwlhm.finan.ui.common.UiComponentStyles;
 
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.ViewGroup;
-import android.text.TextUtils;
-import android.util.TypedValue;
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -78,6 +76,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     
     private int year;
     private int month;
+    private int cutoffDay;
     private LocalDate startDate;
     private LocalDate endDate;
     
@@ -86,7 +85,6 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private DonutChartView donutChart;
     private View collapsedToolbar;
     private TextView collapsedBalanceText;
-    private View collapsedAdviceBtn;
     private TabLayout tabLayout;
     private RecyclerView recyclerView;
     private LinearLayoutManager layoutManager;
@@ -119,15 +117,12 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private MonthlySummary cachedSummary;
     private MonthlySummary cachedPrevSummary;
     private MonthlySummary cachedPrevPrevSummary;
-    private long cachedUnclassifiedCount;
-    private long cachedUnclassifiedAmount;
     
     private HistoryQuery activeQuery = new HistoryQuery(null, null, null, null, null, false, HistorySearch.empty());
     
     private int reloadGeneration;
     private Map<Long, Category> categoriesById = Map.of();
     private Map<Long, Wallet> walletsById = Map.of();
-    private TransactionSearchResolver searchResolver;
 
     public static MonthlyDashboardFragment newInstance(int year, int month) {
         MonthlyDashboardFragment fragment = new MonthlyDashboardFragment();
@@ -136,16 +131,6 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         args.putInt(ARG_MONTH, month);
         fragment.setArguments(args);
         return fragment;
-    }
-
-    private static LocalDate lastBusinessDayOfMonth(LocalDate date) {
-        LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
-        if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
-            return lastDay.minusDays(1);
-        } else if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-            return lastDay.minusDays(2);
-        }
-        return lastDay;
     }
 
     @Override
@@ -164,30 +149,20 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             month = getArguments().getInt(ARG_MONTH);
         }
         
-        if (month == -1) {
-            startDate = LocalDate.of(year, 1, 1);
-            endDate = LocalDate.of(year, 12, 31);
-        } else {
-            int cutoffDay = requireContext().getSharedPreferences("finan_prefs", android.content.Context.MODE_PRIVATE)
-                    .getInt("cutoff_day", 1);
-            
-            LocalDate anchor = LocalDate.of(year, month, 1);
-            if (cutoffDay == 1) {
-                startDate = anchor;
-            } else if (cutoffDay == -1) {
-                startDate = lastBusinessDayOfMonth(anchor.minusMonths(1));
-            } else {
-                if (cutoffDay > 15) {
-                    startDate = anchor.minusMonths(1).withDayOfMonth(cutoffDay);
-                } else {
-                    startDate = anchor.withDayOfMonth(cutoffDay);
-                }
-            }
-            endDate = startDate.plusMonths(1).minusDays(1);
-        }
-    }
+        int cutoffDay = requireContext().getSharedPreferences("finan_prefs", android.content.Context.MODE_PRIVATE)
+                .getInt("cutoff_day", 1);
 
-    private boolean isDataLoaded = false;
+        DateRange range;
+        this.cutoffDay = cutoffDay;
+
+        if (month == -1) {
+            range = PayrollCycleResolver.forYear(year, cutoffDay);
+        } else {
+            range = PayrollCycleResolver.forMonth(year, month, cutoffDay);
+        }
+        startDate = range.getStart();
+        endDate = range.getEnd();
+    }
 
     @Override
     public void onResume() {
@@ -206,7 +181,6 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         donutChart = view.findViewById(R.id.donut_chart);
         collapsedToolbar = view.findViewById(R.id.collapsed_toolbar);
         collapsedBalanceText = view.findViewById(R.id.collapsed_balance_text);
-        collapsedAdviceBtn = view.findViewById(R.id.collapsed_advice_btn);
         tabLayout = view.findViewById(R.id.monthly_tabs);
         recyclerView = view.findViewById(R.id.monthly_recycler_view);
         emptyState = view.findViewById(R.id.monthly_empty);
@@ -284,11 +258,11 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         });
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMMM yyyy", java.util.Locale.forLanguageTag("id-ID"));
-        
+
         if (month == -1) {
             monthTitle.setText(String.valueOf(year));
         } else {
-            monthTitle.setText(startDate.format(formatter));
+            monthTitle.setText(LocalDate.of(year, month, 1).format(formatter));
         }
         
         monthTitle.setOnClickListener(v -> {
@@ -298,9 +272,8 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             MonthYearPickerBottomSheetDialog dialog = new MonthYearPickerBottomSheetDialog(
                     requireContext(), currentMode, year, month == -1 ? 1 : month);
             
-            dialog.setOnTimeRangeSelectedListener((mode, selectedYear, selectedMonth) -> {
-                sharedViewModel.setTimeRangeState(new DashboardViewModel.TimeRangeState(mode, selectedYear, selectedMonth));
-            });
+            dialog.setOnTimeRangeSelectedListener((mode, selectedYear, selectedMonth) ->
+                    sharedViewModel.setTimeRangeState(new DashboardViewModel.TimeRangeState(mode, selectedYear, selectedMonth)));
             dialog.show();
         });
         
@@ -381,26 +354,14 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 HistoryTotals totals = services.transactionGateway.findHistoryTotals(query);
                 
                 // Fetch Summary Data
-                CashFlowReportResult reportResult = services.cashFlowReportService.buildReport(startDate, endDate, walletId);
+                CashFlowReportResult reportResult = services.cashFlowReportService.buildReport(startDate, endDate, cutoffDay, walletId);
                 MonthlySummary summary = services.summaryService.loadRange(startDate, endDate, walletId, categoryId);
-                MonthlySummary prevSummary = services.summaryService.loadRange(startDate.minusMonths(1), endDate.minusMonths(1), walletId, categoryId);
-                MonthlySummary prevPrevSummary = services.summaryService.loadRange(startDate.minusMonths(2), endDate.minusMonths(2), walletId, categoryId);
+                DateRange prevRange = PayrollCycleResolver.shiftMonths(startDate, cutoffDay, -1);
+                DateRange prevPrevRange = PayrollCycleResolver.shiftMonths(startDate, cutoffDay, -2);
+                MonthlySummary prevSummary = services.summaryService.loadRange(prevRange.getStart(), prevRange.getEnd(), walletId, categoryId);
+                MonthlySummary prevPrevSummary = services.summaryService.loadRange(prevPrevRange.getStart(), prevPrevRange.getEnd(), walletId, categoryId);
                 
-                long unclassifiedCount = 0L;
-                long unclassifiedAmount = 0L;
-                List<Category> allCats = cMap.isEmpty() ? services.categoryDao.findAllOrdered() : new ArrayList<>(cMap.values());
-                for (Category cat : allCats) {
-                    if (CashFlowActivity.UNCLASSIFIED.name().equals(cat.getCashFlowActivity())) unclassifiedCount++;
-                }
-                for (CashFlowReport report : reportResult.getAllReports()) {
-                    for (CashFlowActivityTotal act : report.getActivityTotals()) {
-                        if (act.getActivity() == CashFlowActivity.UNCLASSIFIED) {
-                            unclassifiedAmount += act.getIncomeMinor() + act.getExpenseMinor();
-                        }
-                    }
-                }
-                
-                return new Object[]{wMap, cMap, resolver, query, totals, reportResult, summary, prevSummary, prevPrevSummary, unclassifiedCount, unclassifiedAmount};
+                return new Object[]{wMap, cMap, query, totals, reportResult, summary, prevSummary, prevPrevSummary};
             },
             data -> {
                 if (!isAdded() || generation != reloadGeneration || data == null) return;
@@ -411,15 +372,12 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 @SuppressWarnings("unchecked")
                 Map<Long, Category> c = (Map<Long, Category>) data[1];
                 categoriesById = c;
-                searchResolver = (TransactionSearchResolver) data[2];
-                activeQuery = (HistoryQuery) data[3];
-                cachedTotals = (HistoryTotals) data[4];
-                cachedReport = (CashFlowReportResult) data[5];
-                cachedSummary = (MonthlySummary) data[6];
-                cachedPrevSummary = (MonthlySummary) data[7];
-                cachedPrevPrevSummary = (MonthlySummary) data[8];
-                cachedUnclassifiedCount = (long) data[9];
-                cachedUnclassifiedAmount = (long) data[10];
+                activeQuery = (HistoryQuery) data[2];
+                cachedTotals = (HistoryTotals) data[3];
+                cachedReport = (CashFlowReportResult) data[4];
+                cachedSummary = (MonthlySummary) data[5];
+                cachedPrevSummary = (MonthlySummary) data[6];
+                cachedPrevPrevSummary = (MonthlySummary) data[7];
                 
                 transactionAdapter.setEntityLookups(categoriesById, walletsById);
                 updateDisplayModeUi();
@@ -454,7 +412,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             if (month == -1) {
                 monthTitle.setText(String.valueOf(year));
             } else {
-                monthTitle.setText(startDate.format(DateTimeFormatter.ofPattern("MMMM yyyy", java.util.Locale.forLanguageTag("id-ID"))));
+                monthTitle.setText(LocalDate.of(year, month, 1).format(DateTimeFormatter.ofPattern("MMMM yyyy", java.util.Locale.forLanguageTag("id-ID"))));
             }
         } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
             collapsedBalanceText.setText(R.string.java_MonthlyDashboardFragment_100);
@@ -529,15 +487,13 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         if (advice != null && cachedSummary != null) {
             if (adviceBtn != null) {
                 adviceBtn.setVisibility(View.VISIBLE);
-                adviceBtn.setOnClickListener(v -> {
-                    com.dwlhm.finan.ui.summary.FinancialAdviceDialog.show(requireContext(), advice, cachedSummary, sharedViewModel.getDisplayMode().getValue());
-                });
+                adviceBtn.setOnClickListener(v ->
+                        com.dwlhm.finan.ui.summary.FinancialAdviceDialog.show(requireContext(), advice, cachedSummary, sharedViewModel.getDisplayMode().getValue()));
             }
             if (collapsedAdviceBtn != null) {
                 collapsedAdviceBtn.setVisibility(View.VISIBLE);
-                collapsedAdviceBtn.setOnClickListener(v -> {
-                    com.dwlhm.finan.ui.summary.FinancialAdviceDialog.show(requireContext(), advice, cachedSummary, sharedViewModel.getDisplayMode().getValue());
-                });
+                collapsedAdviceBtn.setOnClickListener(v ->
+                        com.dwlhm.finan.ui.summary.FinancialAdviceDialog.show(requireContext(), advice, cachedSummary, sharedViewModel.getDisplayMode().getValue()));
             }
         } else {
             if (adviceBtn != null) adviceBtn.setVisibility(View.GONE);
@@ -649,8 +605,8 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             for (CashFlowActivityTotal act : report.getActivityTotals()) {
                 List<CategoryTotal> cats = showCategoryChartIncome ? act.getIncomeCategories() : act.getExpenseCategories();
                 for (CategoryTotal cat : cats) {
-                    long current = amountByCatId.getOrDefault(cat.getCategoryId(), 0L);
-                    long newVal = current + cat.getTotalMinor();
+                    Long current = amountByCatId.getOrDefault(cat.getCategoryId(), 0L);
+                    long newVal = (current != null ? current : 0L) + cat.getTotalMinor();
                     amountByCatId.put(cat.getCategoryId(), newVal);
                     nameByCatId.put(cat.getCategoryId(), cat.getCategoryName());
                     
@@ -716,7 +672,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         LinearLayout bar = new LinearLayout(context);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setLayoutParams(new LinearLayout.LayoutParams(0, barHeight, (float) amount));
-        bar.setMinimumWidth(barHeight);
+        bar.setMinimumHeight(barHeight);
 
         View segment = new View(context);
         GradientDrawable shape = new GradientDrawable();
@@ -752,16 +708,14 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private void bindWeeklyChart(CashFlowReportResult reportResult) {
         chartWeeksContainer.removeAllViews();
         long maxTotal = 0;
-        long totalAmount = 0;
         int totalDataPoints = 0;
-        
+
         if (month == -1) {
             weeklyChartTitle.setText(R.string.java_MonthlyDashboardFragment_aktivitas_mingguan);
             populateChartLegend(true);
             for (CashFlowReport report : reportResult.getAllReports()) {
                 for (CashFlowReport.WeekSummary monthSummary : report.getWeekSummaries()) {
                     long monthTotal = showWeeklyChartIncome ? monthSummary.getWeekIncome() : monthSummary.getWeekExpense();
-                    totalAmount += monthTotal;
                     if (monthTotal > maxTotal) maxTotal = monthTotal;
                     totalDataPoints++; // count all months
                 }
@@ -773,7 +727,6 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 totalDataPoints += report.getWeekSummaries().size() * 7;
                 for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
                     long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
-                    totalAmount += weekTotal;
                     if (weekTotal > maxTotal) maxTotal = weekTotal;
                 }
             }
@@ -788,7 +741,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         if (month == -1) {
             for (CashFlowReport report : reportResult.getAllReports()) {
                 for (CashFlowReport.WeekSummary monthSummary : report.getWeekSummaries()) {
-                    chartWeeksContainer.addView(createMonthRow(monthSummary, maxTotal, totalAmount));
+                    chartWeeksContainer.addView(createMonthRow(monthSummary, maxTotal));
                 }
             }
         } else {
@@ -796,7 +749,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 for (CashFlowReport.WeekSummary week : report.getWeekSummaries()) {
                     long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
                     if (weekTotal > 0) {
-                        chartWeeksContainer.addView(createWeekRow(week, maxTotal, totalAmount));
+                        chartWeeksContainer.addView(createWeekRow(week, maxTotal));
                     }
                 }
             }
@@ -814,7 +767,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             .getDayOfWeek().getValue() - 1;
     }
 
-    private View createWeekRow(CashFlowReport.WeekSummary week, long maxWeekTotal, long totalAmount) {
+    private View createWeekRow(CashFlowReport.WeekSummary week, long maxWeekTotal) {
         android.content.Context context = requireContext();
         long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
         LinearLayout row = new LinearLayout(context);
@@ -849,17 +802,15 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                     }
                     return categoriesPerDay;
                 },
-                categoriesPerDay -> {
-                    com.dwlhm.finan.ui.summary.WeeklyDetailBottomSheetDialog.show(
-                        context, 
-                        week, 
-                        showWeeklyChartIncome, 
-                        sharedViewModel.getDisplayMode().getValue(), 
+                categoriesPerDay -> com.dwlhm.finan.ui.summary.WeeklyDetailBottomSheetDialog.show(
+                        context,
+                        week,
+                        showWeeklyChartIncome,
+                        sharedViewModel.getDisplayMode().getValue(),
                         totalIncome,
                         categoriesPerDay,
                         month == -1
-                    );
-                }
+                )
             );
         });
 
@@ -886,7 +837,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         LinearLayout bar = new LinearLayout(context);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setLayoutParams(new LinearLayout.LayoutParams(0, barHeight, (float) weekTotal));
-        bar.setMinimumWidth(barHeight);
+        bar.setMinimumHeight(barHeight);
 
         List<CashFlowReport.DailyTotal> days = week.getDays();
         float weightSum = 0f;
@@ -921,7 +872,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         return row;
     }
     
-    private View createMonthRow(CashFlowReport.WeekSummary monthSummary, long maxMonthTotal, long totalAmount) {
+    private View createMonthRow(CashFlowReport.WeekSummary monthSummary, long maxMonthTotal) {
         android.content.Context context = requireContext();
         long monthTotal = showWeeklyChartIncome ? monthSummary.getWeekIncome() : monthSummary.getWeekExpense();
         LinearLayout row = new LinearLayout(context);
@@ -962,22 +913,24 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                     }
                     return categoriesPerWeek;
                 },
-                categoriesPerWeek -> {
-                    com.dwlhm.finan.ui.summary.MonthlyDetailBottomSheetDialog.show(
-                        context, 
-                        monthSummary, 
-                        showWeeklyChartIncome, 
-                        sharedViewModel.getDisplayMode().getValue(), 
+                categoriesPerWeek -> com.dwlhm.finan.ui.summary.MonthlyDetailBottomSheetDialog.show(
+                        context,
+                        monthSummary,
+                        showWeeklyChartIncome,
+                        sharedViewModel.getDisplayMode().getValue(),
                         totalIncome,
                         categoriesPerWeek
-                    );
-                }
+                )
             );
         });
 
         TextView monthLabel = new TextView(context);
         java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("MMM", Locale.forLanguageTag("id-ID"));
-        monthLabel.setText(monthSummary.getStartDate().format(fmt));
+        // Use the middle of the month summary to avoid showing the previous month
+        // when the financial cycle starts in the previous calendar month.
+        java.time.LocalDate midDate = monthSummary.getStartDate()
+            .plusDays(monthSummary.getStartDate().until(monthSummary.getEndDate()).getDays() / 2);
+        monthLabel.setText(midDate.format(fmt));
         monthLabel.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
         monthLabel.setTextSize(10f);
         monthLabel.setTypeface(monthLabel.getTypeface(), Typeface.BOLD);
@@ -998,7 +951,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         LinearLayout bar = new LinearLayout(context);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setLayoutParams(new LinearLayout.LayoutParams(0, barHeight, (float) monthTotal));
-        if (monthTotal > 0) bar.setMinimumWidth(barHeight);
+        if (monthTotal > 0) bar.setMinimumHeight(barHeight);
 
         List<CashFlowReport.DailyTotal> weeks = monthSummary.getDays();
         float weightSum = 0f;
@@ -1038,7 +991,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 requireContext(),
                 services,
                 transactionAdapter.getTransactionAt(position),
-                () -> loadData()));
+                this::loadData));
     }
     
     // Summary Helper Methods
@@ -1075,338 +1028,8 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         }
     }
     
-    private String fmtPct(long amount, long total, boolean signed) {
-        if (total <= 0) return "0%";
-        double pct = (amount * 100.0) / total;
-        return (signed && amount >= 0 ? "+" : "") + String.format(Locale.getDefault(), "%.1f%%", pct);
-    }
-    
     private String format(long amountMinor) {
         return MoneyFormatter.format(amountMinor);
-    }
-
-    private String formatCompact(long amountMinor) {
-        long amount = amountMinor / 100;
-        if (Math.abs(amount) >= 1_000_000_000) {
-            return String.format(Locale.getDefault(), "%.1fM", amount / 1_000_000_000.0);
-        } else if (Math.abs(amount) >= 1_000_000) {
-            return String.format(Locale.getDefault(), "%.1fJt", amount / 1_000_000.0);
-        } else if (Math.abs(amount) >= 1_000) {
-            return String.format(Locale.getDefault(), "%.1fRb", amount / 1_000.0);
-        }
-        return String.valueOf(amount);
-    }
-    
-    private String getActivityTitle(CashFlowActivity activity) {
-        switch (activity) {
-            case OPERATING: return getString(R.string.cashflow_operating);
-            case INVESTING: return getString(R.string.cashflow_investing);
-            case FINANCING: return getString(R.string.cashflow_financing);
-            case UNCLASSIFIED: default: return getString(R.string.cashflow_unclassified);
-        }
-    }
-
-    private View createNetBalanceRow(android.content.Context context, long amount, boolean masked) {
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, UiComponentStyles.dp(context, 8), 0, UiComponentStyles.dp(context, 8));
-
-        TextView labelView = new TextView(context);
-        labelView.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        labelView.setText(R.string.java_MonthlyDashboardFragment_total_saldo_bersih);
-        labelView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
-        labelView.setTextSize(14f);
-        labelView.setTypeface(labelView.getTypeface(), android.graphics.Typeface.BOLD);
-        row.addView(labelView);
-
-        TextView amountView = new TextView(context);
-        amountView.setText(masked ? "Rp ***" : MoneyFormatter.format(amount));
-        amountView.setTextColor(ContextCompat.getColor(context, amount >= 0 ? R.color.finan_primary : R.color.finan_expense));
-        amountView.setTextSize(14f);
-        amountView.setTypeface(amountView.getTypeface(), android.graphics.Typeface.BOLD);
-        row.addView(amountView);
-
-        return row;
-    }
-
-    private View createLegendHeader(android.content.Context context, String title) {
-        TextView tv = new TextView(context);
-        tv.setText(title);
-        tv.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        tv.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        tv.setPadding(0, UiComponentStyles.dp(context, 8), 0, UiComponentStyles.dp(context, 4));
-        return tv;
-    }
-    
-    private View createLegendRow(android.content.Context context, String label, long amount, int color, double percentage) {
-        boolean showPercentageMode = sharedViewModel.getDisplayMode().getValue() == DashboardViewModel.DisplayMode.PERCENTAGE;
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, UiComponentStyles.dp(context, 4), 0, UiComponentStyles.dp(context, 4));
-
-        View dot = new View(context);
-        LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(UiComponentStyles.dp(context, 8), UiComponentStyles.dp(context, 8));
-        dotParams.setMarginEnd(UiComponentStyles.dp(context, 8));
-        dot.setLayoutParams(dotParams);
-
-        GradientDrawable shape = new GradientDrawable();
-        shape.setShape(GradientDrawable.OVAL);
-        shape.setColor(color);
-        dot.setBackground(shape);
-
-        TextView labelView = new TextView(context);
-        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        labelView.setLayoutParams(labelParams);
-        if (showPercentageMode) {
-            labelView.setText(label);
-        } else {
-            labelView.setText(String.format(Locale.getDefault(), "%s (%.0f%%)", label, percentage));
-        }
-        labelView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_secondary));
-        labelView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        labelView.setEllipsize(TextUtils.TruncateAt.END);
-        labelView.setMaxLines(1);
-
-        TextView amountView = new TextView(context);
-        amountView.setText(showPercentageMode ? String.format(Locale.getDefault(), "%.0f%%", percentage) : format(amount));
-        amountView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
-        amountView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        amountView.setTypeface(amountView.getTypeface(), Typeface.BOLD);
-
-        row.addView(dot);
-        row.addView(labelView);
-        row.addView(amountView);
-        return row;
-    }
-    
-    private int getCategoryColor(android.content.Context context, long categoryId) {
-        int[] palette = {
-            ContextCompat.getColor(context, R.color.finan_primary),
-            ContextCompat.getColor(context, R.color.finan_income),
-            ContextCompat.getColor(context, R.color.finan_expense),
-            ContextCompat.getColor(context, R.color.finan_warm_accent),
-            ContextCompat.getColor(context, R.color.finan_accent),
-            0xFF4A90E2, 0xFF8B6EB8, 0xFF4F6D7A
-        };
-        int index = (int) (categoryId % palette.length);
-        if (index < 0) index += palette.length;
-        return palette[index];
-    }
-
-    private View createDivider(android.content.Context context) {
-        View divider = new View(context);
-        divider.setBackgroundColor(ContextCompat.getColor(context, R.color.finan_divider));
-        divider.setLayoutParams(
-            new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, UiComponentStyles.dp(context, 1)));
-        return divider;
-    }
-
-    // Inner Adapters
-    
-    private class CashFlowAdapter extends RecyclerView.Adapter<CashFlowAdapter.ViewHolder> {
-        private java.util.List<CashFlowActivityTotal> items = new ArrayList<>();
-
-        @android.annotation.SuppressLint("NotifyDataSetChanged")
-        public void setItems(java.util.List<CashFlowActivityTotal> newItems) {
-            this.items = newItems;
-            //noinspection NotifyDataSetChanged
-            notifyDataSetChanged();
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = getLayoutInflater().inflate(R.layout.item_cash_flow_card, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            CashFlowActivityTotal actTotal = items.get(position);
-            holder.bind(actTotal);
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView title;
-            TextView netText;
-            TextView inflowText;
-            TextView outflowText;
-            DonutChartView donutChart;
-            LinearLayout legendList;
-            View chartContainer;
-            View divider;
-
-            ViewHolder(View card) {
-                super(card);
-                title = card.findViewById(R.id.item_cashflow_title);
-                netText = card.findViewById(R.id.item_cashflow_net);
-                inflowText = card.findViewById(R.id.item_cashflow_inflow);
-                outflowText = card.findViewById(R.id.item_cashflow_outflow);
-                donutChart = card.findViewById(R.id.item_cashflow_donut_chart);
-                legendList = card.findViewById(R.id.item_cashflow_chart_legend);
-                chartContainer = card.findViewById(R.id.item_cashflow_chart_container);
-                divider = card.findViewById(R.id.item_cashflow_divider);
-            }
-
-            void bind(CashFlowActivityTotal actTotal) {
-                android.content.Context context = itemView.getContext();
-                boolean showPercentageMode = sharedViewModel.getDisplayMode().getValue() == DashboardViewModel.DisplayMode.PERCENTAGE;
-                title.setText(getActivityTitle(actTotal.getActivity()));
-                long net = actTotal.getNetMinor();
-                long inflow = actTotal.getIncomeMinor();
-                long outflow = actTotal.getExpenseMinor();
-
-                if (showPercentageMode) {
-                    long base = inflow > 0 ? inflow : (outflow > 0 ? outflow : 1);
-                    netText.setText(fmtPct(net, base, true));
-                    inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + fmtPct(inflow, base, false));
-                    outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + fmtPct(outflow, base, false));
-                } else {
-                    netText.setText((net >= 0 ? "+" : "") + format(net));
-                    inflowText.setText(getString(R.string.cashflow_inflow_label) + ": " + format(inflow));
-                    outflowText.setText(getString(R.string.cashflow_outflow_label) + ": " + format(outflow));
-                }
-                netText.setTextColor(ContextCompat.getColor(context, net >= 0 ? R.color.finan_income : R.color.finan_expense));
-
-                java.util.List<CategoryTotal> categories = new ArrayList<>();
-                categories.addAll(actTotal.getIncomeCategories());
-                categories.addAll(actTotal.getExpenseCategories());
-                if (categories.isEmpty()) {
-                    chartContainer.setVisibility(View.GONE);
-                    divider.setVisibility(View.GONE);
-                } else {
-                    chartContainer.setVisibility(View.VISIBLE);
-                    divider.setVisibility(View.VISIBLE);
-
-                    java.util.List<CategoryTotal> inflowCategories = new ArrayList<>();
-                    java.util.List<CategoryTotal> outflowCategories = new ArrayList<>();
-                    for (CategoryTotal cat : categories) {
-                        if (cat.isIncome()) inflowCategories.add(cat);
-                        else outflowCategories.add(cat);
-                    }
-
-                    long legendBase = inflow > 0 ? inflow : (outflow > 0 ? outflow : 1);
-                    if (inflow > 0) {
-                        long remaining = inflow - outflow;
-                        donutChart.setCenterText("Sisa", String.format(Locale.getDefault(), "%.0f%%", Math.max(0.0, remaining * 100.0 / inflow)));
-                    } else if (outflow > 0) {
-                        donutChart.setCenterText("Keluar", showPercentageMode ? "100%" : formatCompact(outflow));
-                    }
-
-                    java.util.List<DonutChartView.DonutItem> inflowDonutItems = new ArrayList<>();
-                    java.util.List<DonutChartView.DonutItem> outflowDonutItems = new ArrayList<>();
-                    legendList.removeAllViews();
-
-                    if (!inflowCategories.isEmpty()) {
-                        legendList.addView(createLegendHeader(context, "PENDAPATAN"));
-                        for (CategoryTotal cat : inflowCategories) {
-                            int color = getCategoryColor(context, cat.getCategoryId());
-                            inflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
-                            double percentage = cat.getTotalMinor() * 100.0 / legendBase;
-                            legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
-                        }
-                    }
-
-                    if (!outflowCategories.isEmpty()) {
-                        legendList.addView(createLegendHeader(context, "PENGELUARAN"));
-                        for (CategoryTotal cat : outflowCategories) {
-                            int color = getCategoryColor(context, cat.getCategoryId());
-                            outflowDonutItems.add(new DonutChartView.DonutItem(cat.getCategoryName(), cat.getTotalMinor(), color));
-                            double percentage = cat.getTotalMinor() * 100.0 / legendBase;
-                            legendList.addView(createLegendRow(context, cat.getCategoryName(), cat.getTotalMinor(), color, percentage));
-                        }
-                    }
-                    donutChart.setData(inflowDonutItems, outflowDonutItems);
-                }
-            }
-        }
-    }
-
-    private class WalletAdapter extends RecyclerView.Adapter<WalletAdapter.ViewHolder> {
-        private java.util.List<WalletBalance> items = new ArrayList<>();
-        private long totalBalance = 0;
-
-        @android.annotation.SuppressLint("NotifyDataSetChanged")
-        public void setItems(java.util.List<WalletBalance> newItems, long totalBalance) {
-            this.items = newItems;
-            this.totalBalance = totalBalance;
-            //noinspection NotifyDataSetChanged
-            notifyDataSetChanged();
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            android.content.Context context = parent.getContext();
-            LinearLayout root = new LinearLayout(context);
-            root.setOrientation(LinearLayout.VERTICAL);
-            root.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-            View divider = createDivider(context);
-            root.addView(divider);
-
-            LinearLayout row = new LinearLayout(context);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, UiComponentStyles.dp(context, 10), 0, UiComponentStyles.dp(context, 10));
-
-            TextView name = new TextView(context);
-            name.setEllipsize(TextUtils.TruncateAt.END);
-            name.setMaxLines(1);
-            name.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
-            name.setTextSize(15f);
-            row.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-            TextView balance = new TextView(context);
-            balance.setMaxLines(1);
-            balance.setTextSize(15f);
-            balance.setTypeface(balance.getTypeface(), Typeface.BOLD);
-            row.addView(balance, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-            root.addView(row);
-            return new ViewHolder(root, divider, name, balance);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            WalletBalance wallet = items.get(position);
-            boolean showPercentageMode = sharedViewModel.getDisplayMode().getValue() == DashboardViewModel.DisplayMode.PERCENTAGE;
-            holder.divider.setVisibility(position == 0 ? View.GONE : View.VISIBLE);
-            holder.name.setText(wallet.getWalletName());
-            if (showPercentageMode && totalBalance > 0) {
-                holder.balance.setText(fmtPct(wallet.getBalanceMinor(), totalBalance, false));
-            } else {
-                holder.balance.setText(format(wallet.getBalanceMinor()));
-            }
-            holder.balance.setTextColor(ContextCompat.getColor(holder.itemView.getContext(),
-                wallet.getBalanceMinor() < 0 ? R.color.finan_expense : R.color.finan_primary));
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            View divider;
-            TextView name;
-            TextView balance;
-            ViewHolder(View itemView, View divider, TextView name, TextView balance) {
-                super(itemView);
-                this.divider = divider;
-                this.name = name;
-                this.balance = balance;
-            }
-        }
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.dwlhm.finan.ui.settings;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -61,6 +62,8 @@ public final class SettingsFragment extends ScreenFragment {
   @Nullable private Long exportEndDate;
   private TextView modeNominal;
   private TextView modeMasked;
+  private TextView payrollCycleValue;
+  private Button payrollCycleButton;
   private long cachedTotalBalanceMinor;
   private String cachedCurrencyCode;
 
@@ -141,6 +144,11 @@ public final class SettingsFragment extends ScreenFragment {
     updateModeToggle();
     modeNominal.setOnClickListener(v -> setMaskedMode(false));
     modeMasked.setOnClickListener(v -> setMaskedMode(true));
+
+    payrollCycleValue = view.findViewById(R.id.settings_payroll_cycle_value);
+    payrollCycleButton = view.findViewById(R.id.settings_payroll_cycle);
+    payrollCycleButton.setOnClickListener(v -> showPayrollCyclePicker());
+    updatePayrollCycleValue();
   }
 
   @Override
@@ -446,6 +454,58 @@ public final class SettingsFragment extends ScreenFragment {
     exportButton.setEnabled(!inProgress);
     exportProgress.setVisibility(inProgress ? View.VISIBLE : View.GONE);
     exportStatus.setVisibility(inProgress ? View.VISIBLE : View.GONE);
+  }
+
+  private void updatePayrollCycleValue() {
+    if (payrollCycleValue == null) {
+      return;
+    }
+    int cutoffDay = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+        .getInt("cutoff_day", 1);
+    payrollCycleValue.setText(getPayrollCycleLabel(cutoffDay));
+  }
+
+  private void showPayrollCyclePicker() {
+    final String[] options = {
+        "Tanggal 1 (Awal Bulan)", "Tanggal 5", "Tanggal 10", "Tanggal 15",
+        "Tanggal 20", "Tanggal 25", "Tanggal 28",
+        "Hari Kerja Terakhir (Akhir Bulan)"
+    };
+    final int[] values = {1, 5, 10, 15, 20, 25, 28, -1};
+
+    int currentCutoff = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+        .getInt("cutoff_day", 1);
+    int selectedIndex = 0;
+    for (int i = 0; i < values.length; i++) {
+      if (values[i] == currentCutoff) {
+        selectedIndex = i;
+        break;
+      }
+    }
+
+    new AlertDialog.Builder(requireContext())
+        .setTitle(R.string.settings_change_payroll_cycle)
+        .setSingleChoiceItems(options, selectedIndex, (dialog, which) -> {
+          int newCutoff = values[which];
+          requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+              .edit()
+              .putInt("cutoff_day", newCutoff)
+              .apply();
+          updatePayrollCycleValue();
+          dialog.dismiss();
+        })
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
+  }
+
+  private static String getPayrollCycleLabel(int cutoffDay) {
+    if (cutoffDay == -1) {
+      return "Hari Kerja Terakhir";
+    }
+    if (cutoffDay == 1) {
+      return "Tanggal 1";
+    }
+    return "Tanggal " + cutoffDay;
   }
 
   private void writeCsvExportAsync(Uri destination) {

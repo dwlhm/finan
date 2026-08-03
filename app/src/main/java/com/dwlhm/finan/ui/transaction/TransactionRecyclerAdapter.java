@@ -1,6 +1,5 @@
 package com.dwlhm.finan.ui.transaction;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -39,15 +38,6 @@ public final class TransactionRecyclerAdapter
     Color.rgb(117, 95, 173),
     Color.rgb(56, 137, 162)
   };
-  private static final int[] WALLET_COLORS = {
-    Color.rgb(45, 106, 106),
-    Color.rgb(158, 126, 58),
-    Color.rgb(91, 119, 153),
-    Color.rgb(143, 100, 85),
-    Color.rgb(87, 131, 91),
-    Color.rgb(129, 101, 157)
-  };
-
   private final Context context;
   private com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode displayMode = com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode.NOMINAL;
   private long totalIncomeMinor = 0L;
@@ -108,7 +98,7 @@ public final class TransactionRecyclerAdapter
     if (items != null) {
       for (Transaction t : items) {
         String header = headerDateFormat.format(new Date(t.getOccurredAt()));
-        dailyTotals.put(header, getOrDefault(dailyTotals, header, 0L) + t.getAmountMinor());
+        dailyTotals.put(header, dailyTotals.getOrDefault(header, 0L) + t.getAmountMinor());
       }
     }
     super.appendItems(items);
@@ -119,14 +109,9 @@ public final class TransactionRecyclerAdapter
     if (items != null) {
       for (Transaction t : items) {
         String header = headerDateFormat.format(new Date(t.getOccurredAt()));
-        dailyTotals.put(header, getOrDefault(dailyTotals, header, 0L) + t.getAmountMinor());
+        dailyTotals.put(header, dailyTotals.getOrDefault(header, 0L) + t.getAmountMinor());
       }
     }
-  }
-
-  private Long getOrDefault(Map<String, Long> map, String key, Long defaultValue) {
-    Long val = map.get(key);
-    return val != null ? val : defaultValue;
   }
 
   public Transaction getTransactionAt(int position) {
@@ -156,7 +141,6 @@ public final class TransactionRecyclerAdapter
       GradientDrawable bg = (GradientDrawable) holder.iconBackground.mutate();
       bg.setColor(
           colorFor(
-              CATEGORY_COLORS,
               transaction.getCategoryId(),
               category != null ? category.getName() : ""));
       holder.icon.setBackground(bg);
@@ -202,8 +186,8 @@ public final class TransactionRecyclerAdapter
       holder.note.setText(note.trim());
     }
     
-    boolean showHeader = false;
     String currentHeader = headerDateFormat.format(new Date(transaction.getOccurredAt()));
+    final boolean showHeader;
     if (position == 0) {
       showHeader = true;
     } else {
@@ -227,7 +211,9 @@ public final class TransactionRecyclerAdapter
         if (totalIncomeMinor > 0) {
             float pct = (Math.abs(dailyTotal) * 100f) / totalIncomeMinor;
             String sign = dailyTotal > 0 ? "+" : (dailyTotal < 0 ? "-" : "");
-            holder.dailyTotal.setText(sign + String.format(Locale.getDefault(), "%.1f%%", pct));
+            holder.dailyTotal.setText(
+                context.getString(
+                    R.string.java_TransactionRecyclerAdapter_percent_format, sign, pct));
         } else {
             holder.dailyTotal.setText("-");
         }
@@ -239,7 +225,9 @@ public final class TransactionRecyclerAdapter
       } else {
         String formatted = MoneyFormatter.format(dailyTotal);
         if (dailyTotal >= 0) {
-          holder.dailyTotal.setText("+" + formatted);
+          holder.dailyTotal.setText(
+              context.getString(
+                  R.string.java_TransactionRecyclerAdapter_daily_total_positive, formatted));
           holder.dailyTotal.setTextColor(
               ContextCompat.getColor(context, R.color.finan_income));
         } else {
@@ -253,12 +241,12 @@ public final class TransactionRecyclerAdapter
     }
   }
 
-  private int colorFor(int[] palette, long id, String name) {
+  private int colorFor(long id, String name) {
     int hash = Long.hashCode(id);
     if (!TextUtils.isEmpty(name)) {
       hash = (31 * hash) + name.hashCode();
     }
-    return palette[Math.floorMod(hash, palette.length)];
+    return CATEGORY_COLORS[Math.floorMod(hash, CATEGORY_COLORS.length)];
   }
 
   @Override
@@ -300,7 +288,9 @@ public final class TransactionRecyclerAdapter
         if (totalIncomeMinor > 0) {
             float pct = (Math.abs(dailyTotal) * 100f) / totalIncomeMinor;
             String sign = dailyTotal > 0 ? "+" : (dailyTotal < 0 ? "-" : "");
-            dailyTotalTv.setText(sign + String.format(Locale.getDefault(), "%.1f%%", pct));
+            dailyTotalTv.setText(
+                context.getString(
+                    R.string.java_TransactionRecyclerAdapter_percent_format, sign, pct));
         } else {
             dailyTotalTv.setText("-");
         }
@@ -312,7 +302,9 @@ public final class TransactionRecyclerAdapter
       } else {
         String formatted = MoneyFormatter.format(dailyTotal);
         if (dailyTotal >= 0) {
-          dailyTotalTv.setText("+" + formatted);
+          dailyTotalTv.setText(
+              context.getString(
+                  R.string.java_TransactionRecyclerAdapter_daily_total_positive, formatted));
           dailyTotalTv.setTextColor(ContextCompat.getColor(context, R.color.finan_income));
         } else {
           dailyTotalTv.setText(formatted);

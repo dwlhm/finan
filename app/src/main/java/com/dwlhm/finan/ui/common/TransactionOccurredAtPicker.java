@@ -57,10 +57,6 @@ public final class TransactionOccurredAtPicker {
     return occurredAtMillis;
   }
 
-  public void resetToNow() {
-    setOccurredAtMillis(System.currentTimeMillis());
-  }
-
   public void setOccurredAtMillis(long millis) {
     occurredAtMillis = millis;
     LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), zoneId);
@@ -84,6 +80,6 @@ public final class TransactionOccurredAtPicker {
   }
 
   private void showDateTimePicker() {
-    new DateTimeBottomSheet(context, occurredAtMillis, millis -> setOccurredAtMillis(millis)).show();
+    new DateTimeBottomSheet(context, occurredAtMillis, this::setOccurredAtMillis).show();
   }
 }

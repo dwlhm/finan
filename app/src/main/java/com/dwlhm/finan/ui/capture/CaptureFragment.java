@@ -5,16 +5,13 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.res.ColorStateList;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -44,9 +41,7 @@ import com.dwlhm.finan.ui.components.FinanToast;
 import com.dwlhm.finan.util.math.ExpressionEvaluator;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @SuppressLint("SetTextI18n")
 public final class CaptureFragment extends ScreenFragment {
@@ -68,7 +63,6 @@ public final class CaptureFragment extends ScreenFragment {
   private android.widget.FrameLayout captureSaveButtonArea;
   private TextView captureSaveLabel;
   private View captureUndoRow;
-  private View captureUndoAction;
   private View captureHoldProgress;
   private android.animation.ValueAnimator holdAnimator;
   private android.os.CountDownTimer undoCountdownTimer;
@@ -126,9 +120,9 @@ public final class CaptureFragment extends ScreenFragment {
     captureSaveButtonArea = view.findViewById(R.id.capture_save_button_area);
     captureSaveLabel = view.findViewById(R.id.capture_save_label);
     captureUndoRow = view.findViewById(R.id.capture_undo_row);
-    captureUndoAction = view.findViewById(R.id.capture_undo_action);
     captureHoldProgress = view.findViewById(R.id.capture_hold_progress);
     captureUndoActionText = view.findViewById(R.id.capture_undo_action_text);
+    View captureUndoAction = view.findViewById(R.id.capture_undo_action);
     captureUndoAction.setOnClickListener(v -> {
         expireAmountAutoFocus();
         performUndo();
@@ -258,7 +252,7 @@ public final class CaptureFragment extends ScreenFragment {
         private boolean isHolding = false;
         private boolean isTapValid = true;
 
-        private Runnable startHoldRunnable = () -> {
+        private final Runnable startHoldRunnable = () -> {
             isHolding = true;
             isTapValid = false;
             captureSaveLabel.setText(R.string.java_CaptureFragment_tahan_untuk_pertahankan);
@@ -267,9 +261,7 @@ public final class CaptureFragment extends ScreenFragment {
             holdAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f);
             holdAnimator.setDuration(1500);
             holdAnimator.setInterpolator(new android.view.animation.LinearInterpolator());
-            holdAnimator.addUpdateListener(anim -> {
-                captureHoldProgress.setScaleX((float) anim.getAnimatedValue());
-            });
+            holdAnimator.addUpdateListener(anim -> captureHoldProgress.setScaleX((float) anim.getAnimatedValue()));
             holdAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
                 boolean triggered = false;
                 @Override
@@ -322,6 +314,7 @@ public final class CaptureFragment extends ScreenFragment {
                         // Short tap
                         expireAmountAutoFocus();
                         saveTransaction(true); // true = clear form (reset state)
+                        v.performClick();
                     }
                     return true;
                     
@@ -342,9 +335,12 @@ public final class CaptureFragment extends ScreenFragment {
   private void updateInteractiveFieldTheme(TextView view, int textColorRes, int bgColorRes) {
       view.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes));
       androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(view, android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes)));
-      android.graphics.drawable.Drawable bg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_madlibs_field).mutate();
-      androidx.core.graphics.drawable.DrawableCompat.setTint(bg, androidx.core.content.ContextCompat.getColor(requireContext(), bgColorRes));
-      view.setBackground(bg);
+      android.graphics.drawable.Drawable bg = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_madlibs_field);
+      if (bg != null) {
+          bg = bg.mutate();
+          androidx.core.graphics.drawable.DrawableCompat.setTint(bg, androidx.core.content.ContextCompat.getColor(requireContext(), bgColorRes));
+          view.setBackground(bg);
+      }
   }
 
   private void showTypeBottomSheet() {
@@ -354,7 +350,7 @@ public final class CaptureFragment extends ScreenFragment {
           requireContext(),
           types,
           (long) selectedType.ordinal(),
-          new com.dwlhm.finan.ui.common.EntitySearchBottomSheet.ItemMapper<TransactionType>() {
+          new com.dwlhm.finan.ui.common.EntitySearchBottomSheet.ItemMapper<>() {
               @Override
               public String getName(TransactionType item) {
                   if (item == TransactionType.EXPENSE) return getString(R.string.capture_type_expense);
@@ -366,7 +362,7 @@ public final class CaptureFragment extends ScreenFragment {
                   return item.ordinal();
               }
           },
-          item -> setType(item)
+          this::setType
       );
       
       bottomSheet.show();
@@ -557,7 +553,6 @@ public final class CaptureFragment extends ScreenFragment {
 
   private void updateCaptureMode() {
     boolean transfer = selectedType.isTransfer();
-    boolean expense = selectedType == TransactionType.EXPENSE;
     boolean income = selectedType == TransactionType.INCOME;
 
     if (transfer) {
@@ -610,19 +605,9 @@ public final class CaptureFragment extends ScreenFragment {
     }
   }
 
-  private final Set<TextView> errorBackgroundFields = new HashSet<>();
-
   private void applyErrorBackground(TextView view) {
       view.setTextColor(getResources().getColor(R.color.finan_error, null));
-      errorBackgroundFields.add(view);
   }
-
-  private void clearErrorBackground(TextView view) {
-      errorBackgroundFields.remove(view);
-      view.setTextColor(getResources().getColor(R.color.finan_primary, null));
-  }
-
-
 
   private void updateCategoryLabel() {
       if (selectedType.isTransfer()) {
@@ -664,7 +649,7 @@ public final class CaptureFragment extends ScreenFragment {
           requireContext(),
           allCategoriesForType,
           selectedCategory != null ? selectedCategory.getId() : null,
-          new EntitySearchBottomSheet.ItemMapper<Category>() {
+          new EntitySearchBottomSheet.ItemMapper<>() {
               @Override
               public String getName(Category item) { return item.getName(); }
               @Override
@@ -706,7 +691,7 @@ public final class CaptureFragment extends ScreenFragment {
           requireContext(),
           wallets,
           isDestination ? (destinationWallet != null ? destinationWallet.getId() : null) : (activeWallet != null ? activeWallet.getId() : null),
-          new EntitySearchBottomSheet.ItemMapper<Wallet>() {
+          new EntitySearchBottomSheet.ItemMapper<>() {
               @Override
               public String getName(Wallet item) { return item.getName(); }
               @Override
@@ -732,7 +717,7 @@ public final class CaptureFragment extends ScreenFragment {
               AppServices s = ServicesProvider.get(requireContext());
               new WalletInputDialog(requireContext(), s, () ->
                   services.dbWorker.compute(
-                      () -> s.walletService.findAll(),
+                      s.walletService::findAll,
                       newWallets -> {
                           if (!isAdded() || newWallets == null) return;
                           wallets = newWallets;
@@ -849,7 +834,7 @@ public final class CaptureFragment extends ScreenFragment {
 
   private static String ensureValidExpr(String expr) {
       expr = expr.trim();
-      while (expr.length() > 0) {
+      while (!expr.isEmpty()) {
           char last = expr.charAt(expr.length() - 1);
           if (last == '+' || last == '-' || last == '*' || last == '/') {
               expr = expr.substring(0, expr.length() - 1).trim();
@@ -1001,16 +986,6 @@ public final class CaptureFragment extends ScreenFragment {
     formValidation.clearAll();
     validationBanner.setVisibility(View.GONE);
     // User requested to keep the last state including nominal amount, so we don't reset inputs here.
-  }
-
-  private void showUndoBar() {
-    if (activeToast != null) {
-      activeToast.dismiss();
-    }
-    activeToast = FinanToast.show(requireActivity(), getString(R.string.capture_saved_undo_message), getString(R.string.capture_undo_action), () -> {
-        expireAmountAutoFocus();
-        performUndo();
-    });
   }
 
   private void showUndoState() {

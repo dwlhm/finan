@@ -10,18 +10,16 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
-import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.DebouncedTextWatcher;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
-import com.dwlhm.finan.ui.history.HistoryFilterBottomSheet;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,7 +33,6 @@ public class DashboardFragment extends ScreenFragment {
     private AppServices services;
     
     private ViewPager2 viewPager;
-    private DashboardPagerAdapter pagerAdapter;
     
     private TextView modeNominal;
     private TextView modePercentage;
@@ -113,9 +110,7 @@ public class DashboardFragment extends ScreenFragment {
                     title.setText(getString(R.string.cashflow_unclassified));
                     msg.setText(count + " " + getString(R.string.java_DashboardFragment_kategori_belum_dikelompokkan));
                     
-                    inboxPrompt.setOnClickListener(v -> {
-                        ((com.dwlhm.finan.ui.common.ScreenNavigator) requireActivity()).openCategoriesFiltered("UNCLASSIFIED");
-                    });
+                    inboxPrompt.setOnClickListener(v -> ((com.dwlhm.finan.ui.common.ScreenNavigator) requireActivity()).openCategoriesFiltered("UNCLASSIFIED"));
                 } else {
                     inboxPrompt.setVisibility(View.GONE);
                 }
@@ -127,33 +122,9 @@ public class DashboardFragment extends ScreenFragment {
         // Initial setup will rely on TimeRangeState. If null, we default it.
         DashboardViewModel.TimeRangeState currentState = viewModel.getTimeRangeState().getValue();
         if (currentState == null) {
-            LocalDate today = LocalDate.now();
             int cutoffDay = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
                     .getInt("cutoff_day", 1);
-                    
-            LocalDate baseDate = today;
-            if (cutoffDay > 1) {
-                if (cutoffDay > 15) {
-                    if (today.getDayOfMonth() >= cutoffDay) {
-                        baseDate = today.plusMonths(1);
-                    }
-                } else {
-                    if (today.getDayOfMonth() < cutoffDay) {
-                        baseDate = today.minusMonths(1);
-                    }
-                }
-            } else if (cutoffDay == -1) {
-                LocalDate lastDay = today.withDayOfMonth(today.lengthOfMonth());
-                if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
-                    lastDay = lastDay.minusDays(1);
-                } else if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-                    lastDay = lastDay.minusDays(2);
-                }
-                
-                if (!today.isBefore(lastDay)) {
-                    baseDate = today.plusMonths(1);
-                }
-            }
+            LocalDate baseDate = PayrollCycleResolver.baseMonthForToday(LocalDate.now(), cutoffDay);
 
             viewModel.setTimeRangeState(new DashboardViewModel.TimeRangeState(
                     DashboardViewModel.TimeRangeMode.MONTHLY,
@@ -173,7 +144,7 @@ public class DashboardFragment extends ScreenFragment {
             baseDate = LocalDate.of(state.year, state.month, 1);
         }
         
-        pagerAdapter = new DashboardPagerAdapter(this, baseDate, state.mode);
+        DashboardPagerAdapter pagerAdapter = new DashboardPagerAdapter(this, baseDate, state.mode);
         viewPager.setAdapter(pagerAdapter);
         viewPager.setOffscreenPageLimit(1);
         viewPager.setCurrentItem(DashboardPagerAdapter.START_POSITION, false);
@@ -211,9 +182,7 @@ public class DashboardFragment extends ScreenFragment {
             return false;
         });
         
-        searchClear.setOnClickListener(v -> {
-            searchInput.setText("");
-        });
+        searchClear.setOnClickListener(v -> searchInput.setText(""));
     }
 
     private void openSearchPage(String query) {
@@ -226,9 +195,7 @@ public class DashboardFragment extends ScreenFragment {
     private void observeViewModel() {
         viewModel.getDisplayMode().observe(getViewLifecycleOwner(), this::updateDisplayModeUi);
         
-        viewModel.getTimeRangeState().observe(getViewLifecycleOwner(), state -> {
-            updateViewPagerWithTimeRange(state);
-        });
+        viewModel.getTimeRangeState().observe(getViewLifecycleOwner(), this::updateViewPagerWithTimeRange);
     }
 
     private void updateDisplayModeUi(DashboardViewModel.DisplayMode mode) {

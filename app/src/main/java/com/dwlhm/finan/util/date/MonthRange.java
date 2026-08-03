@@ -24,8 +24,13 @@ public final class MonthRange {
   }
 
   public static MonthRange forMonth(int year, int month, ZoneId zoneId) {
-    ZonedDateTime start = LocalDate.of(year, month, 1).atStartOfDay(zoneId);
-    ZonedDateTime end = start.plusMonths(1);
+    return forMonth(year, month, 1, zoneId);
+  }
+
+  public static MonthRange forMonth(int year, int month, int cutoffDay, ZoneId zoneId) {
+    DateRange range = PayrollCycleResolver.forMonth(year, month, cutoffDay);
+    ZonedDateTime start = range.getStart().atStartOfDay(zoneId);
+    ZonedDateTime end = range.getEnd().plusDays(1).atStartOfDay(zoneId);
     return new MonthRange(start.toInstant().toEpochMilli(), end.toInstant().toEpochMilli());
   }
 

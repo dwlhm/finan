@@ -44,8 +44,6 @@ public class WeeklyDetailBottomSheetDialog {
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_weekly_detail, null);
         dialog.setContentView(view);
 
-        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-
         TextView title = view.findViewById(R.id.weekly_detail_title);
         ImageView closeBtn = view.findViewById(R.id.weekly_detail_close);
         TextView dateRange = view.findViewById(R.id.weekly_detail_date_range);

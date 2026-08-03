@@ -116,9 +116,7 @@ public final class CategoryOverviewBottomSheet extends Dialog {
               category,
               count,
               saved -> onDataChanged.run(),
-              () -> {
-                navigator.openHistoryForCategory(category.getId());
-              });
+              () -> navigator.openHistoryForCategory(category.getId()));
         });
   }
 

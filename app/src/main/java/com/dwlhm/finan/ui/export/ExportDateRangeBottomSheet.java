@@ -17,6 +17,8 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.CustomDatePickerView;
 import com.dwlhm.finan.ui.common.DialogActionsView;
+import com.dwlhm.finan.util.date.DateRange;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,7 +37,6 @@ public final class ExportDateRangeBottomSheet extends Dialog {
       DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("id-ID"));
 
   private final OnRangeSelectedListener listener;
-  private CustomDatePickerView datePicker;
   private TextView rangePreview;
   @Nullable private Long startDate;
   @Nullable private Long endDate;
@@ -68,7 +69,7 @@ public final class ExportDateRangeBottomSheet extends Dialog {
     }
 
     rangePreview = findViewById(R.id.export_date_range_preview);
-    datePicker = findViewById(R.id.export_date_picker);
+    CustomDatePickerView datePicker = findViewById(R.id.export_date_picker);
     TextView reset = findViewById(R.id.export_date_reset);
     DialogActionsView actions = findViewById(R.id.export_date_actions);
 
@@ -78,10 +79,12 @@ public final class ExportDateRangeBottomSheet extends Dialog {
     if (startDate != null && endDate != null) {
       datePicker.setRange(startDate, endDate - 86400000L);
     } else {
-      // Default ke bulan ini
-      LocalDate now = LocalDate.now();
-      long s = now.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      long e = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      // Default ke siklus gaji yang sedang berjalan
+      int cutoffDay = getContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+          .getInt("cutoff_day", 1);
+      DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), cutoffDay);
+      long s = range.getStart().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      long e = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
       datePicker.setRange(s, e);
     }
 

@@ -11,7 +11,6 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.ColorInt;
 import androidx.core.content.ContextCompat;
 
 import com.dwlhm.finan.R;
@@ -430,35 +429,32 @@ public final class CustomDatePickerView extends LinearLayout {
       if (p < startDow) {
         // Overflow: previous month
         int day = daysInPrev - startDow + p + 1;
-        int pm = prevMonth, py = prevYear, df = day;
         cell.setText(String.valueOf(day));
         cell.setForeground(null);
         if (rangeMode) {
-          applyDayStyle(day, pm, py, false);
+          applyDayStyle(day, prevMonth, prevYear, false);
         } else {
           cell.setTextColor(colorDim);
-          cell.setOnClickListener(v -> { month = pm; year = py; selectedDay = df; render(); fireSelected(); });
+          cell.setOnClickListener(v -> { month = prevMonth; year = prevYear; selectedDay = day; render(); fireSelected(); });
         }
       } else if (p < startDow + daysInMonth) {
         // Current month
         int day = p - startDow + 1;
-        int df = day;
         cell.setText(String.valueOf(day));
-        cell.setOnClickListener(v -> selectDate(df));
+        cell.setOnClickListener(v -> selectDate(day));
         applyDayStyle(day, day == selectedDay && selectedMonth == month && selectedYear == year);
       } else {
         // Overflow: next month
         int day = p - startDow - daysInMonth + 1;
         int nm = month == 12 ? 1 : month + 1;
         int ny = month == 12 ? year + 1 : year;
-        int df = day;
         cell.setText(String.valueOf(day));
         cell.setForeground(null);
         if (rangeMode) {
           applyDayStyle(day, nm, ny, false);
         } else {
           cell.setTextColor(colorDim);
-          cell.setOnClickListener(v -> { month = nm; year = ny; selectedDay = df; render(); fireSelected(); });
+          cell.setOnClickListener(v -> { month = nm; year = ny; selectedDay = day; render(); fireSelected(); });
         }
       }
     }

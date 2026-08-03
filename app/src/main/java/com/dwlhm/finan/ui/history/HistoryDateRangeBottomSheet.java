@@ -15,6 +15,8 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.CustomDatePickerView;
 import com.dwlhm.finan.ui.common.DialogActionsView;
+import com.dwlhm.finan.util.date.DateRange;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,9 +46,11 @@ public final class HistoryDateRangeBottomSheet extends Dialog {
       this.pendingEndMillis = initialEnd.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
       this.hasPendingRange = true;
     } else {
-      LocalDate now = LocalDate.now();
-      this.pendingStartMillis = now.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      this.pendingEndMillis = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      int cutoffDay = context.getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+          .getInt("cutoff_day", 1);
+      DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), cutoffDay);
+      this.pendingStartMillis = range.getStart().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      this.pendingEndMillis = range.getEnd().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
       this.hasPendingRange = false;
     }
   }
@@ -75,9 +79,11 @@ public final class HistoryDateRangeBottomSheet extends Dialog {
     if (hasPendingRange) {
       datePicker.setRange(pendingStartMillis, pendingEndMillis);
     } else {
-      LocalDate now = LocalDate.now();
-      long start = now.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      long end = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      int cutoffDay = getContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+          .getInt("cutoff_day", 1);
+      DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), cutoffDay);
+      long start = range.getStart().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+      long end = range.getEnd().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
       datePicker.setRange(start, end);
     }
     datePicker.setOnRangeSelectedListener((start, end) -> {

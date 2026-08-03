@@ -10,7 +10,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.dwlhm.finan.R;
@@ -31,6 +30,7 @@ import com.dwlhm.finan.ui.common.EntityLookup;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.infinitescroll.InfiniteScrollListView;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 import com.dwlhm.finan.ui.transaction.TransactionDetailDialog;
 import com.dwlhm.finan.ui.transaction.TransactionRecyclerAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
@@ -287,26 +287,20 @@ public final class HistoryFragment extends ScreenFragment {
         new com.dwlhm.finan.ui.transaction.StickyHeaderItemDecoration(adapter);
     historyList.getRecyclerView().addItemDecoration(stickyDecoration);
     
-    // Add ItemTouchHelper for swipe-to-action
-
     // Dynamically pad the RecyclerView so it sits perfectly under the fixed header
     if (headerContainer != null) {
-        headerContainer.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override
-            public void onLayoutChange(View v, int left, int top, int right, int bottom,
-                                       int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                int newHeight = bottom - top;
-                int oldHeight = oldBottom - oldTop;
-                if (newHeight != oldHeight && newHeight > 0) {
-                    RecyclerView rv = historyList.getRecyclerView();
-                    if (rv.getPaddingTop() != newHeight) {
-                        rv.setPadding(rv.getPaddingLeft(), newHeight, rv.getPaddingRight(), rv.getPaddingBottom());
-                        stickyDecoration.setStickyYOffset(newHeight);
-                    }
+        headerContainer.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            int newHeight = bottom - top;
+            int oldHeight = oldBottom - oldTop;
+            if (newHeight != oldHeight && newHeight > 0) {
+                RecyclerView rv = historyList.getRecyclerView();
+                if (rv.getPaddingTop() != newHeight) {
+                    rv.setPadding(rv.getPaddingLeft(), newHeight, rv.getPaddingRight(), rv.getPaddingBottom());
+                    stickyDecoration.setStickyYOffset(newHeight);
                 }
             }
         });
-        
+
         headerContainer.post(() -> {
             int height = headerContainer.getHeight();
             RecyclerView rv = historyList.getRecyclerView();
@@ -360,53 +354,6 @@ public final class HistoryFragment extends ScreenFragment {
     if (!isDataLoaded) {
       reload(true);
       isDataLoaded = true;
-    }
-  }
-
-  public void setCategoryFilter(long categoryId) {
-    selectedCategoryId = categoryId > 0L ? categoryId : null;
-    if (getView() != null) {
-      reload(true);
-    }
-  }
-
-  public void setWalletFilter(long walletId) {
-    selectedWalletId = walletId > 0L ? walletId : null;
-    if (getView() != null) {
-      reload(true);
-    }
-  }
-
-  public void setTypeFilter(String type) {
-    if ("EXPENSE".equals(type)) {
-      selectedTypeId = TYPE_EXPENSE_ID;
-    } else if ("INCOME".equals(type)) {
-      selectedTypeId = TYPE_INCOME_ID;
-    } else {
-      selectedTypeId = null;
-    }
-    if (getView() != null) {
-      reload(true);
-    }
-  }
-
-  public void setDateRange(long startMillis, long endMillis) {
-    selectedStartDate = java.time.Instant.ofEpochMilli(startMillis)
-        .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-    selectedEndDate = java.time.Instant.ofEpochMilli(endMillis)
-        .atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-    if (getView() != null) {
-      updateDateRangeView();
-      reload(true);
-    }
-  }
-
-  public void setActivityFilter(String activity) {
-    selectedCategoryId = null;
-    selectedTypeId = null;
-    if (getView() != null) {
-      updateDateRangeView();
-      reload(true);
     }
   }
 
@@ -784,50 +731,26 @@ public final class HistoryFragment extends ScreenFragment {
           .getInt("cutoff_day", 1);
     }
     LocalDate date = LocalDate.now().plusMonths(monthOffset);
-    if (cutoffDay == 1) {
-      return new DateRange(date.withDayOfMonth(1), date.withDayOfMonth(date.lengthOfMonth()));
-    }
-    LocalDate start;
-    LocalDate nextCutoff;
-    if (cutoffDay == -1) {
-      LocalDate thisMonthCutoff = lastBusinessDayOfMonth(date);
-      if (date.isBefore(thisMonthCutoff)) {
-        start = lastBusinessDayOfMonth(date.minusMonths(1));
-        nextCutoff = thisMonthCutoff;
-      } else {
-        start = thisMonthCutoff;
-        nextCutoff = lastBusinessDayOfMonth(date.plusMonths(1));
-      }
-    } else {
-      if (date.getDayOfMonth() >= cutoffDay) {
-        start = date.withDayOfMonth(cutoffDay);
-        nextCutoff = date.plusMonths(1).withDayOfMonth(cutoffDay);
-      } else {
-        start = date.minusMonths(1).withDayOfMonth(cutoffDay);
-        nextCutoff = date.withDayOfMonth(cutoffDay);
-      }
-    }
-    return new DateRange(start, nextCutoff.minusDays(1));
+    com.dwlhm.finan.util.date.DateRange range = PayrollCycleResolver.forDate(date, cutoffDay);
+    return new DateRange(range.getStart(), range.getEnd());
   }
 
   private void shiftDateRange(int months) {
     if (selectedStartDate != null && selectedEndDate != null) {
-      selectedStartDate = selectedStartDate.plusMonths(months);
-      selectedEndDate = selectedEndDate.plusMonths(months);
+      Context context = getContext();
+      int cutoffDay = 1;
+      if (context != null) {
+        cutoffDay = context.getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+            .getInt("cutoff_day", 1);
+      }
+      com.dwlhm.finan.util.date.DateRange range =
+          PayrollCycleResolver.shiftMonths(selectedStartDate, cutoffDay, months);
+      selectedStartDate = range.getStart();
+      selectedEndDate = range.getEnd();
       normalizeDateRange();
       updateDateRangeView();
       reload();
     }
-  }
-
-  private static LocalDate lastBusinessDayOfMonth(LocalDate date) {
-    LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
-    if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
-      return lastDay.minusDays(1);
-    } else if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-      return lastDay.minusDays(2);
-    }
-    return lastDay;
   }
 
   private static Long validWalletIdOrNull(Long walletId, Map<Long, Wallet> walletsById) {

@@ -20,6 +20,8 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.CustomDatePickerView;
 import com.dwlhm.finan.ui.common.DialogActionsView;
+import com.dwlhm.finan.util.date.DateRange;
+import com.dwlhm.finan.util.date.PayrollCycleResolver;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -58,7 +60,7 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
 
   private TextView modeBulan, modeKustom;
   private LinearLayout monthContainer, kustomContainer;
-  private TextView yearLabel, yearPrev, yearNext, rangePreview;
+  private TextView yearLabel, rangePreview;
   private LinearLayout monthGrid;
   private TextView cycleValue;
   private CustomDatePickerView datePicker;
@@ -103,8 +105,8 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
     monthContainer = findViewById(R.id.summary_range_month_container);
     kustomContainer = findViewById(R.id.summary_range_kustom_container);
     yearLabel = findViewById(R.id.summary_range_year_label);
-    yearPrev = findViewById(R.id.summary_range_year_prev);
-    yearNext = findViewById(R.id.summary_range_year_next);
+    TextView yearPrev = findViewById(R.id.summary_range_year_prev);
+    TextView yearNext = findViewById(R.id.summary_range_year_next);
     rangePreview = findViewById(R.id.summary_range_preview);
     monthGrid = findViewById(R.id.summary_range_month_grid);
     cycleValue = findViewById(R.id.summary_range_cycle_value);
@@ -163,7 +165,7 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
         TextView cell = new TextView(getContext());
         cell.setText(MONTH_NAMES[monthIdx]);
         cell.setGravity(Gravity.CENTER);
-        cell.setLayoutParams(new LinearLayout.LayoutParams(0, dp(52), 1f));
+        cell.setLayoutParams(new LinearLayout.LayoutParams(0, dp(), 1f));
         cell.setTextSize(15f);
         cell.setClickable(true);
         cell.setFocusable(true);
@@ -185,13 +187,12 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
 
   private void selectMonth(int month) {
     selectedMonth = month;
-    LocalDate start = cycleStartFor(selectedYear, month);
-    LocalDate end = cycleEndFor(selectedYear, month);
-    pendingStart = start;
-    pendingEnd = end;
+    DateRange range = PayrollCycleResolver.forMonth(selectedYear, month, pendingCutoffDay);
+    pendingStart = range.getStart();
+    pendingEnd = range.getEnd();
 
-    long startMillis = start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-    long endMillis = end.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    long startMillis = pendingStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    long endMillis = pendingEnd.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
     datePicker.setRange(startMillis, endMillis);
 
     updateMonthGridSelection();
@@ -228,7 +229,7 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
   private void updateRangePreview() {
     if (selectedMonth != null) {
       rangePreview.setText(
-          pendingStart.format(PREVIEW_FMT) + " \u2192 " + pendingEnd.format(PREVIEW_FMT));
+          pendingStart.format(PREVIEW_FMT) + " → " + pendingEnd.format(PREVIEW_FMT));
     } else {
       rangePreview.setText("");
     }
@@ -244,62 +245,15 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
           if (bulanMode && selectedMonth != null) {
             selectMonth(selectedMonth);
           } else {
-            LocalDate now = LocalDate.now();
-            LocalDate start;
-            LocalDate end;
-            if (pendingCutoffDay == 1) {
-              start = now.withDayOfMonth(1);
-              end = start.withDayOfMonth(start.lengthOfMonth());
-            } else if (pendingCutoffDay == -1) {
-              LocalDate thisMonthCutoff = lastBusinessDayOfMonth(now);
-              if (now.isBefore(thisMonthCutoff)) {
-                start = lastBusinessDayOfMonth(now.minusMonths(1));
-                end = thisMonthCutoff.minusDays(1);
-              } else {
-                start = thisMonthCutoff;
-                end = lastBusinessDayOfMonth(now.plusMonths(1)).minusDays(1);
-              }
-            } else {
-              if (now.getDayOfMonth() >= pendingCutoffDay) {
-                start = now.withDayOfMonth(pendingCutoffDay);
-              } else {
-                start = now.minusMonths(1).withDayOfMonth(pendingCutoffDay);
-              }
-              end = start.plusMonths(1).minusDays(1);
-            }
-            pendingStart = start;
-            pendingEnd = end;
-            long s = start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-            long e = end.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), pendingCutoffDay);
+            pendingStart = range.getStart();
+            pendingEnd = range.getEnd();
+            long s = pendingStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long e = pendingEnd.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
             datePicker.setRange(s, e);
           }
         })
         .show();
-  }
-
-  private LocalDate cycleStartFor(int year, int month) {
-    LocalDate first = LocalDate.of(year, month, 1);
-    if (pendingCutoffDay == 1) {
-      return first;
-    }
-    if (pendingCutoffDay == -1) {
-      return lastBusinessDayOfMonth(first);
-    }
-    return first.withDayOfMonth(pendingCutoffDay);
-  }
-
-  private LocalDate cycleEndFor(int year, int month) {
-    return cycleStartFor(year, month).plusMonths(1).minusDays(1);
-  }
-
-  private static LocalDate lastBusinessDayOfMonth(LocalDate date) {
-    LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
-    if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
-      return lastDay.minusDays(1);
-    } else if (lastDay.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-      return lastDay.minusDays(2);
-    }
-    return lastDay;
   }
 
   private static String getCycleLabel(int cutoffDay) {
@@ -312,7 +266,7 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
     }
   }
 
-  private int dp(int value) {
-    return (int) (value * getContext().getResources().getDisplayMetrics().density + 0.5f);
+  private int dp() {
+    return (int) (52 * getContext().getResources().getDisplayMetrics().density + 0.5f);
   }
 }
