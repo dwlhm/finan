@@ -12,7 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
-
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.ui.common.AppServices;
@@ -33,10 +33,10 @@ public class DashboardFragment extends ScreenFragment {
     private AppServices services;
     
     private ViewPager2 viewPager;
-    
-    private TextView modeNominal;
-    private TextView modePercentage;
-    private TextView modeMasked;
+    private MaterialButtonToggleGroup modeToggleGroup;
+    private View modeNominal;
+    private View modePercentage;
+    private View modeMasked;
     
     private EditText searchInput;
     private ImageButton searchClear;
@@ -67,6 +67,7 @@ public class DashboardFragment extends ScreenFragment {
     @Override
     protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
         viewPager = view.findViewById(R.id.dashboard_view_pager);
+        modeToggleGroup = view.findViewById(R.id.dashboard_mode_toggle_group);
         modeNominal = view.findViewById(R.id.dashboard_mode_nominal);
         modePercentage = view.findViewById(R.id.dashboard_mode_percentage);
         modeMasked = view.findViewById(R.id.dashboard_mode_masked);
@@ -119,6 +120,62 @@ public class DashboardFragment extends ScreenFragment {
     }
 
     private void setupViewPager() {
+        viewPager.setClipToPadding(false);
+        viewPager.setClipChildren(false);
+        viewPager.setOffscreenPageLimit(2);
+
+        View innerRecycler = viewPager.getChildAt(0);
+        if (innerRecycler instanceof android.view.ViewGroup) {
+            ((android.view.ViewGroup) innerRecycler).setClipChildren(false);
+            ((android.view.ViewGroup) innerRecycler).setClipToPadding(false);
+            innerRecycler.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        }
+
+        int pageMargin = com.dwlhm.finan.ui.common.UiComponentStyles.dp(requireContext(), 10);
+        androidx.viewpager2.widget.CompositePageTransformer compositeTransformer = new androidx.viewpager2.widget.CompositePageTransformer();
+        compositeTransformer.addTransformer(new androidx.viewpager2.widget.MarginPageTransformer(pageMargin));
+        compositeTransformer.addTransformer((page, position) -> {
+            float MIN_SCALE = 0.88f;
+            float MIN_ALPHA = 0.75f;
+            float absPos = Math.abs(position);
+            if (absPos >= 1f) {
+                page.setScaleX(MIN_SCALE);
+                page.setScaleY(MIN_SCALE);
+                page.setAlpha(MIN_ALPHA);
+            } else {
+                float scaleFactor = MIN_SCALE + (1f - MIN_SCALE) * (1f - absPos);
+                float alphaFactor = MIN_ALPHA + (1f - MIN_ALPHA) * (1f - absPos);
+                page.setScaleX(scaleFactor);
+                page.setScaleY(scaleFactor);
+                page.setAlpha(alphaFactor);
+            }
+        });
+        viewPager.setPageTransformer(compositeTransformer);
+
+        viewPager.registerOnPageChangeCallback(new androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                int offset = position - DashboardPagerAdapter.START_POSITION;
+                int cutoffDay = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+                        .getInt("cutoff_day", 1);
+                LocalDate todayMaxDate = PayrollCycleResolver.baseMonthForToday(LocalDate.now(), cutoffDay);
+                DashboardViewModel.TimeRangeState currentState = viewModel.getTimeRangeState().getValue();
+                DashboardViewModel.TimeRangeMode mode = currentState != null ? currentState.mode : DashboardViewModel.TimeRangeMode.MONTHLY;
+
+                if (mode == DashboardViewModel.TimeRangeMode.YEARLY) {
+                    LocalDate targetYear = todayMaxDate.plusYears(offset);
+                    if (currentState == null || currentState.year != targetYear.getYear()) {
+                        viewModel.setTimeRangeState(new DashboardViewModel.TimeRangeState(mode, targetYear.getYear(), -1));
+                    }
+                } else {
+                    LocalDate targetMonth = todayMaxDate.plusMonths(offset);
+                    if (currentState == null || currentState.year != targetMonth.getYear() || currentState.month != targetMonth.getMonthValue()) {
+                        viewModel.setTimeRangeState(new DashboardViewModel.TimeRangeState(mode, targetMonth.getYear(), targetMonth.getMonthValue()));
+                    }
+                }
+            }
+        });
+
         // Initial setup will rely on TimeRangeState. If null, we default it.
         DashboardViewModel.TimeRangeState currentState = viewModel.getTimeRangeState().getValue();
         if (currentState == null) {
@@ -137,24 +194,46 @@ public class DashboardFragment extends ScreenFragment {
     private void updateViewPagerWithTimeRange(DashboardViewModel.TimeRangeState state) {
         if (state == null) return;
         
-        LocalDate baseDate;
-        if (state.mode == DashboardViewModel.TimeRangeMode.YEARLY) {
-            baseDate = LocalDate.of(state.year, 1, 1);
-        } else {
-            baseDate = LocalDate.of(state.year, state.month, 1);
+        int cutoffDay = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+                .getInt("cutoff_day", 1);
+        LocalDate todayMaxDate = PayrollCycleResolver.baseMonthForToday(LocalDate.now(), cutoffDay);
+
+        if (viewPager.getAdapter() == null) {
+            DashboardPagerAdapter pagerAdapter = new DashboardPagerAdapter(this, todayMaxDate, state.mode);
+            viewPager.setAdapter(pagerAdapter);
+            viewPager.setOffscreenPageLimit(2);
         }
         
-        DashboardPagerAdapter pagerAdapter = new DashboardPagerAdapter(this, baseDate, state.mode);
-        viewPager.setAdapter(pagerAdapter);
-        viewPager.setOffscreenPageLimit(1);
-        viewPager.setCurrentItem(DashboardPagerAdapter.START_POSITION, false);
-    }
-
-    private void setupGlobalControls() {
-        modeNominal.setOnClickListener(v -> setDisplayMode(DashboardViewModel.DisplayMode.NOMINAL));
-        modePercentage.setOnClickListener(v -> setDisplayMode(DashboardViewModel.DisplayMode.PERCENTAGE));
-        modeMasked.setOnClickListener(v -> setDisplayMode(DashboardViewModel.DisplayMode.MASKED));
+        int targetPosition = DashboardPagerAdapter.START_POSITION;
+        if (state.mode == DashboardViewModel.TimeRangeMode.YEARLY) {
+            int yearOffset = state.year - todayMaxDate.getYear();
+            targetPosition = DashboardPagerAdapter.START_POSITION + yearOffset;
+        } else {
+            int monthOffset = (state.year - todayMaxDate.getYear()) * 12 + (state.month - todayMaxDate.getMonthValue());
+            targetPosition = DashboardPagerAdapter.START_POSITION + monthOffset;
+        }
         
+        if (targetPosition > DashboardPagerAdapter.START_POSITION) {
+            targetPosition = DashboardPagerAdapter.START_POSITION;
+        } else if (targetPosition < 0) {
+            targetPosition = 0;
+        }
+        
+        if (viewPager.getCurrentItem() != targetPosition) {
+            viewPager.setCurrentItem(targetPosition, false);
+        }
+    }
+    private void setupGlobalControls() {
+        modeToggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) return;
+            if (checkedId == R.id.dashboard_mode_nominal) {
+                setDisplayMode(DashboardViewModel.DisplayMode.NOMINAL);
+            } else if (checkedId == R.id.dashboard_mode_percentage) {
+                setDisplayMode(DashboardViewModel.DisplayMode.PERCENTAGE);
+            } else if (checkedId == R.id.dashboard_mode_masked) {
+                setDisplayMode(DashboardViewModel.DisplayMode.MASKED);
+            }
+        });
         searchWatcher = new DebouncedTextWatcher(500L, value -> {
             String query = value.trim();
             if (query.length() > 3) {
@@ -199,19 +278,15 @@ public class DashboardFragment extends ScreenFragment {
     }
 
     private void updateDisplayModeUi(DashboardViewModel.DisplayMode mode) {
-        modeNominal.setBackground(null);
-        modeNominal.setTextColor(0xFF4A9E7F);
-        modePercentage.setBackground(null);
-        modePercentage.setTextColor(0xFF4A9E7F);
-        modeMasked.setBackground(null);
-        modeMasked.setTextColor(0xFF4A9E7F);
-        
-        TextView activeView = modeNominal;
-        if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) activeView = modePercentage;
-        else if (mode == DashboardViewModel.DisplayMode.MASKED) activeView = modeMasked;
-        
-        activeView.setBackgroundResource(R.drawable.bg_toggle_active);
-        activeView.setTextColor(0xFFFFFFFF);
+        int targetId = R.id.dashboard_mode_nominal;
+        if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
+            targetId = R.id.dashboard_mode_percentage;
+        } else if (mode == DashboardViewModel.DisplayMode.MASKED) {
+            targetId = R.id.dashboard_mode_masked;
+        }
+        if (modeToggleGroup != null && modeToggleGroup.getCheckedButtonId() != targetId) {
+            modeToggleGroup.check(targetId);
+        }
     }
 
     private void setDisplayMode(DashboardViewModel.DisplayMode mode) {

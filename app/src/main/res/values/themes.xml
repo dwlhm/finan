@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Finan" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.Finan" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/finan_primary</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#D0E8E7</item>
+        <item name="colorOnPrimaryContainer">#052020</item>
+        <item name="colorSurface">@color/finan_surface</item>
+        <item name="colorOnSurface">@color/finan_text_primary</item>
+        <item name="colorSurfaceContainer">#F4F6F8</item>
+        <item name="colorSurfaceContainerHigh">#E8ECEF</item>
+        <item name="colorSurfaceContainerLow">#F9FBFC</item>
+        <item name="colorOutline">#8A9AA3</item>
+        <item name="colorOutlineVariant">@color/finan_divider</item>
+        <item name="colorError">@color/finan_error</item>
+        <item name="colorErrorContainer">@color/finan_error_bg</item>
+        <item name="colorOnSurfaceVariant">@color/finan_text_secondary</item>
         <item name="colorPrimaryDark">@color/finan_primary_dark</item>
         <item name="colorAccent">@color/finan_accent</item>
         <item name="android:colorPrimary">@color/finan_primary</item>
@@ -15,7 +28,7 @@
         <item name="bottomSheetDialogTheme">@style/Finan.BottomSheetDialog</item>
     </style>
 
-    <style name="Finan.ShapeAppearance.BottomSheet" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+    <style name="Finan.ShapeAppearance.BottomSheet" parent="ShapeAppearance.Material3.Corner.ExtraLarge">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopRight">24dp</item>
         <item name="cornerSizeTopLeft">24dp</item>
@@ -23,12 +36,12 @@
         <item name="cornerSizeBottomLeft">0dp</item>
     </style>
 
-    <style name="Finan.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+    <style name="Finan.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
         <item name="shapeAppearance">@style/Finan.ShapeAppearance.BottomSheet</item>
         <item name="backgroundTint">@color/finan_surface</item>
     </style>
 
-    <style name="Finan.BottomSheetDialog" parent="Theme.MaterialComponents.DayNight.BottomSheetDialog">
+    <style name="Finan.BottomSheetDialog" parent="Theme.Material3.DayNight.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/Finan.BottomSheet</item>
     </style>
 </resources>

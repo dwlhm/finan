@@ -30,150 +30,181 @@
                 app:layout_collapseMode="parallax"
                 app:layout_collapseParallaxMultiplier="0.7">
 
-                <TextView
-                    android:id="@+id/month_title"
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/month_picker_container"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:background="@drawable/bg_month_picker"
-                    app:drawableEndCompat="@drawable/ic_expand_more"
-                    android:drawablePadding="8dp"
-                    android:gravity="center"
-                    android:paddingStart="16dp"
-                    android:paddingTop="6dp"
-                    android:paddingEnd="12dp"
-                    android:paddingBottom="6dp"
-                    android:text="@string/hc_fragment_monthly_dashboard_juli_2026"
-                    android:textColor="@color/finan_text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
+                    app:strokeWidth="1dp">
+
+                    <TextView
+                        android:id="@+id/month_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:drawablePadding="8dp"
+                        android:gravity="center"
+                        android:paddingStart="16dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="8dp"
+                        android:text="@string/hc_fragment_monthly_dashboard_juli_2026"
+                        android:textColor="@color/finan_text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:drawableEndCompat="@drawable/ic_expand_more"
+                        app:drawableTint="?attr/colorOnSurface" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <!-- Hero Card: Donut Chart -->
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:background="@drawable/bg_card"
-                    android:layout_marginTop="16dp"
                     android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
                     android:layout_marginEnd="16dp"
-                    android:elevation="2dp"
-                    android:paddingTop="20dp"
-                    android:paddingBottom="20dp"
-                    android:gravity="center_vertical">
-
-                    <com.dwlhm.finan.ui.components.DonutChartView
-                        android:id="@+id/donut_chart"
-                        android:layout_width="120dp"
-                        android:layout_height="120dp"
-                        android:layout_marginStart="16dp" />
+                    app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
-                        android:layout_marginEnd="16dp"
-                        android:orientation="vertical">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingTop="20dp"
+                        android:paddingBottom="20dp">
 
-                        <!-- Saldo Bersih -->
+                        <com.dwlhm.finan.ui.components.DonutChartView
+                            android:id="@+id/donut_chart"
+                            android:layout_width="120dp"
+                            android:layout_height="120dp"
+                            android:layout_marginStart="16dp" />
+
                         <LinearLayout
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
+                            android:layout_marginStart="20dp"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <!-- Saldo Bersih -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/hc_fragment_monthly_dashboard_saldo_bersih"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textSize="12sp" />
+
+                                <ImageView
+                                    android:id="@+id/monthly_hero_advice_btn"
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:layout_marginStart="6dp"
+                                    android:contentDescription="@string/app_name"
+                                    android:src="@drawable/ic_info"
+                                    app:tint="?attr/colorOnSurfaceVariant" />
+                            </LinearLayout>
+
                             <TextView
+                                android:id="@+id/monthly_hero_net_balance"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/hc_fragment_monthly_dashboard_saldo_bersih"
-                                android:textColor="@color/finan_text_secondary"
-                                android:textSize="12sp" />
-                            <ImageView android:contentDescription="@string/app_name"
-                                android:id="@+id/monthly_hero_advice_btn"
-                                android:layout_width="16dp"
-                                android:layout_height="16dp"
-                                android:layout_marginStart="6dp"
-                                android:src="@drawable/ic_info"
-                                app:tint="@color/finan_text_secondary" />
-                        </LinearLayout>
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/finan_primary"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
 
-                        <TextView
-                            android:id="@+id/monthly_hero_net_balance"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:textColor="@color/finan_primary"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#E9EEF2"
-                            android:layout_marginTop="12dp"
-                            android:layout_marginBottom="12dp" />
-
-                        <!-- Pemasukan -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
                             <View
-                                android:layout_width="8dp"
-                                android:layout_height="8dp"
-                                android:background="@drawable/bg_circle_green" />
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginStart="8dp"
-                                android:text="@string/hc_fragment_monthly_dashboard_pemasukan"
-                                android:textColor="@color/finan_text_secondary"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                        <TextView
-                            android:id="@+id/monthly_hero_income"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginTop="2dp"
-                            android:textColor="@color/finan_primary"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:layout_marginTop="12dp"
+                                android:layout_marginBottom="12dp"
+                                android:background="?attr/colorOutlineVariant" />
 
-                        <!-- Pengeluaran -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginTop="8dp">
-                            <View
-                                android:layout_width="8dp"
-                                android:layout_height="8dp"
-                                android:background="@drawable/bg_circle_red" />
-                            <TextView
-                                android:layout_width="0dp"
+                            <!-- Pemasukan -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:layout_marginStart="8dp"
-                                android:text="@string/hc_fragment_monthly_dashboard_pengeluaran"
-                                android:textColor="@color/finan_text_secondary"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                        <TextView
-                            android:id="@+id/monthly_hero_expense"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_marginTop="2dp"
-                            android:textColor="@color/finan_expense"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
 
+                                <View
+                                    android:layout_width="8dp"
+                                    android:layout_height="8dp"
+                                    android:background="@drawable/bg_circle_green" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:text="@string/hc_fragment_monthly_dashboard_pemasukan"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/monthly_hero_income"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/finan_primary"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <!-- Pengeluaran -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <View
+                                    android:layout_width="8dp"
+                                    android:layout_height="8dp"
+                                    android:background="@drawable/bg_circle_red" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:text="@string/hc_fragment_monthly_dashboard_pengeluaran"
+                                    android:textColor="?attr/colorOnSurfaceVariant"
+                                    android:textSize="11sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/monthly_hero_expense"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/finan_expense"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
                     </LinearLayout>
-                </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
             <!-- Mini Header for Collapsed State -->
@@ -233,37 +264,42 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp"
             android:background="?android:colorBackground">
-            
+
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/monthly_tabs"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
                 android:background="@drawable/bg_tab_container"
                 app:tabIndicator="@drawable/bg_tab_indicator"
-                app:tabIndicatorGravity="stretch"
                 app:tabIndicatorAnimationMode="elastic"
-                app:tabSelectedTextColor="@android:color/white"
-                app:tabTextColor="@color/finan_text_secondary"
+                app:tabIndicatorGravity="stretch"
+                app:tabIndicatorFullWidth="true"
+                app:tabMode="fixed"
+                app:tabGravity="fill"
+                app:tabMaxWidth="0dp"
+                app:tabPaddingStart="0dp"
+                app:tabPaddingEnd="0dp"
                 app:tabRippleColor="@null"
-                app:tabTextAppearance="@style/Finan.TabTextAppearance">
-    
+                app:tabSelectedTextColor="@android:color/white"
+                app:tabTextAppearance="@style/Finan.TabTextAppearance"
+                app:tabTextColor="?attr/colorOnSurfaceVariant">
+
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/hc_fragment_monthly_dashboard_transaksi" />
-    
+
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/hc_fragment_monthly_dashboard_ringkasan" />
             </com.google.android.material.tabs.TabLayout>
         </FrameLayout>
-        
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -288,9 +324,17 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="24dp"
+        android:padding="32dp"
         android:visibility="gone"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_nav_history"
+            app:tint="?attr/colorOnSurfaceVariant" />
 
         <TextView
             android:id="@+id/monthly_empty_title"
@@ -298,18 +342,18 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:text="@string/history_empty"
-            android:textColor="@color/finan_text_primary"
-            android:textSize="17sp"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/monthly_empty_hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:gravity="center"
             android:text="@string/history_empty_hint"
-            android:textColor="@color/finan_text_secondary"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp" />
     </LinearLayout>
     
@@ -332,155 +376,195 @@
             android:paddingBottom="80dp">
 
             <!-- Weekly Chart (Aktivitas Mingguan) -->
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/monthly_weekly_chart"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/bg_card"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:visibility="gone">
+                android:visibility="gone"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/monthly_weekly_chart_title"
-                        style="@style/Finan.Text.SectionLabel"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/hc_fragment_monthly_dashboard_aktivitas_harian" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="28dp"
-                        android:background="@drawable/bg_toggle_frame">
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
                         <TextView
-                            android:id="@+id/monthly_chart_toggle_income"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:background="@android:color/transparent"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                            android:gravity="center"
-                            android:paddingStart="10dp"
-                            android:paddingEnd="10dp"
-                            android:text="@string/hc_fragment_monthly_dashboard_pemasukan"
-                            android:textColor="#4A9E7F"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                            android:id="@+id/monthly_weekly_chart_title"
+                            style="@style/Finan.Text.SectionLabel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/hc_fragment_monthly_dashboard_aktivitas_harian" />
 
-                        <TextView
-                            android:id="@+id/monthly_chart_toggle_expense"
+                        <FrameLayout
                             android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:background="@drawable/bg_toggle_active"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                            android:gravity="center"
-                            android:paddingStart="10dp"
-                            android:paddingEnd="10dp"
-                            android:text="@string/hc_fragment_monthly_dashboard_pengeluaran"
-                            android:textColor="#FFFFFF"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_toggle_track"
+                            android:padding="2dp">
+
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/monthly_weekly_toggle_group"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                app:selectionRequired="true"
+                                app:singleSelection="true">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/monthly_chart_toggle_income"
+                                    style="?attr/materialButtonOutlinedStyle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:paddingStart="12dp"
+                                    android:paddingEnd="12dp"
+                                    android:text="@string/hc_fragment_monthly_dashboard_pemasukan"
+                                    android:textColor="@color/finan_toggle_text_selector"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="@color/finan_toggle_bg_selector"
+                                    app:cornerRadius="16dp"
+                                    app:strokeWidth="0dp" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/monthly_chart_toggle_expense"
+                                    style="?attr/materialButtonOutlinedStyle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:paddingStart="12dp"
+                                    android:paddingEnd="12dp"
+                                    android:text="@string/hc_fragment_monthly_dashboard_pengeluaran"
+                                    android:textColor="@color/finan_toggle_text_selector"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="@color/finan_toggle_bg_selector"
+                                    app:cornerRadius="16dp"
+                                    app:strokeWidth="0dp" />
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+                        </FrameLayout>
                     </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/monthly_chart_legend"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:orientation="horizontal" />
+
+                    <LinearLayout
+                        android:id="@+id/monthly_chart_weeks"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical" />
                 </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/monthly_chart_legend"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center"
-                    android:orientation="horizontal" />
-
-                <LinearLayout
-                    android:id="@+id/monthly_chart_weeks"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="vertical" />
-            </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Category Breakdown Chart -->
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/monthly_category_chart"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:background="@drawable/bg_card"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:visibility="gone">
+                android:visibility="gone"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        style="@style/Finan.Text.SectionLabel"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/hc_fragment_monthly_dashboard_total_per_kategori" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="28dp"
-                        android:background="@drawable/bg_toggle_frame">
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
                         <TextView
-                            android:id="@+id/monthly_cat_chart_toggle_income"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:background="@android:color/transparent"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                            android:gravity="center"
-                            android:paddingStart="10dp"
-                            android:paddingEnd="10dp"
-                            android:text="@string/hc_fragment_monthly_dashboard_pemasukan"
-                            android:textColor="#4A9E7F"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                            style="@style/Finan.Text.SectionLabel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/hc_fragment_monthly_dashboard_total_per_kategori" />
 
-                        <TextView
-                            android:id="@+id/monthly_cat_chart_toggle_expense"
+                        <FrameLayout
                             android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:background="@drawable/bg_toggle_active"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:foreground="?android:attr/selectableItemBackgroundBorderless"
-                            android:gravity="center"
-                            android:paddingStart="10dp"
-                            android:paddingEnd="10dp"
-                            android:text="@string/hc_fragment_monthly_dashboard_pengeluaran"
-                            android:textColor="#FFFFFF"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_toggle_track"
+                            android:padding="2dp">
+
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/monthly_cat_toggle_group"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                app:selectionRequired="true"
+                                app:singleSelection="true">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/monthly_cat_chart_toggle_income"
+                                    style="?attr/materialButtonOutlinedStyle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:paddingStart="12dp"
+                                    android:paddingEnd="12dp"
+                                    android:text="@string/hc_fragment_monthly_dashboard_pemasukan"
+                                    android:textColor="@color/finan_toggle_text_selector"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="@color/finan_toggle_bg_selector"
+                                    app:cornerRadius="16dp"
+                                    app:strokeWidth="0dp" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/monthly_cat_chart_toggle_expense"
+                                    style="?attr/materialButtonOutlinedStyle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"
+                                    android:insetTop="0dp"
+                                    android:insetBottom="0dp"
+                                    android:paddingStart="12dp"
+                                    android:paddingEnd="12dp"
+                                    android:text="@string/hc_fragment_monthly_dashboard_pengeluaran"
+                                    android:textColor="@color/finan_toggle_text_selector"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="@color/finan_toggle_bg_selector"
+                                    app:cornerRadius="16dp"
+                                    app:strokeWidth="0dp" />
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+                        </FrameLayout>
                     </LinearLayout>
-                </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/monthly_category_bars"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="vertical" />
-            </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/monthly_category_bars"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

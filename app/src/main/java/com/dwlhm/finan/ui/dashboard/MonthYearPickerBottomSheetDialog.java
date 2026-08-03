@@ -94,20 +94,36 @@ public class MonthYearPickerBottomSheetDialog extends Dialog {
     }
 
     private void setupPickers() {
-        int currentYear = LocalDate.now().getYear();
+        LocalDate today = LocalDate.now();
+        int currentYear = today.getYear();
+        int currentMonth = today.getMonthValue();
         
         pickerYear.setMinValue(2000);
-        pickerYear.setMaxValue(currentYear + 50);
-        pickerYear.setValue(initialYear > 0 ? initialYear : currentYear);
+        pickerYear.setMaxValue(currentYear);
+        int defaultYear = initialYear > 0 ? Math.min(initialYear, currentYear) : currentYear;
+        pickerYear.setValue(defaultYear);
 
         pickerMonth.setMinValue(0);
-        pickerMonth.setMaxValue(12);
         pickerMonth.setDisplayedValues(monthNames);
+        updateMonthPickerMax(defaultYear, currentYear, currentMonth);
         
         if (initialMode == DashboardViewModel.TimeRangeMode.YEARLY) {
             pickerMonth.setValue(0);
         } else {
-            pickerMonth.setValue(initialMonth);
+            int defaultMonth = initialMonth > 0 ? Math.min(initialMonth, pickerMonth.getMaxValue()) : currentMonth;
+            pickerMonth.setValue(defaultMonth);
+        }
+
+        pickerYear.setOnValueChangedListener((picker, oldVal, newVal) -> {
+            updateMonthPickerMax(newVal, currentYear, currentMonth);
+        });
+    }
+
+    private void updateMonthPickerMax(int selectedYear, int currentYear, int currentMonth) {
+        int maxMonth = (selectedYear >= currentYear) ? currentMonth : 12;
+        pickerMonth.setMaxValue(maxMonth);
+        if (pickerMonth.getValue() > maxMonth) {
+            pickerMonth.setValue(maxMonth);
         }
     }
 }

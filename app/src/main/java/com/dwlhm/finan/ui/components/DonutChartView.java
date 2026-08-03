@@ -168,8 +168,12 @@ public final class DonutChartView extends View {
 
         paint.setStrokeWidth(strokeWidth);
 
-        // 1. Draw Outer Ring Inflow
-        paint.setColor(0xFFE9EEF2);
+        int trackColor = 0xFFE8ECEF;
+        android.util.TypedValue typedValue = new android.util.TypedValue();
+        if (getContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorSurfaceContainerHigh, typedValue, true)) {
+            trackColor = typedValue.data;
+        }
+        paint.setColor(trackColor);
         canvas.drawArc(outerRect, -90f, 360f, false, paint);
 
         if (totalInflow > 0) {
@@ -187,7 +191,7 @@ public final class DonutChartView extends View {
         }
 
         // 2. Draw Inner Ring Outflow relative to Inflow
-        paint.setColor(0xFFE9EEF2);
+        paint.setColor(trackColor);
         canvas.drawArc(innerRect, -90f, 360f, false, paint);
 
         if (totalOutflow > 0) {
