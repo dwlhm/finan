@@ -1,13 +1,12 @@
 package com.dwlhm.finan.ui;
 
 import android.os.Bundle;
-import android.view.View;
 
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.Lifecycle;
@@ -16,25 +15,34 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.capture.CaptureFragment;
 import com.dwlhm.finan.ui.category.CategoryListFragment;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
+import com.dwlhm.finan.ui.components.FloatingBottomNavView;
 import com.dwlhm.finan.ui.dashboard.DashboardFragment;
 import com.dwlhm.finan.ui.settings.SettingsFragment;
 import com.dwlhm.finan.ui.wallet.WalletListFragment;
 
-public final class MainActivity extends FragmentActivity implements ScreenNavigator {
+public final class MainActivity extends AppCompatActivity implements ScreenNavigator {
 
   private static final String KEY_SELECTED_SCREEN = "selected_screen";
   private static final String BACK_STACK_CATEGORY = "category";
   private static final String BACK_STACK_WALLET = "wallet";
 
+  private FloatingBottomNavView bottomNav;
   private Screen selectedScreen = Screen.CAPTURE;
+  private boolean isSyncingBottomNav = false;
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+
+    bottomNav = findViewById(R.id.bottom_nav);
     setupBottomNav();
 
-    getSupportFragmentManager().addOnBackStackChangedListener(this::syncBottomNav);
+    getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+      if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
+        syncBottomNav();
+      }
+    });
 
     if (savedInstanceState != null) {
       selectedScreen =
@@ -74,25 +82,21 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
 
   @Override
   public void openHistoryForCategory(long categoryId) {
-    showScreen(Screen.DASHBOARD, true);
-    // TODO: implement navigation to specific category in Dashboard
+    showScreen(Screen.DASHBOARD, false);
   }
 
   @Override
   public void openHistoryWithFilter(String type, long startDate, long endDate, Long walletId, Long categoryId) {
-    showScreen(Screen.DASHBOARD, true);
-    // TODO: implement navigation with filters in Dashboard
+    showScreen(Screen.DASHBOARD, false);
   }
 
   @Override
   public void openHistoryForActivity(String activity) {
-    showScreen(Screen.DASHBOARD, true);
-    // TODO: implement navigation with activity filter in Dashboard
+    showScreen(Screen.DASHBOARD, false);
   }
 
   private void openSettingsChild(Fragment fragment, String tag, String backStackName) {
     FragmentManager fragmentManager = getSupportFragmentManager();
-    fragmentManager.executePendingTransactions();
 
     Fragment existing = fragmentManager.findFragmentByTag(tag);
     if (existing != null && existing.isVisible()) {
@@ -119,31 +123,31 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
     transaction.setPrimaryNavigationFragment(fragment);
     transaction.addToBackStack(backStackName);
     transaction.commit();
-    syncBottomNav();
+    slideUpNavContainer();
   }
 
   private void setupBottomNav() {
-    setNavClick(R.id.nav_capture, Screen.CAPTURE);
-    setNavClick(R.id.nav_dashboard, Screen.DASHBOARD);
-    setNavClick(R.id.nav_settings, Screen.SETTINGS);
+    bottomNav.setOnItemSelectedListener(itemId -> {
+      if (isSyncingBottomNav) {
+        return true;
+      }
+      Screen screen = Screen.fromItemId(itemId);
+      if (screen != null && screen != selectedScreen) {
+        showScreen(screen, false);
+      }
+      return true;
+    });
     syncBottomNav();
-  }
-
-  private void setNavClick(@IdRes int buttonId, Screen screen) {
-    View item = findViewById(buttonId);
-    item.setOnClickListener(v -> showScreen(screen, true));
   }
 
   private void showScreen(Screen screen, boolean animate) {
     FragmentManager fragmentManager = getSupportFragmentManager();
-    fragmentManager.executePendingTransactions();
 
     if (fragmentManager.getBackStackEntryCount() > 0) {
-      fragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+      fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
     }
 
     if (screen == selectedScreen && isVisibleTab(screen)) {
-      syncBottomNav();
       return;
     }
 
@@ -157,7 +161,7 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
 
     for (Screen tab : Screen.values()) {
       Fragment fragment = fragmentManager.findFragmentByTag(tab.tag);
-      if (fragment != null) {
+      if (fragment != null && !tab.tag.equals(screen.tag)) {
         transaction.hide(fragment);
         transaction.setMaxLifecycle(fragment, Lifecycle.State.STARTED);
       }
@@ -167,12 +171,25 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
     if (target == null) {
       target = screen.createFragment();
       transaction.add(R.id.main_content, target, screen.tag);
+    } else {
+      transaction.show(target);
     }
-    transaction.show(target);
     transaction.setMaxLifecycle(target, Lifecycle.State.RESUMED);
     transaction.setPrimaryNavigationFragment(target);
     transaction.commit();
+
     syncBottomNav();
+    slideUpNavContainer();
+  }
+
+  private void slideUpNavContainer() {
+    if (bottomNav != null && bottomNav.getLayoutParams() instanceof androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams) {
+      androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams params =
+          (androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams) bottomNav.getLayoutParams();
+      if (params.getBehavior() instanceof com.google.android.material.behavior.HideBottomViewOnScrollBehavior) {
+        ((com.google.android.material.behavior.HideBottomViewOnScrollBehavior<android.view.View>) params.getBehavior()).slideUp(bottomNav);
+      }
+    }
   }
 
   private boolean isVisibleTab(Screen screen) {
@@ -181,24 +198,28 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
   }
 
   private void syncBottomNav() {
-    setSelected(R.id.nav_capture, selectedScreen == Screen.CAPTURE);
-    setSelected(R.id.nav_dashboard, selectedScreen == Screen.DASHBOARD);
-    setSelected(R.id.nav_settings, selectedScreen == Screen.SETTINGS);
-  }
-
-  private void setSelected(@IdRes int buttonId, boolean selected) {
-    View item = findViewById(buttonId);
-    item.setSelected(selected);
+    if (bottomNav != null && selectedScreen != null) {
+      if (bottomNav.getSelectedItemId() != selectedScreen.itemId) {
+        isSyncingBottomNav = true;
+        try {
+          bottomNav.setSelectedItemId(selectedScreen.itemId);
+        } finally {
+          isSyncingBottomNav = false;
+        }
+      }
+    }
   }
 
   private enum Screen {
-    CAPTURE("capture"),
-    DASHBOARD("dashboard"),
-    SETTINGS("settings");
+    CAPTURE(R.id.nav_capture, "capture"),
+    DASHBOARD(R.id.nav_dashboard, "dashboard"),
+    SETTINGS(R.id.nav_settings, "settings");
 
+    @IdRes private final int itemId;
     private final String tag;
 
-    Screen(String tag) {
+    Screen(@IdRes int itemId, String tag) {
+      this.itemId = itemId;
       this.tag = tag;
     }
 
@@ -214,7 +235,20 @@ public final class MainActivity extends FragmentActivity implements ScreenNaviga
       }
     }
 
+    @Nullable
+    private static Screen fromItemId(int itemId) {
+      for (Screen screen : values()) {
+        if (screen.itemId == itemId) {
+          return screen;
+        }
+      }
+      return null;
+    }
+
     private static Screen fromTag(@Nullable String tag, Screen fallback) {
+      if (tag == null) {
+        return fallback;
+      }
       for (Screen screen : values()) {
         if (screen.tag.equals(tag)) {
           return screen;

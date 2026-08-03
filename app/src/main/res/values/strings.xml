@@ -43,6 +43,7 @@
     <string name="capture_error_save">Gagal menyimpan transaksi</string>
 
     <string name="nav_capture">Catat</string>
+    <string name="nav_dashboard">Buku Kas</string>
     <string name="nav_settings">Pengaturan</string>
 
     <string name="history_title">Riwayat</string>
