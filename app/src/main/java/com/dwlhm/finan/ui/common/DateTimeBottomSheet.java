@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.common;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -19,18 +19,16 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-public final class DateTimeBottomSheet extends Dialog {
+public final class DateTimeBottomSheet extends BottomSheetDialog {
 
   public interface OnDateTimeSelectedListener {
     void onDateTimeSelected(long millis);
   }
 
   private static final DateTimeFormatter PREVIEW_FMT =
-      DateTimeFormatter.ofPattern("d MMMM yyyy  \u2022  HH:mm", Locale.forLanguageTag("id-ID"));
+      DateTimeFormatter.ofPattern("d MMMM yyyy  •  HH:mm", Locale.forLanguageTag("id-ID"));
 
   private final OnDateTimeSelectedListener listener;
-  private CustomDatePickerView datePicker;
-  private CustomTimePickerView timePicker;
   private TextView preview;
   private long currentMillis;
 
@@ -60,40 +58,46 @@ public final class DateTimeBottomSheet extends Dialog {
     }
 
     preview = findViewById(R.id.date_time_preview);
-    datePicker = findViewById(R.id.date_picker_custom);
-    timePicker = findViewById(R.id.time_picker_custom);
+    CustomDatePickerView datePicker = findViewById(R.id.date_picker_custom);
+    CustomTimePickerView timePicker = findViewById(R.id.time_picker_custom);
     DialogActionsView actions = findViewById(R.id.date_time_actions);
 
     updatePreview();
-    datePicker.setDate(currentMillis);
-    timePicker.setTime(
-        LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault()).getHour(),
-        LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault()).getMinute());
+    if (datePicker != null) {
+      datePicker.setDate(currentMillis);
+      datePicker.setOnDateSelectedListener(millis -> {
+        LocalDateTime dt = LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault());
+        LocalDateTime cur = LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault());
+        currentMillis = dt.toLocalDate().atTime(cur.toLocalTime()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        updatePreview();
+      });
+    }
 
-    datePicker.setOnDateSelectedListener(millis -> {
-      LocalDateTime dt = LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault());
-      LocalDateTime cur = LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault());
-      currentMillis = dt.toLocalDate().atTime(cur.toLocalTime()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      updatePreview();
-    });
-
-    timePicker.setOnTimeSelectedListener((h, m) -> {
-      LocalDateTime dt = LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault());
-      currentMillis = dt.toLocalDate().atTime(h, m).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      updatePreview();
-    });
-
-    actions.setOnPrimaryClickListener(v -> {
-      listener.onDateTimeSelected(currentMillis);
-      dismiss();
-    });
-    actions.setOnCancelClickListener(v -> dismiss());
+    if (timePicker != null) {
+      timePicker.setTime(
+          LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault()).getHour(),
+          LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault()).getMinute());
+      timePicker.setOnTimeSelectedListener((h, m) -> {
+        LocalDateTime dt = LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault());
+        currentMillis = dt.toLocalDate().atTime(h, m).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        updatePreview();
+      });
+    }
+    if (actions != null) {
+      actions.setOnPrimaryClickListener(v -> {
+        listener.onDateTimeSelected(currentMillis);
+        dismiss();
+      });
+      actions.setOnCancelClickListener(v -> dismiss());
+    }
 
     BottomSheetHelper.makeDraggable(this);
   }
 
   private void updatePreview() {
-    preview.setText(
-        LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault()).format(PREVIEW_FMT));
+    if (preview != null) {
+      preview.setText(
+          LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault()).format(PREVIEW_FMT));
+    }
   }
 }

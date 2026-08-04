@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.common;
 
-import android.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.text.TextUtils;
@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@SuppressWarnings("unused")
 public final class FilterDialog {
 
   public interface ApplyListener {
@@ -104,7 +105,7 @@ public final class FilterDialog {
       content.addView(createPickerRow(context, group.label, valueView));
     }
 
-    new AlertDialog.Builder(context)
+    new MaterialAlertDialogBuilder(context)
         .setTitle(title)
         .setView(content)
         .setNeutralButton(resetText, (dialog, which) -> resetListener.onReset())
@@ -125,7 +126,7 @@ public final class FilterDialog {
       }
     }
 
-    new AlertDialog.Builder(context)
+    new MaterialAlertDialogBuilder(context)
         .setTitle(group.pickerTitle)
         .setSingleChoiceItems(
             labels,

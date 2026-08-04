@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.wallet;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.view.WindowManager;
 import android.widget.CheckBox;
@@ -17,7 +17,7 @@ import com.dwlhm.finan.ui.common.DialogActionsView;
 import com.dwlhm.finan.ui.common.EmojiConstants;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
 
-public final class WalletEditBottomSheet extends Dialog {
+public final class WalletEditBottomSheet extends BottomSheetDialog {
 
   private final AppServices services;
   private final Wallet wallet;
@@ -40,8 +40,9 @@ public final class WalletEditBottomSheet extends Dialog {
   private void setupViews() {
     LabeledEditTextView iconField = findViewById(R.id.wallet_icon_field);
     LabeledEditTextView nameField = findViewById(R.id.wallet_name_field);
-    EditText iconInput = iconField.getEditText();
-    EditText nameInput = nameField.getEditText();
+    EditText iconInput = iconField != null ? iconField.getEditText() : null;
+    EditText nameInput = nameField != null ? nameField.getEditText() : null;
+    if (iconInput == null || nameInput == null) return;
     iconInput.setFilters(new android.text.InputFilter[] { new android.text.InputFilter.LengthFilter(2) });
     CheckBox defaultInput = findViewById(R.id.wallet_default_input);
     DialogActionsView actionsView = findViewById(R.id.wallet_actions);
@@ -52,17 +53,23 @@ public final class WalletEditBottomSheet extends Dialog {
     }
     nameInput.setText(wallet.getName());
     nameInput.setSelection(nameInput.getText().length());
-    defaultInput.setChecked(wallet.isDefault());
-    defaultInput.setEnabled(!wallet.isDefault());
-    defaultInput.setAlpha(wallet.isDefault() ? 0.72f : 1f);
+    if (defaultInput != null) {
+      defaultInput.setChecked(wallet.isDefault());
+      defaultInput.setEnabled(!wallet.isDefault());
+      defaultInput.setAlpha(wallet.isDefault() ? 0.72f : 1f);
+    }
 
-    actionsView.setOnCancelClickListener(v -> dismiss());
-    actionsView.setOnPrimaryClickListener(
-        v -> submitUpdate(nameInput, iconInput, defaultInput, actionsView));
+    if (actionsView != null) {
+      actionsView.setOnCancelClickListener(v -> dismiss());
+      actionsView.setOnPrimaryClickListener(
+          v -> submitUpdate(nameInput, iconInput, defaultInput, actionsView));
+    }
 
     BottomSheetHelper.show(this);
     nameInput.requestFocus();
-    getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    if (getWindow() != null) {
+      getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    }
   }
 
   private void submitUpdate(

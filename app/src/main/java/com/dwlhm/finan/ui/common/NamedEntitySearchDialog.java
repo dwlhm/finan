@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.common;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
@@ -19,7 +19,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-import android.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.util.search.FuzzySearch;
@@ -29,7 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class NamedEntitySearchDialog<T> extends Dialog {
+@SuppressWarnings("unused")
+public final class NamedEntitySearchDialog<T> extends BottomSheetDialog {
 
   public interface Listener<T> {
     void onEntityChosen(T entity, boolean created);
@@ -86,7 +87,7 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
       @StringRes int emptyNameRes,
       @StringRes int alreadyExistsRes,
       @Nullable Set<Long> excludeIds) {
-    super(context);
+    super(context, R.style.Finan_BottomSheetDialog);
     this.access = access;
     this.dbWorker = dbWorker;
     this.listener = listener;
@@ -109,22 +110,27 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.dialog_named_entity_search);
     if (getWindow() != null) {
-      getWindow()
-          .setLayout(
-              WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
       getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
     }
+    BottomSheetHelper.show(this);
 
     TextView titleView = findViewById(R.id.named_entity_search_title);
-    titleView.setText(titleRes);
+    if (titleView != null) {
+      titleView.setText(titleRes);
+    }
     searchInput = findViewById(R.id.named_entity_search_input);
-    searchInput.setHint(hintRes);
+    if (searchInput != null) {
+      searchInput.setHint(hintRes);
+    }
     ListView listView = findViewById(R.id.named_entity_search_list);
 
     listAdapter = new SearchListAdapter();
-    listView.setAdapter(listAdapter);
+    if (listView != null) {
+      listView.setAdapter(listAdapter);
+    }
 
-    searchInput.addTextChangedListener(
+    if (searchInput != null) {
+      searchInput.addTextChangedListener(
         new TextWatcher() {
           @Override
           public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -137,11 +143,13 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
           @Override
           public void afterTextChanged(Editable s) {}
         });
+      searchInput.requestFocus();
+      searchInput.post(this::showKeyboard);
+    }
 
-    listView.setOnItemClickListener((parent, view, position, id) -> listAdapter.onItemClick(position));
-
-    searchInput.requestFocus();
-    searchInput.post(this::showKeyboard);
+    if (listView != null) {
+      listView.setOnItemClickListener((parent, view, position, id) -> listAdapter.onItemClick(position));
+    }
   }
 
   private void showKeyboard() {
@@ -229,7 +237,7 @@ public final class NamedEntitySearchDialog<T> extends Dialog {
       nameInput.setSelection(prefill.length());
     }
 
-    new AlertDialog.Builder(getContext())
+    new MaterialAlertDialogBuilder(getContext())
         .setTitle(addNewDialogTitleRes)
         .setView(dialogView)
         .setPositiveButton(

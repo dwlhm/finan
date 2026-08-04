@@ -4,7 +4,7 @@
     <!-- Disabled: abu terang, teks tidak menarik perhatian -->
     <item android:state_enabled="false">
         <shape android:shape="rectangle">
-            <solid android:color="#DDE3E8" />
+            <solid android:color="@color/finan_btn_disabled_bg" />
             <corners android:radius="20dp" />
         </shape>
     </item>
@@ -20,11 +20,7 @@
     <!-- Default enabled: gradient teal ke hijau halus -->
     <item>
         <shape android:shape="rectangle">
-            <gradient
-                android:startColor="#2D6A6A"
-                android:endColor="#3A7E68"
-                android:angle="135"
-                android:type="linear" />
+            <solid android:color="@color/finan_primary" />
             <corners android:radius="20dp" />
         </shape>
     </item>

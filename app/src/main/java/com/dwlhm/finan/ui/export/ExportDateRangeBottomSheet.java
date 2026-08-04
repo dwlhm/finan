@@ -1,7 +1,7 @@
 package com.dwlhm.finan.ui.export;
 
 import android.annotation.SuppressLint;
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -27,7 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 @SuppressLint("SetTextI18n")
-public final class ExportDateRangeBottomSheet extends Dialog {
+public final class ExportDateRangeBottomSheet extends BottomSheetDialog {
 
   public interface OnRangeSelectedListener {
     void onRangeSelected(@Nullable Long startDate, @Nullable Long endDate);
@@ -73,51 +73,59 @@ public final class ExportDateRangeBottomSheet extends Dialog {
     TextView reset = findViewById(R.id.export_date_reset);
     DialogActionsView actions = findViewById(R.id.export_date_actions);
 
-    datePicker.setRangeMode(true);
+    if (datePicker != null) {
+      datePicker.setRangeMode(true);
 
-    // Jika ada initial range, tampilkan di calendar
-    if (startDate != null && endDate != null) {
-      datePicker.setRange(startDate, endDate - 86400000L);
-    } else {
-      // Default ke siklus gaji yang sedang berjalan
-      int cutoffDay = getContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
-          .getInt("cutoff_day", 1);
-      DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), cutoffDay);
-      long s = range.getStart().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      long e = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      datePicker.setRange(s, e);
+      // Jika ada initial range, tampilkan di calendar
+      if (startDate != null && endDate != null) {
+        datePicker.setRange(startDate, endDate - 86400000L);
+      } else {
+        // Default ke siklus gaji yang sedang berjalan
+        int cutoffDay = getContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+            .getInt("cutoff_day", 1);
+        DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), cutoffDay);
+        long s = range.getStart().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long e = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        datePicker.setRange(s, e);
+      }
+
+      datePicker.setOnRangeSelectedListener((s, e) -> {
+        startDate = s;
+        endDate = e + 86400000L; // end is exclusive (next day)
+        refreshPreview();
+      });
     }
 
-    datePicker.setOnRangeSelectedListener((s, e) -> {
-      startDate = s;
-      endDate = e + 86400000L; // end is exclusive (next day)
-      refreshPreview();
-    });
 
     refreshPreview();
 
-    reset.setOnClickListener(v -> {
-      startDate = null;
-      endDate = null;
-      refreshPreview();
-    });
+    if (reset != null) {
+      reset.setOnClickListener(v -> {
+        startDate = null;
+        endDate = null;
+        refreshPreview();
+      });
+    }
 
-    actions.setOnPrimaryClickListener(v -> {
-      listener.onRangeSelected(startDate, endDate);
-      dismiss();
-    });
-    actions.setOnCancelClickListener(v -> dismiss());
+    if (actions != null) {
+      actions.setOnPrimaryClickListener(v -> {
+        listener.onRangeSelected(startDate, endDate);
+        dismiss();
+      });
+      actions.setOnCancelClickListener(v -> dismiss());
+    }
 
     BottomSheetHelper.makeDraggable(this);
   }
 
   private void refreshPreview() {
+    if (rangePreview == null) return;
     if (startDate != null && endDate != null) {
       String startStr = Instant.ofEpochMilli(startDate).atZone(ZoneId.systemDefault()).toLocalDate().format(FMT);
       String endStr   = Instant.ofEpochMilli(endDate - 86400000L).atZone(ZoneId.systemDefault()).toLocalDate().format(FMT);
       rangePreview.setText(startStr + "  →  " + endStr);
     } else {
-      rangePreview.setText(getContext().getString(R.string.export_date_all_time));
+      rangePreview.setText(R.string.export_date_all_time);
     }
   }
 }

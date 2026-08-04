@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.summary;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,7 +18,7 @@ public class FinancialAdviceDialog {
     public static void show(Context context, FinancialAdvisor.Advice advice, MonthlySummary summary, com.dwlhm.finan.ui.dashboard.DashboardViewModel.DisplayMode mode) {
         if (advice == null || summary == null) return;
         
-        Dialog dialog = new Dialog(context);
+        BottomSheetDialog dialog = new BottomSheetDialog(context, R.style.Finan_BottomSheetDialog);
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_financial_advice, null);
         dialog.setContentView(view);
         

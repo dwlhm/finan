@@ -1,10 +1,9 @@
 package com.dwlhm.finan.ui.summary;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -22,7 +21,7 @@ import com.dwlhm.finan.ui.common.EntitySearchBottomSheet;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class SummaryFilterBottomSheet extends Dialog {
+public final class SummaryFilterBottomSheet extends BottomSheetDialog {
 
   public interface OnApplyListener {
     void onApply(@Nullable Long walletId, @Nullable Long categoryId);
@@ -98,23 +97,27 @@ public final class SummaryFilterBottomSheet extends Dialog {
     categoryValue.setOnClickListener(v -> openCategorySheet());
 
     TextView resetButton = findViewById(R.id.filter_reset);
-    resetButton.setOnClickListener(
-        v -> {
-          pendingWalletId = null;
-          pendingCategoryId = null;
-          updateWalletLabel();
-          updateCategoryLabel();
-          resetListener.onReset();
-          dismiss();
-        });
+    if (resetButton != null) {
+      resetButton.setOnClickListener(
+          v -> {
+            pendingWalletId = null;
+            pendingCategoryId = null;
+            updateWalletLabel();
+            updateCategoryLabel();
+            resetListener.onReset();
+            dismiss();
+          });
+    }
 
     DialogActionsView actions = findViewById(R.id.filter_actions);
-    actions.setOnPrimaryClickListener(
-        v -> {
-          applyListener.onApply(pendingWalletId, pendingCategoryId);
-          dismiss();
-        });
-    actions.setOnCancelClickListener(v -> dismiss());
+    if (actions != null) {
+      actions.setOnPrimaryClickListener(
+          v -> {
+            applyListener.onApply(pendingWalletId, pendingCategoryId);
+            dismiss();
+          });
+      actions.setOnCancelClickListener(v -> dismiss());
+    }
 
     BottomSheetHelper.makeDraggable(this);
   }
@@ -133,7 +136,7 @@ public final class SummaryFilterBottomSheet extends Dialog {
             getContext(),
             items,
             selectedId,
-            new EntitySearchBottomSheet.ItemMapper<FilterItem>() {
+            new EntitySearchBottomSheet.ItemMapper<>() {
               @Override
               public String getName(FilterItem item) {
                 return item.name;
@@ -165,7 +168,7 @@ public final class SummaryFilterBottomSheet extends Dialog {
             getContext(),
             items,
             selectedId,
-            new EntitySearchBottomSheet.ItemMapper<FilterItem>() {
+            new EntitySearchBottomSheet.ItemMapper<>() {
               @Override
               public String getName(FilterItem item) {
                 return item.name;

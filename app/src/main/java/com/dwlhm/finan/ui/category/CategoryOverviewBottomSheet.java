@@ -1,14 +1,14 @@
 package com.dwlhm.finan.ui.category;
 
 import android.annotation.SuppressLint;
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import android.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.Locale;
 
 @SuppressLint("SetTextI18n")
-public final class CategoryOverviewBottomSheet extends Dialog {
+public final class CategoryOverviewBottomSheet extends BottomSheetDialog {
 
   private final AppServices services;
   private final Category category;
@@ -57,51 +57,57 @@ public final class CategoryOverviewBottomSheet extends Dialog {
     TextView activityView = findViewById(R.id.category_overview_activity);
 
     String icon = category.getIcon();
-    iconView.setText(icon == null || icon.trim().isEmpty() ? "📂" : icon);
-    nameView.setText(category.getName());
-    defaultBadge.setVisibility(category.isDefault() ? View.VISIBLE : View.GONE);
+    if (iconView != null) iconView.setText(icon == null || icon.trim().isEmpty() ? "📂" : icon);
+    if (nameView != null) nameView.setText(category.getName());
+    if (defaultBadge != null) defaultBadge.setVisibility(category.isDefault() ? View.VISIBLE : View.GONE);
 
-    String typeFilter = category.getTypeFilter();
-    if ("EXPENSE".equals(typeFilter)) {
-      typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_pengeluaran);
-    } else if ("INCOME".equals(typeFilter)) {
-      typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_pemasukan);
-    } else {
-      typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_campuran);
+    if (typeBadge != null) {
+      String typeFilter = category.getTypeFilter();
+      if ("EXPENSE".equals(typeFilter)) {
+        typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_pengeluaran);
+      } else if ("INCOME".equals(typeFilter)) {
+        typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_pemasukan);
+      } else {
+        typeBadge.setText(R.string.java_CategoryOverviewBottomSheet_campuran);
+      }
     }
 
-    usageView.setText(category.getUsageCount() + "x");
+    if (usageView != null) usageView.setText(category.getUsageCount() + "x");
 
     Long lastUsedAt = category.getLastUsedAt();
     if (lastUsedAt != null && lastUsedAt > 0L) {
-      lastUsedRow.setVisibility(View.VISIBLE);
+      if (lastUsedRow != null) lastUsedRow.setVisibility(View.VISIBLE);
       String dateStr =
           new SimpleDateFormat("d MMM yyyy", Locale.forLanguageTag("id-ID"))
               .format(new Date(lastUsedAt));
-      lastUsedView.setText(dateStr);
+      if (lastUsedView != null) lastUsedView.setText(dateStr);
     }
 
-    String activity = category.getCashFlowActivity();
-    if ("OPERATING".equals(activity)) {
-      activityView.setText(R.string.java_CategoryOverviewBottomSheet_aktivitas_harian);
-    } else if ("INVESTING".equals(activity)) {
-      activityView.setText(R.string.java_CategoryOverviewBottomSheet_aset_investasi);
-    } else if ("FINANCING".equals(activity)) {
-      activityView.setText(R.string.java_CategoryOverviewBottomSheet_pendanaan);
-    } else {
-      activityView.setText(R.string.java_CategoryOverviewBottomSheet_belum_diklasifikasi);
+    if (activityView != null) {
+      String activity = category.getCashFlowActivity();
+      if ("OPERATING".equals(activity)) {
+        activityView.setText(R.string.java_CategoryOverviewBottomSheet_aktivitas_harian);
+      } else if ("INVESTING".equals(activity)) {
+        activityView.setText(R.string.java_CategoryOverviewBottomSheet_aset_investasi);
+      } else if ("FINANCING".equals(activity)) {
+        activityView.setText(R.string.java_CategoryOverviewBottomSheet_pendanaan);
+      } else {
+        activityView.setText(R.string.java_CategoryOverviewBottomSheet_belum_diklasifikasi);
+      }
     }
 
     TextView editAction = findViewById(R.id.category_action_edit);
     TextView viewTransactionsAction = findViewById(R.id.category_action_view_transactions);
     TextView deleteAction = findViewById(R.id.category_action_delete);
 
-    editAction.setOnClickListener(v -> openEditor());
-    viewTransactionsAction.setOnClickListener(v -> {
-      dismiss();
-      navigator.openHistoryForCategory(category.getId());
-    });
-    deleteAction.setOnClickListener(v -> confirmDelete());
+    if (editAction != null) editAction.setOnClickListener(v -> openEditor());
+    if (viewTransactionsAction != null) {
+      viewTransactionsAction.setOnClickListener(v -> {
+        dismiss();
+        navigator.openHistoryForCategory(category.getId());
+      });
+    }
+    if (deleteAction != null) deleteAction.setOnClickListener(v -> confirmDelete());
   }
 
   private void openEditor() {
@@ -131,7 +137,7 @@ public final class CategoryOverviewBottomSheet extends Dialog {
           } else {
             message = "Apakah Anda yakin ingin menghapus kategori \"" + category.getName() + "\"?";
           }
-          new AlertDialog.Builder(getContext())
+          new MaterialAlertDialogBuilder(getContext())
               .setTitle("Hapus Kategori")
               .setMessage(message)
               .setNegativeButton(android.R.string.cancel, null)

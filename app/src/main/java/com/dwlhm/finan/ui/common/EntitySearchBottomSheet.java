@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.common;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -27,10 +27,9 @@ import com.dwlhm.finan.util.search.FuzzySearch;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class EntitySearchBottomSheet<T> extends Dialog {
+public class EntitySearchBottomSheet<T> extends BottomSheetDialog {
 
   public interface ItemMapper<T> {
     String getName(T item);
@@ -50,7 +49,6 @@ public class EntitySearchBottomSheet<T> extends Dialog {
   private final Runnable actionListener;
   @Nullable private final Predicate<T> isDefaultCheck;
 
-  private EditText searchInput;
   private SearchListAdapter listAdapter;
 
   public EntitySearchBottomSheet(
@@ -94,7 +92,7 @@ public class EntitySearchBottomSheet<T> extends Dialog {
   }
 
   private FuzzySearch.Index<T> buildSearchIndex(List<T> items, ItemMapper<T> mapper) {
-    return FuzzySearch.index(items, item -> mapper.getName(item));
+    return FuzzySearch.index(items, mapper::getName);
   }
 
   @Override
@@ -113,46 +111,51 @@ public class EntitySearchBottomSheet<T> extends Dialog {
       window.setWindowAnimations(android.R.style.Animation_InputMethod);
     }
 
-    searchInput = findViewById(R.id.search_input);
+    EditText searchInput = findViewById(R.id.search_input);
     ListView listView = findViewById(R.id.search_list);
 
-    if (actionText != null && actionListener != null) {
-      View footerView = LayoutInflater.from(getContext()).inflate(R.layout.item_category_search_action, listView, false);
-      TextView labelView = footerView.findViewById(R.id.category_action_label);
-      labelView.setText(actionText);
-      footerView.setOnClickListener(v -> {
-        dismiss();
-        actionListener.run();
+    if (listView != null) {
+      if (actionText != null && actionListener != null) {
+        View footerView = LayoutInflater.from(getContext()).inflate(R.layout.item_category_search_action, listView, false);
+        TextView labelView = footerView.findViewById(R.id.category_action_label);
+        if (labelView != null) {
+          labelView.setText(actionText);
+        }
+        footerView.setOnClickListener(v -> {
+          dismiss();
+          actionListener.run();
+        });
+        listView.addFooterView(footerView);
+      }
+
+      listAdapter = new SearchListAdapter();
+      listView.setAdapter(listAdapter);
+      listAdapter.setItems(allItems);
+
+      listView.setOnItemClickListener((parent, view, position, id) -> {
+        if (position < listAdapter.getCount()) {
+          T item = listAdapter.getItem(position);
+          listener.onItemSelected(item);
+          dismiss();
+        }
       });
-      listView.addFooterView(footerView);
     }
 
-    listAdapter = new SearchListAdapter();
-    listView.setAdapter(listAdapter);
-    listAdapter.setItems(allItems);
+    if (searchInput != null) {
+      searchInput.addTextChangedListener(new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-    listView.setOnItemClickListener((parent, view, position, id) -> {
-      if (position < listAdapter.getCount()) {
-        T item = listAdapter.getItem(position);
-        listener.onItemSelected(item);
-        dismiss();
-      }
-    });
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+          performSearch(s.toString());
+        }
 
-    BottomSheetHelper.makeDraggable(this);
-
-    searchInput.addTextChangedListener(new TextWatcher() {
-      @Override
-      public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-      @Override
-      public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-      @Override
-      public void afterTextChanged(Editable s) {
-        performSearch(s.toString().trim());
-      }
-    });
+        @Override
+        public void afterTextChanged(Editable s) {}
+      });
+      BottomSheetHelper.makeDraggable(this);
+    }
   }
 
   private void performSearch(String query) {

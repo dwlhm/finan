@@ -11,7 +11,7 @@
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="24dp"
-        android:background="#E0E0E0" />
+        android:background="@drawable/bg_bottom_sheet_handle" />
 
     <LinearLayout
         android:layout_width="match_parent"

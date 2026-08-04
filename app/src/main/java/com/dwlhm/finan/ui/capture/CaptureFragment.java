@@ -103,6 +103,7 @@ public final class CaptureFragment extends ScreenFragment {
 
   private boolean saveInProgress;
 
+  @android.annotation.SuppressLint("ClickableViewAccessibility")
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
     amountInput = view.findViewById(R.id.capture_amount);
@@ -585,7 +586,7 @@ public final class CaptureFragment extends ScreenFragment {
     }
     
     int enabledColor = androidx.core.content.ContextCompat.getColor(requireContext(), colorRes);
-    int disabledColor = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_divider);
+    int disabledColor = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_btn_disabled_bg);
     
     android.content.res.ColorStateList colorStateList = new android.content.res.ColorStateList(
         new int[][] {
@@ -602,6 +603,9 @@ public final class CaptureFragment extends ScreenFragment {
     if (bg != null) {
         bg = bg.mutate();
         androidx.core.graphics.drawable.DrawableCompat.setTintList(bg, colorStateList);
+    }
+    if (captureSaveLabel != null) {
+        captureSaveLabel.setTextColor(androidx.core.content.ContextCompat.getColorStateList(requireContext(), R.color.btn_text_pill));
     }
   }
 
@@ -759,6 +763,9 @@ public final class CaptureFragment extends ScreenFragment {
       boolean shouldEnable = amount > 0;
       if (captureSaveButtonArea.isEnabled() != shouldEnable) {
           captureSaveButtonArea.setEnabled(shouldEnable);
+          if (captureSaveLabel != null) {
+              captureSaveLabel.setEnabled(shouldEnable);
+          }
       }
   }
 
@@ -821,7 +828,6 @@ public final class CaptureFragment extends ScreenFragment {
           calcOperand = new StringBuilder(remaining);
           exprString.setLength(0);
       }
-
       if (exprString.length() == 0) {
           exprString = null;
           calcOperand = null;

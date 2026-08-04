@@ -1,7 +1,7 @@
 package com.dwlhm.finan.ui.transaction;
 
-import android.app.AlertDialog;
-import android.app.Dialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -41,9 +41,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
-public final class TransactionDetailDialog extends Dialog {
+public final class TransactionDetailDialog extends BottomSheetDialog {
 
   public interface Listener {
     void onTransactionChanged();
@@ -89,7 +88,7 @@ public final class TransactionDetailDialog extends Dialog {
       @NonNull AppServices services,
       @NonNull Transaction transaction,
       @Nullable Listener listener) {
-    super(context);
+    super(context, R.style.Finan_BottomSheetDialog);
     this.services = services;
     this.transactionId = transaction.getId();
     this.transaction = transaction;
@@ -142,19 +141,25 @@ public final class TransactionDetailDialog extends Dialog {
     dateView = findViewById(R.id.transaction_detail_date);
     noteView = findViewById(R.id.transaction_detail_note);
     LabeledEditTextView amountField = findViewById(R.id.transaction_edit_amount_field);
-    amountInput = amountField.getEditText();
+    if (amountField != null) {
+      amountInput = amountField.getEditText();
+    }
     typeGroup = findViewById(R.id.transaction_edit_type_group);
     walletSpinner = findViewById(R.id.transaction_edit_wallet_spinner);
     categoryButton = findViewById(R.id.transaction_edit_category_button);
     noteInput = findViewById(R.id.transaction_edit_note);
     secondaryButton = findViewById(R.id.transaction_action_secondary);
     primaryButton = findViewById(R.id.transaction_action_primary);
-    occurredAtPicker =
-        new TransactionOccurredAtPicker(
-            getContext(),
-            findViewById(R.id.transaction_occurred_date),
-            findViewById(R.id.transaction_occurred_time),
-            System.currentTimeMillis());
+    TextView dateBtn = findViewById(R.id.transaction_occurred_date);
+    TextView timeBtn = findViewById(R.id.transaction_occurred_time);
+    if (dateBtn != null && timeBtn != null) {
+      occurredAtPicker =
+          new TransactionOccurredAtPicker(
+              getContext(),
+              dateBtn,
+              timeBtn,
+              System.currentTimeMillis());
+    }
   }
 
   private void loadDetail() {
@@ -227,7 +232,7 @@ public final class TransactionDetailDialog extends Dialog {
   }
 
   private void confirmDeleteSystemTransaction() {
-    new AlertDialog.Builder(getContext())
+    new MaterialAlertDialogBuilder(getContext())
         .setMessage(R.string.transaction_delete_system_confirmation)
         .setNegativeButton(android.R.string.cancel, null)
         .setPositiveButton(

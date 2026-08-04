@@ -10,13 +10,31 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 public final class BottomSheetHelper {
 
   private static final String PREFS_NAME = "finan_prefs";
   private static final String MASKED_MODE_KEY = "settings_wallet_masked_mode";
 
+  public static void show(BottomSheetDialog dialog) {
+    dialog.show();
+    FrameLayout bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+    if (bottomSheet != null) {
+      bottomSheet.setBackground(new ColorDrawable(Color.TRANSPARENT));
+      BottomSheetBehavior<FrameLayout> behavior = BottomSheetBehavior.from(bottomSheet);
+      behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+      behavior.setSkipCollapsed(true);
+    }
+  }
+
   public static void show(Dialog dialog) {
+    if (dialog instanceof BottomSheetDialog) {
+      show((BottomSheetDialog) dialog);
+      return;
+    }
     dialog.show();
     Window window = dialog.getWindow();
     if (window != null) {
@@ -32,6 +50,9 @@ public final class BottomSheetHelper {
   }
 
   public static void makeDraggable(Dialog dialog) {
+    if (dialog instanceof BottomSheetDialog) {
+      return;
+    }
     Window window = dialog.getWindow();
     if (window == null) return;
 

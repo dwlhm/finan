@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.wallet;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.app.Activity;
 import android.content.Context;
 import android.text.Editable;
@@ -36,7 +36,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public final class WalletOverviewBottomSheet extends Dialog {
+public final class WalletOverviewBottomSheet extends BottomSheetDialog {
 
   private final Activity activity;
   private final AppServices services;
@@ -73,80 +73,100 @@ public final class WalletOverviewBottomSheet extends Dialog {
     LinearLayout transactionRow = findViewById(R.id.wallet_overview_transaction_row);
 
     String walletIcon = wallet.getIcon();
-    if (walletIcon != null && !walletIcon.trim().isEmpty()) {
-      iconView.setText(walletIcon);
-    } else {
-      iconView.setText(wallet.isDefault() ? "⭐" : "💳");
+    if (iconView != null) {
+      if (walletIcon != null && !walletIcon.trim().isEmpty()) {
+        iconView.setText(walletIcon);
+      } else {
+        iconView.setText(wallet.isDefault() ? "⭐" : "💳");
+      }
     }
-    nameView.setText(wallet.getName());
-    defaultBadge.setVisibility(wallet.isDefault() ? View.VISIBLE : View.GONE);
+    if (nameView != null) nameView.setText(wallet.getName());
+    if (defaultBadge != null) defaultBadge.setVisibility(wallet.isDefault() ? View.VISIBLE : View.GONE);
 
     String formattedBalance =
         MoneyFormatter.formatWithCurrencyCode(
             wallet.getCurrencyCode(), wallet.getCachedBalanceMinor());
     if (BottomSheetHelper.isMasked(getContext())) {
-      balanceView.setText("***");
-      balanceLabelView.setText("***");
-      balanceView.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
-      balanceLabelView.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
+      if (balanceView != null) {
+        balanceView.setText("***");
+        balanceView.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
+      }
+      if (balanceLabelView != null) {
+        balanceLabelView.setText("***");
+        balanceLabelView.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
+      }
     } else {
       int balanceColorId =
           wallet.getCachedBalanceMinor() < 0 ? R.color.finan_expense : R.color.finan_primary;
       int balanceColor = ContextCompat.getColor(getContext(), balanceColorId);
-      balanceView.setText(formattedBalance);
-      balanceLabelView.setText(formattedBalance);
-      balanceView.setTextColor(balanceColor);
-      balanceLabelView.setTextColor(balanceColor);
+      if (balanceView != null) {
+        balanceView.setText(formattedBalance);
+        balanceView.setTextColor(balanceColor);
+      }
+      if (balanceLabelView != null) {
+        balanceLabelView.setText(formattedBalance);
+        balanceLabelView.setTextColor(balanceColor);
+      }
     }
 
     int usage = wallet.getUsageCount();
-    if (usage > 0) {
+    if (usage > 0 && transactionRow != null && transactionCountView != null) {
       transactionRow.setVisibility(View.VISIBLE);
       transactionCountView.setText(transactionCountView.getContext().getString(R.string.java_WalletOverviewBottomSheet_transaksi, usage));
     }
 
     TextView createdAtView = findViewById(R.id.wallet_overview_created_at);
-    String dateStr =
-        new SimpleDateFormat("d MMM yyyy", Locale.forLanguageTag("id-ID"))
-            .format(new Date(wallet.getCreatedAt()));
-    createdAtView.setText(dateStr);
+    if (createdAtView != null) {
+      String dateStr =
+          new SimpleDateFormat("d MMM yyyy", Locale.forLanguageTag("id-ID"))
+              .format(new Date(wallet.getCreatedAt()));
+      createdAtView.setText(dateStr);
+    }
 
     TextView editAction = findViewById(R.id.wallet_action_edit);
     TextView adjustAction = findViewById(R.id.wallet_action_adjust);
     TextView transferAction = findViewById(R.id.wallet_action_transfer);
     TextView deleteAction = findViewById(R.id.wallet_action_delete);
 
-    editAction.setOnClickListener(v -> {
-      dismiss();
-      new WalletEditBottomSheet(getContext(), services, wallet, onDataChanged);
-    });
-    adjustAction.setOnClickListener(v -> showAdjustDialog());
-    transferAction.setOnClickListener(v -> showTransferDialog());
-    deleteAction.setOnClickListener(v -> confirmDelete());
+    if (editAction != null) {
+      editAction.setOnClickListener(v -> {
+        dismiss();
+        new WalletEditBottomSheet(getContext(), services, wallet, onDataChanged);
+      });
+    }
+    if (adjustAction != null) adjustAction.setOnClickListener(v -> showAdjustDialog());
+    if (transferAction != null) transferAction.setOnClickListener(v -> showTransferDialog());
+    if (deleteAction != null) deleteAction.setOnClickListener(v -> confirmDelete());
   }
 
   private void showAdjustDialog() {
-    Dialog dialog = new Dialog(getContext(), R.style.Finan_BottomSheetDialog);
+    BottomSheetDialog dialog = new BottomSheetDialog(getContext(), R.style.Finan_BottomSheetDialog);
     dialog.setContentView(R.layout.dialog_adjustment_bottom_sheet);
     TextView currentBalanceView = dialog.findViewById(R.id.wallet_adjust_current_balance);
     TextView differenceView = dialog.findViewById(R.id.wallet_adjust_difference);
     LabeledEditTextView targetField = dialog.findViewById(R.id.wallet_adjust_target_field);
-    EditText targetInput = targetField.getEditText();
+    EditText targetInput = targetField != null ? targetField.getEditText() : null;
     EditText noteInput = dialog.findViewById(R.id.wallet_adjust_note);
     DialogActionsView actionsView = dialog.findViewById(R.id.wallet_adjust_actions);
+    TextView dateBtn = dialog.findViewById(R.id.transaction_occurred_date);
+    TextView timeBtn = dialog.findViewById(R.id.transaction_occurred_time);
+    if (targetInput == null || dateBtn == null || timeBtn == null) return;
+
     TransactionOccurredAtPicker occurredAtPicker =
         new TransactionOccurredAtPicker(
             getContext(),
-            dialog.findViewById(R.id.transaction_occurred_date),
-            dialog.findViewById(R.id.transaction_occurred_time),
+            dateBtn,
+            timeBtn,
             System.currentTimeMillis());
 
-    if (BottomSheetHelper.isMasked(getContext())) {
-      currentBalanceView.setText("***");
-    } else {
-      currentBalanceView.setText(
-          MoneyFormatter.formatWithCurrencyCode(
-              wallet.getCurrencyCode(), wallet.getCachedBalanceMinor()));
+    if (currentBalanceView != null) {
+      if (BottomSheetHelper.isMasked(getContext())) {
+        currentBalanceView.setText("***");
+      } else {
+        currentBalanceView.setText(
+            MoneyFormatter.formatWithCurrencyCode(
+                wallet.getCurrencyCode(), wallet.getCachedBalanceMinor()));
+      }
     }
     MoneyInputFormatter.attach(targetInput, true);
     targetInput.setText(MoneyFormatter.format(wallet.getCachedBalanceMinor()));
@@ -166,11 +186,13 @@ public final class WalletOverviewBottomSheet extends Dialog {
         });
     bindDifference(wallet, targetInput, differenceView);
 
-    actionsView.setOnCancelClickListener(v -> dialog.dismiss());
-    actionsView.setOnPrimaryClickListener(
-        v ->
-            submitAdjust(
-                dialog, wallet, targetInput, noteInput, occurredAtPicker.getOccurredAtMillis()));
+    if (actionsView != null) {
+      actionsView.setOnCancelClickListener(v -> dialog.dismiss());
+      actionsView.setOnPrimaryClickListener(
+          v ->
+              submitAdjust(
+                  dialog, wallet, targetInput, noteInput, occurredAtPicker.getOccurredAtMillis()));
+    }
 
     BottomSheetHelper.show(dialog);
     targetInput.requestFocus();
@@ -211,7 +233,7 @@ public final class WalletOverviewBottomSheet extends Dialog {
   }
 
   private void submitAdjust(
-      Dialog dialog,
+      BottomSheetDialog dialog,
       Wallet wallet,
       EditText targetInput,
       EditText noteInput,
@@ -260,19 +282,23 @@ public final class WalletOverviewBottomSheet extends Dialog {
       return;
     }
 
-    Dialog dialog = new Dialog(getContext(), R.style.Finan_BottomSheetDialog);
+    BottomSheetDialog dialog = new BottomSheetDialog(getContext(), R.style.Finan_BottomSheetDialog);
     dialog.setContentView(R.layout.dialog_transfer_bottom_sheet);
     Spinner sourceSpinner = dialog.findViewById(R.id.wallet_transfer_source);
     Spinner destinationSpinner = dialog.findViewById(R.id.wallet_transfer_destination);
     LabeledEditTextView amountField = dialog.findViewById(R.id.wallet_transfer_amount_field);
-    EditText amountInput = amountField.getEditText();
+    EditText amountInput = amountField != null ? amountField.getEditText() : null;
     EditText noteInput = dialog.findViewById(R.id.wallet_transfer_note);
     DialogActionsView actionsView = dialog.findViewById(R.id.wallet_transfer_actions);
+    TextView dateBtn = dialog.findViewById(R.id.transaction_occurred_date);
+    TextView timeBtn = dialog.findViewById(R.id.transaction_occurred_time);
+    if (sourceSpinner == null || destinationSpinner == null || amountInput == null || dateBtn == null || timeBtn == null) return;
+
     TransactionOccurredAtPicker occurredAtPicker =
         new TransactionOccurredAtPicker(
             getContext(),
-            dialog.findViewById(R.id.transaction_occurred_date),
-            dialog.findViewById(R.id.transaction_occurred_time),
+            dateBtn,
+            timeBtn,
             System.currentTimeMillis());
 
     boolean masked = BottomSheetHelper.isMasked(getContext());
@@ -306,19 +332,21 @@ public final class WalletOverviewBottomSheet extends Dialog {
     destinationSpinner.setSelection(destinationIndex);
     MoneyInputFormatter.attach(amountInput, true);
 
-    actionsView.setOnCancelClickListener(v -> dialog.dismiss());
-    actionsView.setOnPrimaryClickListener(
-        v ->
-            submitTransfer(
-                dialog, allWallets, sourceSpinner, destinationSpinner,
-                amountInput, noteInput, occurredAtPicker.getOccurredAtMillis()));
+    if (actionsView != null) {
+      actionsView.setOnCancelClickListener(v -> dialog.dismiss());
+      actionsView.setOnPrimaryClickListener(
+          v ->
+              submitTransfer(
+                  dialog, allWallets, sourceSpinner, destinationSpinner,
+                  amountInput, noteInput, occurredAtPicker.getOccurredAtMillis()));
+    }
 
     BottomSheetHelper.show(dialog);
     amountInput.requestFocus();
   }
 
   private void submitTransfer(
-      Dialog dialog,
+      BottomSheetDialog dialog,
       List<Wallet> wallets,
       Spinner sourceSpinner,
       Spinner destinationSpinner,
@@ -371,18 +399,18 @@ public final class WalletOverviewBottomSheet extends Dialog {
   }
 
   private void confirmDelete() {
-    Dialog dialog = new Dialog(getContext(), R.style.Finan_BottomSheetDialog);
+    BottomSheetDialog dialog = new BottomSheetDialog(getContext(), R.style.Finan_BottomSheetDialog);
     dialog.setContentView(R.layout.dialog_confirm_delete);
-    ((TextView) dialog.findViewById(R.id.confirm_delete_title))
-        .setText(R.string.java_WalletOverviewBottomSheet_hapus_dompet);
-    ((TextView) dialog.findViewById(R.id.confirm_delete_message))
-        .setText(
-            getContext().getString(R.string.delete_wallet_confirmation, wallet.getName()));
-    dialog.findViewById(R.id.confirm_delete_cancel)
-        .setOnClickListener(v -> dialog.dismiss());
-    dialog.findViewById(R.id.confirm_delete_confirm)
-        .setOnClickListener(v -> {
-          final long deleteWalletId = wallet.getId();
+    TextView titleView = dialog.findViewById(R.id.confirm_delete_title);
+    TextView messageView = dialog.findViewById(R.id.confirm_delete_message);
+    View cancelBtn = dialog.findViewById(R.id.confirm_delete_cancel);
+    View confirmBtn = dialog.findViewById(R.id.confirm_delete_confirm);
+
+    if (titleView != null) titleView.setText(R.string.java_WalletOverviewBottomSheet_hapus_dompet);
+    if (messageView != null) messageView.setText(getContext().getString(R.string.delete_wallet_confirmation, wallet.getName()));
+    if (cancelBtn != null) cancelBtn.setOnClickListener(v -> dialog.dismiss());
+    if (confirmBtn != null) {
+      confirmBtn.setOnClickListener(v -> {
           final String deleteName = wallet.getName();
           final String deleteCurrencyCode = wallet.getCurrencyCode();
           final boolean deleteIsDefault = wallet.isDefault();
@@ -394,7 +422,7 @@ public final class WalletOverviewBottomSheet extends Dialog {
           dismiss();
 
           services.dbWorker.compute(
-              () -> services.walletService.delete(deleteWalletId),
+              () -> services.walletService.delete(wallet.getId()),
               success -> {
                 if (Boolean.TRUE.equals(success)) {
                   FinanToast.show(
@@ -412,7 +440,7 @@ public final class WalletOverviewBottomSheet extends Dialog {
                 }
               });
         });
-
+    }
     BottomSheetHelper.show(dialog);
   }
 }

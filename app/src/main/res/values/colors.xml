@@ -41,6 +41,10 @@
     <color name="finan_key_action_text">#FFFFFF</color>
     <color name="finan_key_border">#DDE3E8</color>
 
+    <!-- Save / Pill button colors -->
+    <color name="finan_btn_disabled_bg">#DDE3E8</color>
+    <color name="finan_btn_disabled_text">#70808A</color>
+    <color name="finan_btn_pill_text">#FFFFFF</color>
     <!-- Date range picker -->
     <color name="finan_date_range_bg">#2D6A6A</color>
 

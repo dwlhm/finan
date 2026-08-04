@@ -64,6 +64,7 @@
 
                 <EditText android:importantForAutofill="no"
                     android:id="@+id/capture_amount"
+                    android:inputType="numberDecimal"
                     style="@style/Finan.EditText.Transparent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -251,7 +252,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/bg_button_pill"
-            android:backgroundTint="#E8F5E9"
+            android:backgroundTint="@color/finan_income_bg"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"

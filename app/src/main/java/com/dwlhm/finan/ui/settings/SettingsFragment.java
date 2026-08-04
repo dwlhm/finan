@@ -1,7 +1,7 @@
 package com.dwlhm.finan.ui.settings;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -63,7 +63,6 @@ public final class SettingsFragment extends ScreenFragment {
   private TextView modeNominal;
   private TextView modeMasked;
   private TextView payrollCycleValue;
-  private Button payrollCycleButton;
   private long cachedTotalBalanceMinor;
   private String cachedCurrencyCode;
 
@@ -146,8 +145,10 @@ public final class SettingsFragment extends ScreenFragment {
     modeMasked.setOnClickListener(v -> setMaskedMode(true));
 
     payrollCycleValue = view.findViewById(R.id.settings_payroll_cycle_value);
-    payrollCycleButton = view.findViewById(R.id.settings_payroll_cycle);
-    payrollCycleButton.setOnClickListener(v -> showPayrollCyclePicker());
+    Button payrollCycleButton = view.findViewById(R.id.settings_payroll_cycle);
+    if (payrollCycleButton != null) {
+      payrollCycleButton.setOnClickListener(v -> showPayrollCyclePicker());
+    }
     updatePayrollCycleValue();
   }
 
@@ -198,10 +199,13 @@ public final class SettingsFragment extends ScreenFragment {
     LayoutInflater inflater = LayoutInflater.from(requireContext());
     float density = getResources().getDisplayMetrics().density;
     int margin = (int) (4 * density + 0.5f);
-    String currencyCode = cachedCurrencyCode != null ? cachedCurrencyCode : "IDR";
-    allCategories.sort((a, b) -> Long.compare(
-        totals.getOrDefault(b.getId(), 0L),
-        totals.getOrDefault(a.getId(), 0L)));
+    allCategories.sort((a, b) -> {
+      Long bVal = totals.get(b.getId());
+      Long aVal = totals.get(a.getId());
+      long bTot = bVal != null ? bVal : 0L;
+      long aTot = aVal != null ? aVal : 0L;
+      return Long.compare(bTot, aTot);
+    });
     int limit = Math.min(allCategories.size(), 6);
 
     for (int i = 0; i < limit; i++) {
@@ -220,7 +224,8 @@ public final class SettingsFragment extends ScreenFragment {
       emojiView.setText(icon == null || icon.trim().isEmpty() ? "📂" : icon);
       nameView.setText(category.getName());
 
-      long total = totals.getOrDefault(category.getId(), 0L);
+      Long catVal = totals.get(category.getId());
+      long total = catVal != null ? catVal : 0L;
       usageView.setText(maskedMode ? "***" : MoneyFormatter.format(total));
 
       item.setOnClickListener(v -> openCategoryOverview(category));
@@ -262,7 +267,7 @@ public final class SettingsFragment extends ScreenFragment {
   private void loadTopWallets() {
     AppServices services = ServicesProvider.get(requireContext());
     services.dbWorker.compute(
-        () -> services.walletService.findAll(),
+        services.walletService::findAll,
         wallets -> {
           if (!isAdded() || wallets == null) {
             return;
@@ -483,7 +488,7 @@ public final class SettingsFragment extends ScreenFragment {
       }
     }
 
-    new AlertDialog.Builder(requireContext())
+    new MaterialAlertDialogBuilder(requireContext())
         .setTitle(R.string.settings_change_payroll_cycle)
         .setSingleChoiceItems(options, selectedIndex, (dialog, which) -> {
           int newCutoff = values[which];

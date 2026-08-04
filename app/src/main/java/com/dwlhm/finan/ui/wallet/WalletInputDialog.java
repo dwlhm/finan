@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.wallet;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.view.WindowManager;
 import android.widget.CheckBox;
@@ -22,7 +22,7 @@ import com.dwlhm.finan.util.money.MoneyParser;
 
 import java.security.SecureRandom;
 
-public final class WalletInputDialog extends Dialog {
+public final class WalletInputDialog extends BottomSheetDialog {
 
   private final AppServices services;
   private final Runnable onSaved;
@@ -43,17 +43,20 @@ public final class WalletInputDialog extends Dialog {
     LabeledEditTextView nameField = findViewById(R.id.wallet_name_field);
     LabeledEditTextView balanceField = findViewById(R.id.wallet_balance_field);
     LabeledEditTextView iconField = findViewById(R.id.wallet_icon_field);
-    EditText nameInput = nameField.getEditText();
-    EditText balanceInput = balanceField.getEditText();
-    EditText iconInput = iconField.getEditText();
+    EditText nameInput = nameField != null ? nameField.getEditText() : null;
+    EditText balanceInput = balanceField != null ? balanceField.getEditText() : null;
+    EditText iconInput = iconField != null ? iconField.getEditText() : null;
+    if (nameInput == null || balanceInput == null || iconInput == null) return;
     iconInput.setFilters(new android.text.InputFilter[] { new android.text.InputFilter.LengthFilter(2) });
     MoneyInputFormatter.attach(balanceInput, true);
     CheckBox defaultInput = findViewById(R.id.wallet_default_input);
     DialogActionsView actionsView = findViewById(R.id.wallet_actions);
 
-    actionsView.setOnCancelClickListener(v -> dismiss());
-    actionsView.setOnPrimaryClickListener(
-        v -> submitCreateWallet(nameInput, balanceInput, iconInput, defaultInput, actionsView));
+    if (actionsView != null) {
+      actionsView.setOnCancelClickListener(v -> dismiss());
+      actionsView.setOnPrimaryClickListener(
+          v -> submitCreateWallet(nameInput, balanceInput, iconInput, defaultInput, actionsView));
+    }
 
     services.dbWorker.compute(
         () -> services.walletService.findAll().isEmpty(),
@@ -61,13 +64,17 @@ public final class WalletInputDialog extends Dialog {
           if (!isShowing() || firstWallet == null) {
             return;
           }
-          defaultInput.setChecked(firstWallet);
-          defaultInput.setEnabled(!firstWallet);
+          if (defaultInput != null) {
+            defaultInput.setChecked(firstWallet);
+            defaultInput.setEnabled(!firstWallet);
+          }
         });
 
     BottomSheetHelper.show(this);
     nameInput.requestFocus();
-    getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    if (getWindow() != null) {
+      getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+    }
   }
 
   private void submitCreateWallet(

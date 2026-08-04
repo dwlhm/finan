@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.common;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
@@ -17,7 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import android.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.dao.CategoryDao;
@@ -30,7 +30,7 @@ import com.dwlhm.finan.util.search.FuzzySearch;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class CategorySearchDialog extends Dialog {
+public final class CategorySearchDialog extends BottomSheetDialog {
 
   public interface Listener {
     void onCategoryChosen(Category category, boolean created);
@@ -57,7 +57,7 @@ public final class CategorySearchDialog extends Dialog {
       TransactionType transactionType,
       List<Category> allCategories,
       Listener listener) {
-    super(context);
+    super(context, R.style.Finan_BottomSheetDialog);
     this.categoryDao = categoryDao;
     AppServices services = ServicesProvider.get(context);
     this.categoryClassificationService = services.categoryClassificationService;
@@ -73,18 +73,20 @@ public final class CategorySearchDialog extends Dialog {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.dialog_category_search);
     if (getWindow() != null) {
-      getWindow().setLayout(
-          WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
       getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
     }
+    BottomSheetHelper.show(this);
 
     searchInput = findViewById(R.id.category_search_input);
     ListView listView = findViewById(R.id.category_search_list);
 
     listAdapter = new SearchListAdapter();
-    listView.setAdapter(listAdapter);
+    if (listView != null) {
+      listView.setAdapter(listAdapter);
+    }
 
-    searchInput.addTextChangedListener(
+    if (searchInput != null) {
+      searchInput.addTextChangedListener(
         new TextWatcher() {
           @Override
           public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -97,12 +99,13 @@ public final class CategorySearchDialog extends Dialog {
           @Override
           public void afterTextChanged(Editable s) {}
         });
-
-    listView.setOnItemClickListener(
-        (parent, view, position, id) -> listAdapter.onItemClick(position));
-
-    searchInput.requestFocus();
-    searchInput.post(this::showKeyboard);
+      searchInput.requestFocus();
+      searchInput.post(this::showKeyboard);
+    }
+    if (listView != null) {
+      listView.setOnItemClickListener(
+          (parent, view, position, id) -> listAdapter.onItemClick(position));
+    }
   }
 
   private void showKeyboard() {
@@ -179,7 +182,7 @@ public final class CategorySearchDialog extends Dialog {
       nameInput.setSelection(prefill.length());
     }
 
-    new AlertDialog.Builder(getContext())
+    new MaterialAlertDialogBuilder(getContext())
         .setTitle(R.string.capture_category_add_new_dialog_title)
         .setView(dialogView)
         .setPositiveButton(

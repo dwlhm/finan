@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.dwlhm.finan.ui.common.FinanDialogCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="14dp"
-    app:titleText="@string/capture_amount_shortcut_dialog_title">
+    android:background="@drawable/bg_bottom_sheet"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_bottom_sheet_handle" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/capture_amount_shortcut_dialog_title"
+        android:textAppearance="@style/Finan.Text.Title" />
 
     <com.dwlhm.finan.ui.common.LabeledEditTextView
         android:id="@+id/amount_shortcut_field"
@@ -56,4 +70,4 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
         app:primaryText="@string/capture_amount_shortcut_save" />
-</com.dwlhm.finan.ui.common.FinanDialogCardView>
+</LinearLayout>

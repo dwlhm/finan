@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.category;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.view.KeyEvent;
 import android.view.WindowManager;
@@ -13,7 +13,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import android.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 
 import com.dwlhm.finan.R;
@@ -27,7 +28,7 @@ import com.dwlhm.finan.ui.common.LabeledEditTextView;
 
 import java.util.function.Consumer;
 
-public final class CategoryEditorDialog extends Dialog {
+public final class CategoryEditorDialog extends BottomSheetDialog {
 
   private final AppServices services;
   private final Category category;
@@ -72,9 +73,10 @@ public final class CategoryEditorDialog extends Dialog {
   private void setupViews() {
     TextView title = findViewById(R.id.category_editor_title);
     LabeledEditTextView nameField = findViewById(R.id.category_name_field);
-    EditText nameInput = nameField.getEditText();
     LabeledEditTextView iconField = findViewById(R.id.category_icon_field);
-    EditText iconInput = iconField.getEditText();
+    EditText nameInput = nameField != null ? nameField.getEditText() : null;
+    EditText iconInput = iconField != null ? iconField.getEditText() : null;
+    if (nameInput == null || iconInput == null) return;
     iconInput.setFilters(new android.text.InputFilter[] { new android.text.InputFilter.LengthFilter(5) });
     CheckBox expenseInput = findViewById(R.id.category_type_expense);
     CheckBox incomeInput = findViewById(R.id.category_type_income);
@@ -89,20 +91,28 @@ public final class CategoryEditorDialog extends Dialog {
         new EditorDraft(category, nameInput, iconInput, expenseInput, incomeInput, activityGroup, defaultSwitch);
 
     boolean editing = category != null;
-    title.setText(editing ? R.string.category_editor_edit_title : R.string.category_editor_create_title);
-    actions.setPrimaryText(
-        getContext().getString(editing ? R.string.category_save_changes : R.string.category_save));
+    if (title != null) {
+      title.setText(editing ? R.string.category_editor_edit_title : R.string.category_editor_create_title);
+    }
+    if (actions != null) {
+      actions.setPrimaryText(
+          getContext().getString(editing ? R.string.category_save_changes : R.string.category_save));
+    }
 
     if (editing) {
       draft.bindOriginal();
-      countView.setText(
-          getContext().getResources()
-              .getQuantityString(
-                  R.plurals.category_transaction_count, transactionCount, transactionCount));
-      countView.setVisibility(android.view.View.VISIBLE);
-      deleteButton.setVisibility(android.view.View.VISIBLE);
-      deleteButton.setOnClickListener(v -> confirmDeleteCategory());
-      if (onViewTransactions != null) {
+      if (countView != null) {
+        countView.setText(
+            getContext().getResources()
+                .getQuantityString(
+                    R.plurals.category_transaction_count, transactionCount, transactionCount));
+        countView.setVisibility(android.view.View.VISIBLE);
+      }
+      if (deleteButton != null) {
+        deleteButton.setVisibility(android.view.View.VISIBLE);
+        deleteButton.setOnClickListener(v -> confirmDeleteCategory());
+      }
+      if (onViewTransactions != null && transactionsButton != null) {
         transactionsButton.setVisibility(android.view.View.VISIBLE);
         transactionsButton.setOnClickListener(v -> closeEditor(draft, onViewTransactions));
       }
@@ -111,14 +121,15 @@ public final class CategoryEditorDialog extends Dialog {
         nameInput.setText(prefillName);
         nameInput.setSelection(nameInput.length());
       }
-      if (prefillType != null) {
+      if (prefillType != null && expenseInput != null && incomeInput != null) {
         expenseInput.setChecked("EXPENSE".equals(prefillType) || "BOTH".equals(prefillType));
         incomeInput.setChecked("INCOME".equals(prefillType) || "BOTH".equals(prefillType));
       }
     }
-
-    actions.setOnCancelClickListener(v -> closeEditor(draft, null));
-    actions.setOnPrimaryClickListener(v -> submitEditor(draft, actions));
+    if (actions != null) {
+      actions.setOnCancelClickListener(v -> closeEditor(draft, null));
+      actions.setOnPrimaryClickListener(v -> submitEditor(draft, actions));
+    }
     setOnKeyListener(
         (d, keyCode, event) -> {
           if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP) {
@@ -131,7 +142,9 @@ public final class CategoryEditorDialog extends Dialog {
     BottomSheetHelper.show(this);
     if (!editing) {
       nameInput.requestFocus();
-      getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+      if (getWindow() != null) {
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+      }
     }
   }
 
@@ -160,7 +173,7 @@ public final class CategoryEditorDialog extends Dialog {
         CashFlowActivity.UNCLASSIFIED.name().equals(draft.original.getCashFlowActivity());
     int[] selected = {defaultAll ? 1 : 0};
     AlertDialog dialog =
-        new AlertDialog.Builder(getContext())
+        new MaterialAlertDialogBuilder(getContext())
             .setTitle(R.string.category_history_scope_title)
             .setMessage(
                 defaultAll
@@ -197,7 +210,7 @@ public final class CategoryEditorDialog extends Dialog {
           Category duplicate = services.categoryDao.findByNameIgnoreCase(draft.name());
           if (duplicate != null
               && (draft.original == null || duplicate.getId() != draft.original.getId())) {
-            return SaveResult.duplicate(duplicate);
+            return SaveResult.duplicate();
           }
           try {
             Category saved =
@@ -245,7 +258,7 @@ public final class CategoryEditorDialog extends Dialog {
       }
       return;
     }
-    new AlertDialog.Builder(getContext())
+    new MaterialAlertDialogBuilder(getContext())
         .setTitle(R.string.category_discard_title)
         .setMessage(R.string.category_discard_message)
         .setNegativeButton(R.string.category_keep_editing, null)
@@ -351,16 +364,12 @@ public final class CategoryEditorDialog extends Dialog {
     }
 
     private static int activityId(CashFlowActivity activity) {
-      switch (activity) {
-        case OPERATING:
-          return R.id.category_activity_operating;
-        case INVESTING:
-          return R.id.category_activity_investing;
-        case FINANCING:
-          return R.id.category_activity_financing;
-        default:
-          return R.id.category_activity_unclassified;
-      }
+      return switch (activity) {
+        case OPERATING -> R.id.category_activity_operating;
+        case INVESTING -> R.id.category_activity_investing;
+        case FINANCING -> R.id.category_activity_financing;
+        default -> R.id.category_activity_unclassified;
+      };
     }
   }
 
@@ -372,7 +381,7 @@ public final class CategoryEditorDialog extends Dialog {
       message = "Apakah Anda yakin ingin menghapus kategori ini?";
     }
 
-    new AlertDialog.Builder(getContext())
+    new MaterialAlertDialogBuilder(getContext())
         .setTitle("Hapus Kategori")
         .setMessage(message)
         .setNegativeButton(android.R.string.cancel, null)
@@ -399,25 +408,23 @@ public final class CategoryEditorDialog extends Dialog {
 
   private static final class SaveResult {
     private final Category saved;
-    private final Category category;
     private final boolean duplicate;
 
-    private SaveResult(Category saved, Category category, boolean duplicate) {
+    private SaveResult(Category saved, boolean duplicate) {
       this.saved = saved;
-      this.category = category;
       this.duplicate = duplicate;
     }
 
     private static SaveResult success(Category saved) {
-      return new SaveResult(saved, null, false);
+      return new SaveResult(saved, false);
     }
 
-    private static SaveResult duplicate(Category category) {
-      return new SaveResult(null, category, true);
+    private static SaveResult duplicate() {
+      return new SaveResult(null, true);
     }
 
     private static SaveResult failed() {
-      return new SaveResult(null, null, false);
+      return new SaveResult(null, false);
     }
   }
 }

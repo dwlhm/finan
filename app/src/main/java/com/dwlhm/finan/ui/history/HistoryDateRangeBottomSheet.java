@@ -1,6 +1,6 @@
 package com.dwlhm.finan.ui.history;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -22,14 +22,13 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
-public final class HistoryDateRangeBottomSheet extends Dialog {
+public final class HistoryDateRangeBottomSheet extends BottomSheetDialog {
 
   public interface OnRangeConfirmedListener {
     void onRangeConfirmed(@Nullable LocalDate startDate, @Nullable LocalDate endDate);
   }
 
   private final OnRangeConfirmedListener listener;
-  private CustomDatePickerView datePicker;
   private long pendingStartMillis;
   private long pendingEndMillis;
   private boolean hasPendingRange;
@@ -71,43 +70,47 @@ public final class HistoryDateRangeBottomSheet extends Dialog {
       window.setWindowAnimations(android.R.style.Animation_InputMethod);
     }
 
-    datePicker = findViewById(R.id.history_date_range_picker);
+    CustomDatePickerView datePicker = findViewById(R.id.history_date_range_picker);
     TextView resetButton = findViewById(R.id.history_date_range_reset);
     DialogActionsView actions = findViewById(R.id.history_date_range_actions);
-
-    datePicker.setRangeMode(true);
-    if (hasPendingRange) {
-      datePicker.setRange(pendingStartMillis, pendingEndMillis);
-    } else {
-      int cutoffDay = getContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
-          .getInt("cutoff_day", 1);
-      DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), cutoffDay);
-      long start = range.getStart().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      long end = range.getEnd().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-      datePicker.setRange(start, end);
-    }
-    datePicker.setOnRangeSelectedListener((start, end) -> {
-      pendingStartMillis = start;
-      pendingEndMillis = end;
-      hasPendingRange = true;
-    });
-
-    resetButton.setOnClickListener(v -> {
-      listener.onRangeConfirmed(null, null);
-      dismiss();
-    });
-
-    actions.setOnPrimaryClickListener(v -> {
+    if (datePicker != null) {
+      datePicker.setRangeMode(true);
       if (hasPendingRange) {
-        LocalDate start = Instant.ofEpochMilli(pendingStartMillis).atZone(ZoneId.systemDefault()).toLocalDate();
-        LocalDate end = Instant.ofEpochMilli(pendingEndMillis).atZone(ZoneId.systemDefault()).toLocalDate();
-        listener.onRangeConfirmed(start, end);
+        datePicker.setRange(pendingStartMillis, pendingEndMillis);
       } else {
-        listener.onRangeConfirmed(null, null);
+        int cutoffDay = getContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
+            .getInt("cutoff_day", 1);
+        DateRange range = PayrollCycleResolver.forDate(LocalDate.now(), cutoffDay);
+        long start = range.getStart().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long end = range.getEnd().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        datePicker.setRange(start, end);
       }
-      dismiss();
-    });
-    actions.setOnCancelClickListener(v -> dismiss());
+      datePicker.setOnRangeSelectedListener((start, end) -> {
+        pendingStartMillis = start;
+        pendingEndMillis = end;
+        hasPendingRange = true;
+      });
+    }
+    if (resetButton != null) {
+      resetButton.setOnClickListener(v -> {
+        listener.onRangeConfirmed(null, null);
+        dismiss();
+      });
+    }
+
+    if (actions != null) {
+      actions.setOnPrimaryClickListener(v -> {
+        if (hasPendingRange) {
+          LocalDate start = Instant.ofEpochMilli(pendingStartMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+          LocalDate end = Instant.ofEpochMilli(pendingEndMillis).atZone(ZoneId.systemDefault()).toLocalDate();
+          listener.onRangeConfirmed(start, end);
+        } else {
+          listener.onRangeConfirmed(null, null);
+        }
+        dismiss();
+      });
+      actions.setOnCancelClickListener(v -> dismiss());
+    }
 
     BottomSheetHelper.makeDraggable(this);
   }

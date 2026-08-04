@@ -1,12 +1,11 @@
 package com.dwlhm.finan.ui.dashboard;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -19,7 +18,7 @@ import com.dwlhm.finan.ui.common.BottomSheetHelper;
 
 import java.time.LocalDate;
 
-public class MonthYearPickerBottomSheetDialog extends Dialog {
+public class MonthYearPickerBottomSheetDialog extends BottomSheetDialog {
 
     public interface OnTimeRangeSelectedListener {
         void onTimeRangeSelected(DashboardViewModel.TimeRangeMode mode, int year, int month);
@@ -27,8 +26,6 @@ public class MonthYearPickerBottomSheetDialog extends Dialog {
 
     private NumberPicker pickerMonth;
     private NumberPicker pickerYear;
-    private Button btnApply;
-    private Button btnCancel;
 
     private final DashboardViewModel.TimeRangeMode initialMode;
     private final int initialYear;
@@ -72,25 +69,29 @@ public class MonthYearPickerBottomSheetDialog extends Dialog {
 
         pickerMonth = findViewById(R.id.picker_month);
         pickerYear = findViewById(R.id.picker_year);
-        btnApply = findViewById(R.id.btn_apply);
-        btnCancel = findViewById(R.id.btn_cancel);
+        Button btnApply = findViewById(R.id.btn_apply);
+        Button btnCancel = findViewById(R.id.btn_cancel);
 
         setupPickers();
 
-        btnCancel.setOnClickListener(v -> dismiss());
-        btnApply.setOnClickListener(v -> {
-            if (listener != null) {
-                int selectedYear = pickerYear.getValue();
-                int selectedMonthIndex = pickerMonth.getValue(); // 0 is Semua Bulan, 1 is Jan, etc.
-                
-                if (selectedMonthIndex == 0) {
-                    listener.onTimeRangeSelected(DashboardViewModel.TimeRangeMode.YEARLY, selectedYear, -1);
-                } else {
-                    listener.onTimeRangeSelected(DashboardViewModel.TimeRangeMode.MONTHLY, selectedYear, selectedMonthIndex);
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dismiss());
+        }
+        if (btnApply != null) {
+            btnApply.setOnClickListener(v -> {
+                if (listener != null) {
+                    int selectedYear = pickerYear.getValue();
+                    int selectedMonthIndex = pickerMonth.getValue(); // 0 is Semua Bulan, 1 is Jan, etc.
+                    
+                    if (selectedMonthIndex == 0) {
+                        listener.onTimeRangeSelected(DashboardViewModel.TimeRangeMode.YEARLY, selectedYear, -1);
+                    } else {
+                        listener.onTimeRangeSelected(DashboardViewModel.TimeRangeMode.MONTHLY, selectedYear, selectedMonthIndex);
+                    }
                 }
-            }
-            dismiss();
-        });
+                dismiss();
+            });
+        }
     }
 
     private void setupPickers() {
@@ -114,9 +115,7 @@ public class MonthYearPickerBottomSheetDialog extends Dialog {
             pickerMonth.setValue(defaultMonth);
         }
 
-        pickerYear.setOnValueChangedListener((picker, oldVal, newVal) -> {
-            updateMonthPickerMax(newVal, currentYear, currentMonth);
-        });
+        pickerYear.setOnValueChangedListener((picker, oldVal, newVal) -> updateMonthPickerMax(newVal, currentYear, currentMonth));
     }
 
     private void updateMonthPickerMax(int selectedYear, int currentYear, int currentMonth) {

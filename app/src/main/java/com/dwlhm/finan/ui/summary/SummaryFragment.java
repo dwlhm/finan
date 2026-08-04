@@ -1,7 +1,7 @@
 package com.dwlhm.finan.ui.summary;
 
 import android.annotation.SuppressLint;
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -80,7 +80,6 @@ public final class SummaryFragment extends ScreenFragment {
   private TextView netFlow;
   private TextView monthExpense;
   private TextView monthIncome;
-  private LinearLayout cashFlowContainer;
   private TextView walletTotal;
   private TextView emptyMessage;
   private View adviceCard;
@@ -138,7 +137,7 @@ public final class SummaryFragment extends ScreenFragment {
     netFlow = view.findViewById(R.id.summary_net_flow);
     monthExpense = view.findViewById(R.id.summary_month_expense);
     monthIncome = view.findViewById(R.id.summary_month_income);
-    cashFlowContainer = view.findViewById(R.id.summary_cash_flow_container);
+    LinearLayout cashFlowContainer = view.findViewById(R.id.summary_cash_flow_container);
     LinearLayout walletList = view.findViewById(R.id.summary_wallet_list);
 
     androidx.recyclerview.widget.RecyclerView cashFlowRecycler = new androidx.recyclerview.widget.RecyclerView(requireContext());
@@ -631,13 +630,22 @@ public final class SummaryFragment extends ScreenFragment {
 
   private void showWeekDetailDialog(CashFlowReport.WeekSummary week, long totalAmount) {
     Context context = requireContext();
-    Dialog dialog = new Dialog(context, R.style.Finan_BottomSheetDialog);
+    BottomSheetDialog dialog = new BottomSheetDialog(context, R.style.Finan_BottomSheetDialog);
 
     LinearLayout root = new LinearLayout(context);
     root.setOrientation(LinearLayout.VERTICAL);
     root.setBackgroundResource(R.drawable.bg_bottom_sheet);
     root.setPadding(UiComponentStyles.dp(context, 20), UiComponentStyles.dp(context, 16),
         UiComponentStyles.dp(context, 20), UiComponentStyles.dp(context, 16));
+
+    View handle = new View(context);
+    LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams(
+        UiComponentStyles.dp(context, 40), UiComponentStyles.dp(context, 4));
+    handleLp.gravity = Gravity.CENTER_HORIZONTAL;
+    handleLp.bottomMargin = UiComponentStyles.dp(context, 16);
+    handle.setLayoutParams(handleLp);
+    handle.setBackgroundResource(R.drawable.bg_bottom_sheet_handle);
+    root.addView(handle);
 
     long weekTotal = showWeeklyChartIncome ? week.getWeekIncome() : week.getWeekExpense();
 
@@ -806,7 +814,7 @@ public final class SummaryFragment extends ScreenFragment {
                 metaStr.append(walletName);
               }
               if (note != null && !note.isEmpty()) {
-                if (metaStr.length() > 0) metaStr.append(" \u2022 ");
+                if (metaStr.length() > 0) metaStr.append(" • ");
                 metaStr.append(note);
               }
               TextView metaView = new TextView(context);
@@ -1091,8 +1099,7 @@ public final class SummaryFragment extends ScreenFragment {
           .getInt("cutoff_day", 1);
     }
     LocalDate date = LocalDate.now().plusMonths(monthOffset);
-    DateRange range = PayrollCycleResolver.forDate(date, cutoffDay);
-    return range;
+    return PayrollCycleResolver.forDate(date, cutoffDay);
   }
 
   private DateRange defaultRange() {
@@ -1107,6 +1114,7 @@ public final class SummaryFragment extends ScreenFragment {
     return total;
   }
 
+  @SuppressWarnings("unused")
   private int progressFor(long totalMinor, long maxTotalMinor) {
     if (maxTotalMinor <= 0L) {
       return 0;

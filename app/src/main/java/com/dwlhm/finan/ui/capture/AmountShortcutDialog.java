@@ -1,12 +1,11 @@
 package com.dwlhm.finan.ui.capture;
 
-import android.app.Dialog;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.BaseAdapter;
 import android.widget.Button;
@@ -19,6 +18,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 import com.dwlhm.finan.R;
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.DialogActionsView;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
 import com.dwlhm.finan.util.money.MoneyFormatter;
@@ -29,7 +29,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class AmountShortcutDialog extends Dialog {
+@SuppressWarnings("unused")
+public final class AmountShortcutDialog extends BottomSheetDialog {
 
   public interface Listener {
     void onShortcutsSaved(List<Long> shortcuts);
@@ -42,10 +43,10 @@ public final class AmountShortcutDialog extends Dialog {
   private ListView shortcutListView;
   private TextView emptyView;
   private ShortcutAdapter adapter;
-
+  @SuppressWarnings("unused")
   public AmountShortcutDialog(
       @NonNull Context context, List<Long> initialShortcuts, Listener listener) {
-    super(context);
+    super(context, R.style.Finan_BottomSheetDialog);
     this.shortcuts = new ArrayList<>();
     if (initialShortcuts != null) {
       for (Long amount : initialShortcuts) {
@@ -61,13 +62,11 @@ public final class AmountShortcutDialog extends Dialog {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.dialog_amount_shortcuts);
-    if (getWindow() != null) {
-      getWindow()
-          .setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
-    }
+    BottomSheetHelper.show(this);
 
     LabeledEditTextView amountField = findViewById(R.id.amount_shortcut_field);
-    amountInput = amountField.getEditText();
+    amountInput = amountField != null ? amountField.getEditText() : null;
+    if (amountInput == null) return;
     MoneyInputFormatter.attach(amountInput, true);
 
     Button addButton = findViewById(R.id.amount_shortcut_add);
@@ -76,16 +75,21 @@ public final class AmountShortcutDialog extends Dialog {
     DialogActionsView actionsView = findViewById(R.id.amount_shortcut_actions);
 
     adapter = new ShortcutAdapter();
-    shortcutListView.setAdapter(adapter);
+    if (shortcutListView != null) {
+      shortcutListView.setAdapter(adapter);
+    }
 
-    addButton.setOnClickListener(v -> addShortcut());
-    actionsView.setOnCancelClickListener(v -> dismiss());
-    actionsView.setOnPrimaryClickListener(
-        v -> {
-          listener.onShortcutsSaved(new ArrayList<>(shortcuts));
-          dismiss();
-        });
-
+    if (addButton != null) {
+      addButton.setOnClickListener(v -> addShortcut());
+    }
+    if (actionsView != null) {
+      actionsView.setOnCancelClickListener(v -> dismiss());
+      actionsView.setOnPrimaryClickListener(
+          v -> {
+            listener.onShortcutsSaved(new ArrayList<>(shortcuts));
+            dismiss();
+          });
+    }
     renderEmptyState();
     amountInput.requestFocus();
     amountInput.post(this::showKeyboard);

@@ -1,8 +1,8 @@
 package com.dwlhm.finan.ui.summary;
 
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
-import android.app.Dialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 @SuppressLint("SetTextI18n")
-public final class SummaryDateRangeBottomSheet extends Dialog {
+public final class SummaryDateRangeBottomSheet extends BottomSheetDialog {
 
   public interface OnRangeConfirmedListener {
     void onRangeConfirmed(LocalDate startDate, LocalDate endDate, int cutoffDay);
@@ -127,19 +127,21 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
     modeBulan.setOnClickListener(v -> setMode(true));
     modeKustom.setOnClickListener(v -> setMode(false));
 
-    yearPrev.setOnClickListener(v -> { selectedYear--; rebuildMonthGrid(); });
-    yearNext.setOnClickListener(v -> { selectedYear++; rebuildMonthGrid(); });
+    if (yearPrev != null) yearPrev.setOnClickListener(v -> { selectedYear--; rebuildMonthGrid(); });
+    if (yearNext != null) yearNext.setOnClickListener(v -> { selectedYear++; rebuildMonthGrid(); });
 
     cycleValue.setOnClickListener(v -> showCyclePicker());
 
     buildMonthGrid();
     setMode(true);
 
-    actions.setOnPrimaryClickListener(v -> {
-      listener.onRangeConfirmed(pendingStart, pendingEnd, pendingCutoffDay);
-      dismiss();
-    });
-    actions.setOnCancelClickListener(v -> dismiss());
+    if (actions != null) {
+      actions.setOnPrimaryClickListener(v -> {
+        listener.onRangeConfirmed(pendingStart, pendingEnd, pendingCutoffDay);
+        dismiss();
+      });
+      actions.setOnCancelClickListener(v -> dismiss());
+    }
 
     BottomSheetHelper.makeDraggable(this);
   }
@@ -236,7 +238,7 @@ public final class SummaryDateRangeBottomSheet extends Dialog {
   }
 
   private void showCyclePicker() {
-    new AlertDialog.Builder(getContext())
+    new MaterialAlertDialogBuilder(getContext())
         .setTitle("Pilih Siklus Gajian")
         .setItems(CYCLE_OPTIONS, (dialog, which) -> {
           pendingCutoffDay = CYCLE_VALUES[which];
