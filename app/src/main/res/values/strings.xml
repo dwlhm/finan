@@ -244,6 +244,29 @@
     <string name="settings_payroll_cycle">Siklus Bulanan</string>
     <string name="settings_payroll_cycle_hint">Tanggal awal periode bulanan. Transaksi mulai tanggal ini masuk ke bulan berikutnya.</string>
     <string name="settings_change_payroll_cycle">Ubah tanggal gajian</string>
+
+    <!-- Pengaturan UI/UX Redesign -->
+    <string name="settings_section_master_data">Keuangan &amp; Master Data</string>
+    <string name="settings_section_display_privacy">Tampilan &amp; Privasi</string>
+    <string name="settings_section_data_backup">Data &amp; Cadangan</string>
+    <string name="settings_section_about">Tentang Aplikasi</string>
+    <string name="settings_sensor_mode_title">Mode Sensor (Sembunyikan Saldo)</string>
+    <string name="settings_sensor_mode_subtitle">Menyamarkan angka saldo dan nominal transaksi dengan *** pada Dasbor, Ringkasan, Riwayat, dan Pengaturan.</string>
+    <string name="settings_summary_mode_title">Mode Tampilan Ringkasan</string>
+    <string name="settings_summary_mode_subtitle">Menampilkan alokasi pengeluaran dalam bentuk persentase secara langsung pada layar Ringkasan.</string>
+    <string name="settings_dashboard_mode_title">Mode Tampilan Dasbor</string>
+    <string name="settings_dashboard_mode_subtitle">Pilihan tampilan default pada layar Dasbor Utama.</string>
+    <string name="settings_amount_shortcuts_title">Pintasan Nominal Quick Input</string>
+    <string name="settings_amount_shortcuts_subtitle">Kelola daftar nominal cepat yang tampil pada keyboard layar Pencatatan.</string>
+    <string name="settings_export_subtitle">Simpan riwayat transaksi, dompet, dan kategori ke dalam file CSV.</string>
+    <string name="settings_import_subtitle">Tambah data transaksi dari file CSV cadangan.</string>
+    <string name="settings_reset_data_title">Reset Semua Data</string>
+    <string name="settings_reset_data_subtitle">Hapus seluruh transaksi, dompet, dan kategori. Data tidak dapat dikembalikan!</string>
+    <string name="settings_reset_data_confirm_title">Hapus Semua Data Aplikasi?</string>
+    <string name="settings_reset_data_confirm_msg">Seluruh data transaksi, dompet, dan kategori akan dihapus secara permanen. Apakah Anda yakin?</string>
+    <string name="settings_reset_data_success">Seluruh data berhasil di-reset.</string>
+    <string name="settings_app_info_title">Finan v1.0 (Build 10)</string>
+    <string name="settings_app_info_subtitle">100% Off-line &amp; Data Tersimpan Lokal di Perangkat</string>
     <string name="export_date_range_title">Rentang Tanggal</string>
     <string name="export_date_reset">Semua waktu</string>
     <string name="export_date_apply">Ekspor</string>
@@ -318,7 +341,7 @@
     <string name="hc_activity_summary_aktivitas_harian">Aktivitas Harian</string>
     <string name="hc_activity_summary_pemasukan">Pemasukan</string>
     <string name="hc_activity_summary_pengeluaran">Pengeluaran</string>
-    <string name="hc_dialog_category_editor_hapus">Hapus</string>
+    <string name="hc_dialog_category_editor_hapus">Hapus kategori</string>
     <string name="hc_dialog_category_overview_penggunaan">Penggunaan</string>
     <string name="hc_dialog_category_overview_terakhir_digunakan">Terakhir digunakan</string>
     <string name="hc_dialog_category_overview_aktivitas">Aktivitas</string>

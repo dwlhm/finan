@@ -3,13 +3,13 @@ package com.dwlhm.finan.data.dao;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import androidx.annotation.Nullable;
 
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
 
 import java.util.ArrayList;
 import java.util.List;
-
 public final class CategoryDao {
 
   private final SQLiteDatabase db;
@@ -271,7 +271,31 @@ public final class CategoryDao {
   }
 
   public boolean delete(long id) {
-    return db.delete("categories", "id = ?", new String[]{String.valueOf(id)}) > 0;
+    return deleteAndReassign(id, null);
+  }
+
+  public boolean deleteAndReassign(long categoryId, @Nullable Long targetCategoryId) {
+    db.beginTransaction();
+    try {
+      if (targetCategoryId != null && targetCategoryId > 0) {
+        Category target = findById(targetCategoryId);
+        ContentValues values = new ContentValues();
+        values.put("category_id", targetCategoryId);
+        if (target != null) {
+          values.put("cash_flow_activity", target.getCashFlowActivity());
+        }
+        db.update("transactions", values, "category_id = ?", new String[]{String.valueOf(categoryId)});
+      } else {
+        ContentValues values = new ContentValues();
+        values.putNull("category_id");
+        db.update("transactions", values, "category_id = ?", new String[]{String.valueOf(categoryId)});
+      }
+      boolean deleted = db.delete("categories", "id = ?", new String[]{String.valueOf(categoryId)}) > 0;
+      db.setTransactionSuccessful();
+      return deleted;
+    } finally {
+      db.endTransaction();
+    }
   }
 
   public void incrementUsage(long id, long usedAt) {

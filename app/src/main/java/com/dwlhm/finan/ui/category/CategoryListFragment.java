@@ -16,7 +16,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
@@ -57,9 +59,7 @@ public final class CategoryListFragment extends ScreenFragment {
   private EditText searchInput;
   private ImageButton searchClear;
   private DebouncedTextWatcher searchWatcher;
-  private boolean pendingExpanded = true;
-  private boolean otherExpanded = true;
-  private CashFlowActivity classificationFilter;
+  private String selectedTypeFilter = "ALL";
   private String query = "";
   private int reloadGeneration;
 
@@ -76,23 +76,12 @@ public final class CategoryListFragment extends ScreenFragment {
 
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
-    query = savedInstanceState == null ? "" : savedInstanceState.getString(SEARCH_STATE, "");
     if (savedInstanceState != null) {
-      pendingExpanded = savedInstanceState.getBoolean(PENDING_EXPANDED_STATE, true);
-      otherExpanded = savedInstanceState.getBoolean(OTHER_EXPANDED_STATE, true);
-      String filter = savedInstanceState.getString(CLASSIFICATION_FILTER_STATE);
-      classificationFilter = filter == null ? null : CashFlowActivity.valueOf(filter);
-    }
-    if (classificationFilter == null) {
-      String argFilter = getArguments() != null ? getArguments().getString(ARG_CLASSIFICATION_FILTER) : null;
-      if (argFilter != null) {
-        classificationFilter = CashFlowActivity.UNCLASSIFIED;
-      }
+      query = savedInstanceState.getString(SEARCH_STATE, "");
     }
     listView = view.findViewById(R.id.category_list);
     loadingView = view.findViewById(R.id.category_loading);
-    emptyView = view.findViewById(R.id.category_empty);
-    introView = view.findViewById(R.id.category_intro);
+    emptyView = view.findViewById(R.id.category_empty_view);
     emptyTitle = view.findViewById(R.id.category_empty_title);
     emptyHint = view.findViewById(R.id.category_empty_hint);
     emptyAction = view.findViewById(R.id.category_empty_action);
@@ -100,18 +89,49 @@ public final class CategoryListFragment extends ScreenFragment {
     searchClear = view.findViewById(R.id.category_search_clear);
     searchInput.setText(query);
     searchInput.setSelection(searchInput.length());
+
+    // Apply system navigation bar insets so bottom list items are never covered
+    ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+      int bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+      int extraPaddingBottom = (int) (108 * getResources().getDisplayMetrics().density + 0.5f);
+      if (listView != null) {
+        listView.setPadding(
+            listView.getPaddingLeft(),
+            listView.getPaddingTop(),
+            listView.getPaddingRight(),
+            extraPaddingBottom + bottomInset);
+      }
+      return insets;
+    });
+
+    MaterialButtonToggleGroup filterToggleGroup = view.findViewById(R.id.category_filter_toggle_group);
+    if (filterToggleGroup != null) {
+      int initialCheckedId = switch (selectedTypeFilter) {
+        case "EXPENSE" -> R.id.category_filter_expense;
+        case "INCOME" -> R.id.category_filter_income;
+        default -> R.id.category_filter_all;
+      };
+      filterToggleGroup.check(initialCheckedId);
+
+      filterToggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+        if (isChecked) {
+          if (checkedId == R.id.category_filter_all) {
+            selectedTypeFilter = "ALL";
+          } else if (checkedId == R.id.category_filter_expense) {
+            selectedTypeFilter = "EXPENSE";
+          } else if (checkedId == R.id.category_filter_income) {
+            selectedTypeFilter = "INCOME";
+          }
+          render();
+        }
+      });
+    }
+
     ScreenHeaderView header = view.findViewById(R.id.category_header);
     header.setOnBackClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
     header.setOnActionClickListener(v -> openCategoryCreator());
 
-    adapter =
-        new CategoryAdapter(
-            requireContext(),
-            this::toggleSection,
-            filter -> {
-              classificationFilter = filter;
-              render();
-            });
+    adapter = new CategoryAdapter(requireContext());
     listView.setAdapter(adapter);
     listView.setOnItemClickListener(
         (parent, row, position, id) -> {
@@ -130,7 +150,6 @@ public final class CategoryListFragment extends ScreenFragment {
             });
     searchInput.addTextChangedListener(searchWatcher);
   }
-
   @Override
   public void onResume() {
     super.onResume();
@@ -150,11 +169,6 @@ public final class CategoryListFragment extends ScreenFragment {
   public void onSaveInstanceState(@NonNull Bundle outState) {
     outState.putString(
         SEARCH_STATE, searchInput == null ? query : searchInput.getText().toString().trim());
-    outState.putBoolean(PENDING_EXPANDED_STATE, pendingExpanded);
-    outState.putBoolean(OTHER_EXPANDED_STATE, otherExpanded);
-    if (classificationFilter != null) {
-      outState.putString(CLASSIFICATION_FILTER_STATE, classificationFilter.name());
-    }
     super.onSaveInstanceState(outState);
   }
 
@@ -180,89 +194,41 @@ public final class CategoryListFragment extends ScreenFragment {
         });
   }
 
-  private void toggleSection(Section section) {
-    if (section == Section.PENDING) {
-      pendingExpanded = !pendingExpanded;
-    } else {
-      otherExpanded = !otherExpanded;
-    }
-    render();
-  }
-
   private void render() {
     if (adapter == null || loadingView.getVisibility() == View.VISIBLE) {
       return;
     }
     List<Category> visible = query.isEmpty() ? categories : allIndex.matching(query);
-    List<Category> pending = unclassified(visible);
-    List<Category> classified = classified(visible, classificationFilter);
-    boolean noResults = pending.isEmpty() && classified.isEmpty();
-    adapter.setClassificationFilter(classificationFilter);
-    adapter.setItems(entries(visible));
+    List<Category> filtered = new ArrayList<>();
+    for (Category c : visible) {
+      if ("EXPENSE".equals(selectedTypeFilter)) {
+        if ("EXPENSE".equals(c.getTypeFilter()) || "BOTH".equals(c.getTypeFilter())) {
+          filtered.add(c);
+        }
+      } else if ("INCOME".equals(selectedTypeFilter)) {
+        if ("INCOME".equals(c.getTypeFilter()) || "BOTH".equals(c.getTypeFilter())) {
+          filtered.add(c);
+        }
+      } else {
+        filtered.add(c);
+      }
+    }
+    filtered.sort((a, b) -> {
+      if (a.isDefault() != b.isDefault()) {
+        return a.isDefault() ? -1 : 1;
+      }
+      return a.getName().compareToIgnoreCase(b.getName());
+    });
     searchClear.setVisibility(query.isEmpty() ? View.GONE : View.VISIBLE);
-    introView.setVisibility(query.isEmpty() ? View.VISIBLE : View.GONE);
-    boolean empty = categories.isEmpty() || (!query.isEmpty() && noResults);
+    boolean empty = categories.isEmpty() || (!query.isEmpty() && filtered.isEmpty());
     listView.setVisibility(empty ? View.GONE : View.VISIBLE);
     emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
     if (empty) {
       bindEmptyState();
+    } else {
+      adapter.setItems(filtered);
     }
   }
-
-  private List<ListEntry> entries(List<Category> visible) {
-    List<ListEntry> result = new ArrayList<>();
-    List<Category> pending = unclassified(visible);
-    List<Category> classified = classified(visible, classificationFilter);
-    boolean searching = !query.isEmpty();
-    if (!pending.isEmpty()) {
-      result.add(
-          ListEntry.section(
-              getString(R.string.category_section_unclassified, pending.size()),
-              Section.PENDING,
-              searching || pendingExpanded));
-      if (searching || pendingExpanded) {
-        for (Category category : pending) {
-          result.add(ListEntry.category(category));
-        }
-      }
-    }
-    if (hasClassified(categories)) {
-      result.add(
-          ListEntry.section(
-              getString(R.string.category_section_other, classified.size()),
-              Section.OTHER,
-              searching || otherExpanded));
-      if (searching || otherExpanded) {
-        result.add(ListEntry.filters());
-        for (Category category : classified) {
-          result.add(ListEntry.category(category));
-        }
-      }
-    }
-    return result;
-  }
-
-  private static List<Category> classified(
-      List<Category> source, @Nullable CashFlowActivity filter) {
-    List<Category> result = new ArrayList<>();
-    for (Category category : source) {
-      if (!isUnclassified(category)
-          && (filter == null || filter.name().equals(category.getCashFlowActivity()))) {
-        result.add(category);
-      }
-    }
-    return result;
-  }
-
-  private static boolean hasClassified(List<Category> source) {
-    for (Category category : source) {
-      if (!isUnclassified(category)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private void bindEmptyState() {
     if (categories.isEmpty()) {
       emptyTitle.setText(R.string.category_empty);
@@ -373,38 +339,23 @@ public final class CategoryListFragment extends ScreenFragment {
     }
   }
 
-  private static final class CategoryAdapter extends BaseAdapter {
-    private static final int TYPE_SECTION = 0;
-    private static final int TYPE_FILTERS = 1;
-    private static final int TYPE_CATEGORY = 2;
+  private final class CategoryAdapter extends BaseAdapter {
     private final Context context;
     private final LayoutInflater inflater;
-    private final Consumer<Section> sectionListener;
-    private final Consumer<CashFlowActivity> filterListener;
-    private List<ListEntry> items = List.of();
-    private CashFlowActivity classificationFilter;
+    private List<Category> items = new ArrayList<>();
 
-    private CategoryAdapter(
-        Context context,
-        Consumer<Section> sectionListener,
-        Consumer<CashFlowActivity> filterListener) {
+    CategoryAdapter(Context context) {
       this.context = context;
-      this.sectionListener = sectionListener;
-      this.filterListener = filterListener;
-      inflater = LayoutInflater.from(context);
+      this.inflater = LayoutInflater.from(context);
     }
 
-    private void setClassificationFilter(@Nullable CashFlowActivity filter) {
-      classificationFilter = filter;
-    }
-
-    private void setItems(List<ListEntry> items) {
-      this.items = items;
+    void setItems(List<Category> items) {
+      this.items = items != null ? items : new ArrayList<>();
       notifyDataSetChanged();
     }
 
-    private Category categoryAt(int position) {
-      return items.get(position).category;
+    Category categoryAt(int position) {
+      return (position >= 0 && position < items.size()) ? items.get(position) : null;
     }
 
     @Override
@@ -413,68 +364,18 @@ public final class CategoryListFragment extends ScreenFragment {
     }
 
     @Override
-    public ListEntry getItem(int position) {
+    public Category getItem(int position) {
       return items.get(position);
     }
 
     @Override
     public long getItemId(int position) {
-      Category category = categoryAt(position);
-      return category == null ? -position - 1L : category.getId();
-    }
-
-    @Override
-    public int getItemViewType(int position) {
-      ListEntry item = getItem(position);
-      if (item.category != null) {
-        return TYPE_CATEGORY;
-      }
-      return item.filters ? TYPE_FILTERS : TYPE_SECTION;
-    }
-
-    @Override
-    public int getViewTypeCount() {
-      return 3;
-    }
-
-    @Override
-    public boolean isEnabled(int position) {
-      return categoryAt(position) != null;
+      Category category = getItem(position);
+      return category != null ? category.getId() : position;
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-      ListEntry item = getItem(position);
-      if (item.sectionType != null) {
-        if (convertView == null) {
-          convertView = inflater.inflate(R.layout.item_category_section, parent, false);
-        }
-        TextView title = convertView.findViewById(R.id.item_category_section);
-        ImageView indicator =
-            convertView.findViewById(R.id.item_category_section_indicator);
-        title.setText(item.section);
-        indicator.setImageResource(
-            item.expanded ? R.drawable.ic_expand_less : R.drawable.ic_expand_more);
-        convertView.setSelected(item.expanded);
-        convertView.setOnClickListener(v -> sectionListener.accept(item.sectionType));
-        return convertView;
-      }
-      if (item.filters) {
-        if (convertView == null) {
-          convertView = inflater.inflate(R.layout.item_category_filters, parent, false);
-        }
-        bindFilter(convertView.findViewById(R.id.category_classification_all), null);
-        bindFilter(
-            convertView.findViewById(R.id.category_classification_operating),
-            CashFlowActivity.OPERATING);
-        bindFilter(
-            convertView.findViewById(R.id.category_classification_investing),
-            CashFlowActivity.INVESTING);
-        bindFilter(
-            convertView.findViewById(R.id.category_classification_financing),
-            CashFlowActivity.FINANCING);
-        return convertView;
-      }
       if (convertView == null) {
         convertView = inflater.inflate(R.layout.item_category, parent, false);
       }
@@ -483,9 +384,9 @@ public final class CategoryListFragment extends ScreenFragment {
       ImageView icon = convertView.findViewById(R.id.item_category_icon);
       TextView emoji = convertView.findViewById(R.id.item_category_emoji);
       TextView defaultBadge = convertView.findViewById(R.id.item_category_default_badge);
-      
-      Category category = item.category;
-      
+
+      Category category = getItem(position);
+
       if (category.getIcon() != null && !category.getIcon().trim().isEmpty()) {
         icon.setBackground(null);
         icon.setImageDrawable(null);
@@ -499,7 +400,7 @@ public final class CategoryListFragment extends ScreenFragment {
         icon.setImageResource(R.drawable.ic_summary_filter);
         emoji.setVisibility(View.GONE);
       }
-      
+
       String type = typeLabel(context, category.getTypeFilter());
       String activity = activityLabel(context, category.getCashFlowActivity());
       name.setText(category.getName());
@@ -514,17 +415,7 @@ public final class CategoryListFragment extends ScreenFragment {
       convertView.setBackgroundResource(category.isDefault()
           ? R.drawable.bg_card_wallet_default
           : R.drawable.bg_card);
-      convertView.setContentDescription(
-          category.getName() + ". " + type + ". " + activity + ".");
       return convertView;
-    }
-
-    private void bindFilter(Button button, @Nullable CashFlowActivity activity) {
-      UiComponentStyles.prepareChip(button);
-      UiComponentStyles.setChipSelected(
-          context, button, classificationFilter == activity, R.drawable.bg_chip_selected);
-      button.setGravity(android.view.Gravity.CENTER_VERTICAL);
-      button.setOnClickListener(v -> filterListener.accept(activity));
     }
 
     private static String typeLabel(Context context, String type) {
@@ -536,13 +427,18 @@ public final class CategoryListFragment extends ScreenFragment {
     }
 
     private static String activityLabel(Context context, String activity) {
-      CashFlowActivity value = CashFlowActivity.valueOf(activity);
+      if (activity == null) return "";
+      try {
+        CashFlowActivity value = CashFlowActivity.valueOf(activity);
         return switch (value) {
             case OPERATING -> context.getString(R.string.category_activity_operating_short);
             case INVESTING -> context.getString(R.string.category_activity_investing_short);
             case FINANCING -> context.getString(R.string.category_activity_financing_short);
             default -> context.getString(R.string.category_activity_unclassified_short);
         };
+      } catch (Exception e) {
+        return "";
+      }
     }
   }
 }

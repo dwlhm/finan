@@ -3,6 +3,11 @@ package com.dwlhm.finan.ui.settings;
 import android.app.Activity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
+import androidx.appcompat.widget.SwitchCompat;
+import com.dwlhm.finan.data.prefs.DefaultsStore;
+import com.dwlhm.finan.ui.capture.AmountShortcutDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -51,8 +56,8 @@ public final class SettingsFragment extends ScreenFragment {
 
   private ActivityResultLauncher<Intent> exportLauncher;
   private ActivityResultLauncher<Intent> importLauncher;
-  private Button exportButton;
-  private Button importButton;
+  private View exportButton;
+  private View importButton;
   private ProgressBar exportProgress;
   private TextView exportStatus;
   private boolean exportInProgress;
@@ -60,8 +65,6 @@ public final class SettingsFragment extends ScreenFragment {
   private boolean maskedMode;
   @Nullable private Long exportStartDate;
   @Nullable private Long exportEndDate;
-  private TextView modeNominal;
-  private TextView modeMasked;
   private TextView payrollCycleValue;
   private long cachedTotalBalanceMinor;
   private String cachedCurrencyCode;
@@ -114,143 +117,74 @@ public final class SettingsFragment extends ScreenFragment {
     importButton = view.findViewById(R.id.settings_import);
     exportProgress = view.findViewById(R.id.settings_export_progress);
     exportStatus = view.findViewById(R.id.settings_export_status);
-    Button walletsButton = view.findViewById(R.id.settings_wallets);
-    Button categoriesButton = view.findViewById(R.id.settings_categories);
-    TextView createCategoryText = view.findViewById(R.id.settings_create_category_text);
-
+    View walletsButton = view.findViewById(R.id.settings_wallets);
+    View categoriesButton = view.findViewById(R.id.settings_categories);
+    if (walletsButton != null) {
+      walletsButton.setOnClickListener(v -> openWallets());
+    }
+    if (categoriesButton != null) {
+      categoriesButton.setOnClickListener(v -> openCategories());
+    }
     AppServices services = ServicesProvider.get(requireContext());
 
-    exportButton.setOnClickListener(v -> launchExportPicker());
-    importButton.setOnClickListener(v -> launchImportPicker());
-    walletsButton.setOnClickListener(v -> openWallets());
-    categoriesButton.setOnClickListener(v -> openCategories());
-    createCategoryText.setOnClickListener(
-        v ->
-            new CategoryEditorDialog(
-                requireContext(),
-                services,
-                null,
-                0,
-                saved -> loadTopCategories(),
-                null));
-    TextView createWalletText = view.findViewById(R.id.settings_create_wallet_text);
-    createWalletText.setOnClickListener(v -> openWalletInputDialog());
-
-    modeNominal = view.findViewById(R.id.settings_mode_nominal);
-    modeMasked = view.findViewById(R.id.settings_mode_masked);
-    maskedMode = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
-        .getBoolean(MASKED_MODE_PREFS_KEY, false);
-    updateModeToggle();
-    modeNominal.setOnClickListener(v -> setMaskedMode(false));
-    modeMasked.setOnClickListener(v -> setMaskedMode(true));
-
+    if (exportButton != null) {
+      exportButton.setOnClickListener(v -> launchExportPicker());
+    }
+    if (importButton != null) {
+      importButton.setOnClickListener(v -> launchImportPicker());
+    }
     payrollCycleValue = view.findViewById(R.id.settings_payroll_cycle_value);
-    Button payrollCycleButton = view.findViewById(R.id.settings_payroll_cycle);
+    View payrollCycleButton = view.findViewById(R.id.settings_payroll_cycle);
     if (payrollCycleButton != null) {
       payrollCycleButton.setOnClickListener(v -> showPayrollCyclePicker());
     }
     updatePayrollCycleValue();
+
+    View shortcutsButton = view.findViewById(R.id.settings_amount_shortcuts);
+    if (shortcutsButton != null) {
+      shortcutsButton.setOnClickListener(v -> openAmountShortcutsDialog());
+    }
+
+    SharedPreferences prefs = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE);
+
+    SwitchCompat sensorSwitch = view.findViewById(R.id.settings_sensor_mode_switch);
+    if (sensorSwitch != null) {
+      sensorSwitch.setChecked(maskedMode);
+      sensorSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
+        if (isChecked != maskedMode) {
+          setMaskedMode(isChecked);
+        }
+      });
+    }
+
+    SwitchCompat summarySwitch = view.findViewById(R.id.settings_summary_mode_switch);
+    if (summarySwitch != null) {
+      boolean summaryMode = prefs.getBoolean("summary_percentage_mode", false);
+      summarySwitch.setChecked(summaryMode);
+      summarySwitch.setOnCheckedChangeListener((btn, isChecked) ->
+          prefs.edit().putBoolean("summary_percentage_mode", isChecked).apply());
+    }
+
+    SwitchCompat dashboardSwitch = view.findViewById(R.id.settings_dashboard_mode_switch);
+    if (dashboardSwitch != null) {
+      boolean dashboardMode = prefs.getBoolean("pref_display_mode", false);
+      dashboardSwitch.setChecked(dashboardMode);
+      dashboardSwitch.setOnCheckedChangeListener((btn, isChecked) ->
+          prefs.edit()
+              .putBoolean("pref_display_mode", isChecked)
+              .putInt("dashboard_display_mode", isChecked ? 1 : 0)
+              .apply());
+    }
+
+    View resetButton = view.findViewById(R.id.settings_reset_data);
+    if (resetButton != null) {
+      resetButton.setOnClickListener(v -> showResetDataConfirmationDialog());
+    }
   }
 
   @Override
   public void onResume() {
     super.onResume();
-    loadTopCategories();
-    loadTopWallets();
-  }
-
-  private void loadTopCategories() {
-    AppServices services = ServicesProvider.get(requireContext());
-    services.dbWorker.compute(
-        () -> {
-          List<Category> cats = services.categoryDao.findAllForManage();
-          List<SummaryDao.CategorySumRow> rows = services.summaryDao.expenseByCategory(0L, Long.MAX_VALUE);
-          Map<Long, Long> totals = new HashMap<>();
-          for (SummaryDao.CategorySumRow row : rows) {
-            totals.put(row.categoryId, row.totalMinor);
-          }
-          return new CategoriesWithTotals(cats, totals);
-        },
-        result -> {
-          if (!isAdded() || result == null) {
-            return;
-          }
-          renderTopCategories(result.categories, result.totals);
-        });
-  }
-
-  private void renderTopCategories(List<Category> allCategories, Map<Long, Long> totals) {
-    View view = getView();
-    if (view == null) return;
-
-    GridLayout categoriesGrid = view.findViewById(R.id.settings_categories_grid);
-    TextView categoriesEmpty = view.findViewById(R.id.settings_categories_empty);
-    categoriesGrid.removeAllViews();
-
-    if (allCategories.isEmpty()) {
-      categoriesEmpty.setVisibility(View.VISIBLE);
-      categoriesGrid.setVisibility(View.GONE);
-      return;
-    }
-
-    categoriesEmpty.setVisibility(View.GONE);
-    categoriesGrid.setVisibility(View.VISIBLE);
-
-    LayoutInflater inflater = LayoutInflater.from(requireContext());
-    float density = getResources().getDisplayMetrics().density;
-    int margin = (int) (4 * density + 0.5f);
-    allCategories.sort((a, b) -> {
-      Long bVal = totals.get(b.getId());
-      Long aVal = totals.get(a.getId());
-      long bTot = bVal != null ? bVal : 0L;
-      long aTot = aVal != null ? aVal : 0L;
-      return Long.compare(bTot, aTot);
-    });
-    int limit = Math.min(allCategories.size(), 6);
-
-    for (int i = 0; i < limit; i++) {
-      Category category = allCategories.get(i);
-      View item = inflater.inflate(R.layout.item_settings_category_grid, categoriesGrid, false);
-
-      if (category.isDefault()) {
-        item.setBackgroundResource(R.drawable.bg_card_wallet_default);
-      }
-
-      TextView emojiView = item.findViewById(R.id.grid_category_emoji);
-      TextView nameView = item.findViewById(R.id.grid_category_name);
-      TextView usageView = item.findViewById(R.id.grid_category_usage);
-
-      String icon = category.getIcon();
-      emojiView.setText(icon == null || icon.trim().isEmpty() ? "📂" : icon);
-      nameView.setText(category.getName());
-
-      Long catVal = totals.get(category.getId());
-      long total = catVal != null ? catVal : 0L;
-      usageView.setText(maskedMode ? "***" : MoneyFormatter.format(total));
-
-      item.setOnClickListener(v -> openCategoryOverview(category));
-
-      GridLayout.LayoutParams params = new GridLayout.LayoutParams(
-          GridLayout.spec(GridLayout.UNDEFINED, 1f),
-          GridLayout.spec(GridLayout.UNDEFINED, 1f)
-      );
-      params.width = 0;
-      params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-      params.setMargins(margin, margin, margin, margin);
-      item.setLayoutParams(params);
-
-      categoriesGrid.addView(item);
-    }
-  }
-
-  private static final class CategoriesWithTotals {
-    private final List<Category> categories;
-    private final Map<Long, Long> totals;
-
-    private CategoriesWithTotals(List<Category> categories, Map<Long, Long> totals) {
-      this.categories = categories;
-      this.totals = totals;
-    }
   }
 
   private void openCategoryOverview(Category category) {
@@ -260,100 +194,8 @@ public final class SettingsFragment extends ScreenFragment {
         requireContext(),
         services,
         category,
-        this::loadTopCategories,
+        null,
         (ScreenNavigator) requireActivity());
-  }
-
-  private void loadTopWallets() {
-    AppServices services = ServicesProvider.get(requireContext());
-    services.dbWorker.compute(
-        services.walletService::findAll,
-        wallets -> {
-          if (!isAdded() || wallets == null) {
-            return;
-          }
-          renderTopWallets(wallets);
-        });
-  }
-
-  private void renderTopWallets(List<Wallet> allWallets) {
-    View view = getView();
-    if (view == null) return;
-
-    GridLayout walletsGrid = view.findViewById(R.id.settings_wallets_grid);
-    TextView walletsEmpty = view.findViewById(R.id.settings_wallets_empty);
-    LinearLayout balanceRow = view.findViewById(R.id.settings_wallets_balance_row);
-    TextView totalBalanceView = view.findViewById(R.id.settings_wallets_total_balance);
-    walletsGrid.removeAllViews();
-
-    long totalBalanceMinor = 0L;
-    for (Wallet w : allWallets) {
-      totalBalanceMinor = Math.addExact(totalBalanceMinor, w.getCachedBalanceMinor());
-    }
-
-    if (allWallets.isEmpty()) {
-      walletsEmpty.setVisibility(View.VISIBLE);
-      walletsGrid.setVisibility(View.GONE);
-      balanceRow.setVisibility(View.GONE);
-      return;
-    }
-
-    walletsEmpty.setVisibility(View.GONE);
-    walletsGrid.setVisibility(View.VISIBLE);
-
-    cachedCurrencyCode = allWallets.get(0).getCurrencyCode();
-    cachedTotalBalanceMinor = totalBalanceMinor;
-    updateTotalBalanceView(totalBalanceView);
-    balanceRow.setVisibility(View.VISIBLE);
-
-    LayoutInflater inflater = LayoutInflater.from(requireContext());
-    float density = getResources().getDisplayMetrics().density;
-    int margin = (int) (4 * density + 0.5f);
-    int limit = Math.min(allWallets.size(), 6);
-
-    for (int i = 0; i < limit; i++) {
-      Wallet wallet = allWallets.get(i);
-      View item = inflater.inflate(R.layout.item_settings_wallet_grid, walletsGrid, false);
-
-      if (wallet.isDefault()) {
-        item.setBackgroundResource(R.drawable.bg_card_wallet_default);
-      }
-
-      TextView iconView = item.findViewById(R.id.grid_wallet_icon);
-      TextView nameView = item.findViewById(R.id.grid_wallet_name);
-      TextView usageView = item.findViewById(R.id.grid_wallet_usage);
-
-      String walletIcon = wallet.getIcon();
-      if (walletIcon != null && !walletIcon.trim().isEmpty()) {
-        iconView.setText(walletIcon);
-      } else {
-        iconView.setText(wallet.isDefault() ? "⭐" : "💳");
-      }
-      nameView.setText(wallet.getName());
-      usageView.setText(maskedMode ? "***" : MoneyFormatter.format(wallet.getCachedBalanceMinor()));
-
-      item.setOnClickListener(v ->
-          openWalletOverview(wallet, allWallets));
-
-      GridLayout.LayoutParams params = new GridLayout.LayoutParams(
-          GridLayout.spec(GridLayout.UNDEFINED, 1f),
-          GridLayout.spec(GridLayout.UNDEFINED, 1f));
-      params.width = 0;
-      params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-      params.setMargins(margin, margin, margin, margin);
-      item.setLayoutParams(params);
-
-      walletsGrid.addView(item);
-    }
-  }
-
-  private void updateTotalBalanceView(TextView totalBalanceView) {
-    if (maskedMode) {
-      totalBalanceView.setText("***");
-    } else {
-      totalBalanceView.setText(
-          MoneyFormatter.formatWithCurrencyCode(cachedCurrencyCode, cachedTotalBalanceMinor));
-    }
   }
 
   private void setMaskedMode(boolean masked) {
@@ -362,41 +204,25 @@ public final class SettingsFragment extends ScreenFragment {
         .edit()
         .putBoolean(MASKED_MODE_PREFS_KEY, masked)
         .apply();
-    updateModeToggle();
     View view = getView();
     if (view != null) {
-      updateTotalBalanceView(view.findViewById(R.id.settings_wallets_total_balance));
-    }
-    loadTopCategories();
-    loadTopWallets();
-  }
-
-  private void updateModeToggle() {
-    if (modeNominal == null || modeMasked == null) return;
-    if (maskedMode) {
-      modeNominal.setBackground(null);
-      modeNominal.setTextColor(0xFF4A9E7F);
-      modeMasked.setBackgroundResource(R.drawable.bg_toggle_active);
-      modeMasked.setTextColor(0xFFFFFFFF);
-    } else {
-      modeNominal.setBackgroundResource(R.drawable.bg_toggle_active);
-      modeNominal.setTextColor(0xFFFFFFFF);
-      modeMasked.setBackground(null);
-      modeMasked.setTextColor(0xFF4A9E7F);
+      SwitchCompat sensorSwitch = view.findViewById(R.id.settings_sensor_mode_switch);
+      if (sensorSwitch != null && sensorSwitch.isChecked() != masked) {
+        sensorSwitch.setChecked(masked);
+      }
     }
   }
 
   private void openWalletOverview(Wallet wallet, List<Wallet> allWallets) {
     AppServices services = ServicesProvider.get(requireContext());
     new WalletOverviewBottomSheet(
-        requireContext(), services, wallet, allWallets, this::loadTopWallets);
+        requireContext(), services, wallet, allWallets, () -> {});
   }
 
   private void openWalletInputDialog() {
     AppServices services = ServicesProvider.get(requireContext());
-    new WalletInputDialog(requireContext(), services, this::loadTopWallets);
+    new WalletInputDialog(requireContext(), services, () -> {});
   }
-
   private void launchExportPicker() {
     if (exportInProgress) return;
     new ExportDateRangeBottomSheet(
@@ -576,14 +402,83 @@ public final class SettingsFragment extends ScreenFragment {
                 requireContext(),
                 getString(R.string.settings_import_success, result.getTotalImported()),
                 Toast.LENGTH_SHORT).show();
-            loadTopCategories();
-            loadTopWallets();
           } else {
             String error = result != null ? result.getError() : null;
             Toast.makeText(
                 requireContext(),
                 error != null ? error : getString(R.string.settings_import_failed),
                 Toast.LENGTH_SHORT).show();
+          }
+        });
+  }
+
+  private void openAmountShortcutsDialog() {
+    AppServices services = ServicesProvider.get(requireContext());
+    DefaultsStore defaultsStore = services.defaultsStore != null
+        ? services.defaultsStore
+        : new DefaultsStore(requireContext());
+    List<Long> shortcuts = defaultsStore.getAmountShortcuts();
+    new AmountShortcutDialog(
+        requireContext(),
+        shortcuts,
+        newShortcuts -> defaultsStore.setAmountShortcuts(newShortcuts))
+        .show();
+  }
+
+  private void showResetDataConfirmationDialog() {
+    new MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.settings_reset_data_confirm_title)
+        .setMessage(R.string.settings_reset_data_confirm_msg)
+        .setPositiveButton(R.string.hc_dialog_confirm_delete_hapus, (dialog, which) -> resetAllData())
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
+  }
+
+  private void resetAllData() {
+    AppServices services = ServicesProvider.get(requireContext());
+    services.dbWorker.compute(
+        () -> {
+          try {
+            SQLiteDatabase db = services.databaseHelper.getWritableDatabase();
+            db.execSQL("DELETE FROM transfers");
+            db.execSQL("DELETE FROM transactions");
+            db.execSQL("DELETE FROM wallets WHERE is_default = 0 OR is_default IS NULL");
+            db.execSQL("UPDATE wallets SET cached_balance_minor = 0, opening_balance_minor = 0");
+            android.database.Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM wallets", null);
+            boolean hasWallet = false;
+            if (cursor != null) {
+              if (cursor.moveToFirst() && cursor.getInt(0) > 0) {
+                hasWallet = true;
+              }
+              cursor.close();
+            }
+            if (!hasWallet) {
+              long now = System.currentTimeMillis();
+              db.execSQL("INSERT INTO wallets (name, currency_code, is_default, cached_balance_minor, opening_balance_minor, created_at) "
+                  + "VALUES ('Dompet Utama', 'IDR', 1, 0, 0, " + now + ")");
+            }
+            db.execSQL("DELETE FROM categories");
+            db.execSQL("INSERT INTO categories (name, type_filter, sort_order, usage_count, last_used_at, cash_flow_activity, is_default) VALUES "
+                + "('Makanan', 'EXPENSE', 0, 0, 0, 'OPERATING', 1), "
+                + "('Transport', 'EXPENSE', 1, 0, 0, 'OPERATING', 0), "
+                + "('Kopi', 'EXPENSE', 2, 0, 0, 'OPERATING', 0), "
+                + "('Tagihan', 'EXPENSE', 3, 0, 0, 'OPERATING', 0), "
+                + "('Belanja', 'EXPENSE', 4, 0, 0, 'OPERATING', 0), "
+                + "('Gaji', 'INCOME', 5, 0, 0, 'OPERATING', 0), "
+                + "('Lainnya', 'BOTH', 6, 0, 0, 'UNCLASSIFIED', 0)");
+            return Boolean.TRUE;
+          } catch (Exception e) {
+            return Boolean.FALSE;
+          }
+        },
+        success -> {
+          if (!isAdded()) {
+            return;
+          }
+          if (Boolean.TRUE.equals(success)) {
+            Toast.makeText(requireContext(), R.string.settings_reset_data_success, Toast.LENGTH_SHORT).show();
+          } else {
+            Toast.makeText(requireContext(), R.string.settings_export_failed, Toast.LENGTH_SHORT).show();
           }
         });
   }

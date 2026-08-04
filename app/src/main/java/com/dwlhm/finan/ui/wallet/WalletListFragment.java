@@ -125,18 +125,8 @@ public final class WalletListFragment extends ScreenFragment {
       }
     }
 
-    if (BottomSheetHelper.isMasked(requireContext())) {
-      totalBalanceView.setText("***");
-      totalBalanceView.setTextColor(
-          ContextCompat.getColor(requireContext(), R.color.finan_text_primary));
-    } else {
-      totalBalanceView.setText(MoneyFormatter.formatTotalsByCurrency(totalsByCurrency));
-      int balanceColor =
-          MoneyFormatter.containsOnlyNegativeTotals(totalsByCurrency)
-              ? R.color.finan_expense
-              : R.color.finan_primary;
-      totalBalanceView.setTextColor(
-          ContextCompat.getColor(requireContext(), balanceColor));
+    if (totalBalanceView != null) {
+      totalBalanceView.setVisibility(View.GONE);
     }
     walletCountView.setText(
         getResources().getQuantityString(R.plurals.wallet_count, wallets.size(), wallets.size()));
@@ -536,17 +526,8 @@ public final class WalletListFragment extends ScreenFragment {
       card.setBackgroundResource(
           wallet.isDefault() ? R.drawable.bg_card_wallet_default : R.drawable.bg_card);
       defaultBadge.setVisibility(wallet.isDefault() ? View.VISIBLE : View.GONE);
-      if (BottomSheetHelper.isMasked(requireContext())) {
-        balance.setText("***");
-        balance.setTextColor(
-            ContextCompat.getColor(context, R.color.finan_text_primary));
-      } else {
-        balance.setText(
-            MoneyFormatter.formatWithCurrencyCode(currencyCode, wallet.getCachedBalanceMinor()));
-        balance.setTextColor(
-            ContextCompat.getColor(
-                context,
-                wallet.getCachedBalanceMinor() < 0 ? R.color.finan_expense : R.color.finan_primary));
+      if (balance != null) {
+        balance.setVisibility(View.GONE);
       }
       ViewPressAnimator.bindScale(editButton);
       ViewPressAnimator.bindScale(deleteButton);

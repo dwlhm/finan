@@ -11,9 +11,10 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-
 public final class BottomSheetHelper {
 
   private static final String PREFS_NAME = "finan_prefs";
@@ -27,6 +28,16 @@ public final class BottomSheetHelper {
       BottomSheetBehavior<FrameLayout> behavior = BottomSheetBehavior.from(bottomSheet);
       behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
       behavior.setSkipCollapsed(true);
+
+      ViewCompat.setOnApplyWindowInsetsListener(bottomSheet, (v, insets) -> {
+        int bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+        v.setPadding(
+            v.getPaddingLeft(),
+            v.getPaddingTop(),
+            v.getPaddingRight(),
+            bottomInset);
+        return insets;
+      });
     }
   }
 

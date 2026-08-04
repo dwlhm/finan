@@ -3,16 +3,21 @@ package com.dwlhm.finan.ui.category;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
@@ -24,10 +29,13 @@ import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.DialogActionsView;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.EmojiConstants;
+import com.dwlhm.finan.ui.common.EmojiPickerBottomSheet;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.function.Consumer;
-
 public final class CategoryEditorDialog extends BottomSheetDialog {
 
   private final AppServices services;
@@ -73,19 +81,28 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
   private void setupViews() {
     TextView title = findViewById(R.id.category_editor_title);
     LabeledEditTextView nameField = findViewById(R.id.category_name_field);
-    LabeledEditTextView iconField = findViewById(R.id.category_icon_field);
     EditText nameInput = nameField != null ? nameField.getEditText() : null;
-    EditText iconInput = iconField != null ? iconField.getEditText() : null;
-    if (nameInput == null || iconInput == null) return;
-    iconInput.setFilters(new android.text.InputFilter[] { new android.text.InputFilter.LengthFilter(5) });
+    if (nameInput == null) return;
+
+    // Custom Icon Preview & Backing Input
+    FrameLayout iconContainer = findViewById(R.id.category_icon_container);
+    TextView iconPreview = findViewById(R.id.category_icon_preview);
+    // Backing EditText for icon value
+    EditText iconInput = new EditText(getContext());
+    
     CheckBox expenseInput = findViewById(R.id.category_type_expense);
     CheckBox incomeInput = findViewById(R.id.category_type_income);
     RadioGroup activityGroup = findViewById(R.id.category_activity_group);
-    TextView countView = findViewById(R.id.category_transaction_count);
     Button transactionsButton = findViewById(R.id.category_view_transactions);
     Button deleteButton = findViewById(R.id.category_delete);
     SwitchCompat defaultSwitch = findViewById(R.id.category_default_switch);
     DialogActionsView actions = findViewById(R.id.category_editor_actions);
+
+    // Visual Category Type Cards
+    LinearLayout expenseCard = findViewById(R.id.category_type_expense_card);
+    LinearLayout incomeCard = findViewById(R.id.category_type_income_card);
+    TextView expenseLabel = findViewById(R.id.category_type_expense_label);
+    TextView incomeLabel = findViewById(R.id.category_type_income_label);
 
     EditorDraft draft =
         new EditorDraft(category, nameInput, iconInput, expenseInput, incomeInput, activityGroup, defaultSwitch);
@@ -99,21 +116,53 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
           getContext().getString(editing ? R.string.category_save_changes : R.string.category_save));
     }
 
+    // Set initial icon
+    String initialIcon = editing && category.getIcon() != null && !category.getIcon().isEmpty()
+        ? category.getIcon()
+        : EmojiConstants.CATEGORY_EMOJIS[new Random().nextInt(EmojiConstants.CATEGORY_EMOJIS.length)];
+    if (iconPreview != null) iconPreview.setText(initialIcon);
+    iconInput.setText(initialIcon);
+
+    if (iconContainer != null) {
+      iconContainer.setOnClickListener(v -> {
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && getCurrentFocus() != null) {
+          imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+        }
+        EmojiPickerBottomSheet picker = new EmojiPickerBottomSheet(
+            getContext(),
+            iconInput.getText().toString(),
+            selectedEmoji -> {
+              if (iconPreview != null) iconPreview.setText(selectedEmoji);
+              iconInput.setText(selectedEmoji);
+            });
+        BottomSheetHelper.show(picker);
+      });
+    }
+    if (expenseCard != null && incomeCard != null && expenseInput != null && incomeInput != null) {
+      View.OnClickListener typeClickListener = v -> {
+        if (v == expenseCard) {
+          expenseInput.setChecked(!expenseInput.isChecked());
+        } else if (v == incomeCard) {
+          incomeInput.setChecked(!incomeInput.isChecked());
+        }
+        updateTypeCardUI(expenseCard, expenseLabel, expenseInput, incomeCard, incomeLabel, incomeInput);
+      };
+      expenseCard.setOnClickListener(typeClickListener);
+      incomeCard.setOnClickListener(typeClickListener);
+    }
+
     if (editing) {
       draft.bindOriginal();
-      if (countView != null) {
-        countView.setText(
-            getContext().getResources()
-                .getQuantityString(
-                    R.plurals.category_transaction_count, transactionCount, transactionCount));
-        countView.setVisibility(android.view.View.VISIBLE);
-      }
+      if (iconPreview != null) iconPreview.setText(draft.icon());
+      updateTypeCardUI(expenseCard, expenseLabel, expenseInput, incomeCard, incomeLabel, incomeInput);
+
       if (deleteButton != null) {
-        deleteButton.setVisibility(android.view.View.VISIBLE);
+        deleteButton.setVisibility(View.VISIBLE);
         deleteButton.setOnClickListener(v -> confirmDeleteCategory());
       }
       if (onViewTransactions != null && transactionsButton != null) {
-        transactionsButton.setVisibility(android.view.View.VISIBLE);
+        transactionsButton.setVisibility(View.VISIBLE);
         transactionsButton.setOnClickListener(v -> closeEditor(draft, onViewTransactions));
       }
     } else {
@@ -125,7 +174,9 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
         expenseInput.setChecked("EXPENSE".equals(prefillType) || "BOTH".equals(prefillType));
         incomeInput.setChecked("INCOME".equals(prefillType) || "BOTH".equals(prefillType));
       }
+      updateTypeCardUI(expenseCard, expenseLabel, expenseInput, incomeCard, incomeLabel, incomeInput);
     }
+
     if (actions != null) {
       actions.setOnCancelClickListener(v -> closeEditor(draft, null));
       actions.setOnPrimaryClickListener(v -> submitEditor(draft, actions));
@@ -148,6 +199,44 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
     }
   }
 
+  private void updateTypeCardUI(
+      @Nullable LinearLayout expenseCard,
+      @Nullable TextView expenseLabel,
+      @Nullable CheckBox expenseInput,
+      @Nullable LinearLayout incomeCard,
+      @Nullable TextView incomeLabel,
+      @Nullable CheckBox incomeInput) {
+    if (expenseCard == null || incomeCard == null || expenseInput == null || incomeInput == null) {
+      return;
+    }
+    boolean isExpense = expenseInput.isChecked();
+    boolean isIncome = incomeInput.isChecked();
+
+    if (isExpense) {
+      expenseCard.setBackgroundResource(R.drawable.bg_category_type_expense_active);
+      if (expenseLabel != null) {
+        expenseLabel.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_expense));
+      }
+    } else {
+      expenseCard.setBackgroundResource(R.drawable.bg_category_type_inactive);
+      if (expenseLabel != null) {
+        expenseLabel.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
+      }
+    }
+
+    if (isIncome) {
+      incomeCard.setBackgroundResource(R.drawable.bg_category_type_income_active);
+      if (incomeLabel != null) {
+        incomeLabel.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_income));
+      }
+    } else {
+      incomeCard.setBackgroundResource(R.drawable.bg_category_type_inactive);
+      if (incomeLabel != null) {
+        incomeLabel.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
+      }
+    }
+  }
+
   private void submitEditor(EditorDraft draft, DialogActionsView actions) {
     String name = draft.name();
     if (name.isEmpty()) {
@@ -156,8 +245,7 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
       return;
     }
     if (!draft.hasType()) {
-      draft.expenseInput.setError(getContext().getString(R.string.category_error_type));
-      draft.expenseInput.requestFocus();
+      Toast.makeText(getContext(), R.string.category_error_type, Toast.LENGTH_SHORT).show();
       return;
     }
     draft.expenseInput.setError(null);
@@ -374,56 +462,111 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
   }
 
   private void confirmDeleteCategory() {
-    String message;
-    if (transactionCount > 0) {
-      message = "Kategori ini digunakan dalam " + transactionCount + " transaksi. Menghapus kategori ini juga akan memengaruhi transaksi tersebut. Hapus?";
-    } else {
-      message = "Apakah Anda yakin ingin menghapus kategori ini?";
-    }
+    if (category == null) return;
 
+    if (transactionCount <= 0) {
+      new MaterialAlertDialogBuilder(getContext())
+          .setTitle("Hapus Kategori")
+          .setMessage("Apakah Anda yakin ingin menghapus kategori \"" + category.getName() + "\"?")
+          .setNegativeButton(android.R.string.cancel, null)
+          .setPositiveButton("Hapus", (dialog, which) -> deleteCategoryAndReassign(null))
+          .show();
+    } else {
+      new MaterialAlertDialogBuilder(getContext())
+          .setTitle("Hapus Kategori \"" + category.getName() + "\"")
+          .setMessage("Kategori ini sedang digunakan pada " + transactionCount + " transaksi. Pilih tindakan untuk transaksi tersebut:")
+          .setNeutralButton(android.R.string.cancel, null)
+          .setNegativeButton("Hapus Tanpa Memindahkan", (dialog, which) -> deleteCategoryAndReassign(null))
+          .setPositiveButton("Pindahkan Transaksi", (dialog, which) -> showReassignCategoryPicker())
+          .show();
+    }
+  }
+
+  private void showReassignCategoryPicker() {
+    services.dbWorker.compute(
+        () -> services.categoryDao.findAllOrdered(),
+        categories -> {
+          if (!isShowing() || categories == null) return;
+
+          List<Category> targetOptions = new ArrayList<>();
+          List<String> displayNames = new ArrayList<>();
+          for (Category c : categories) {
+            if (category != null && c.getId() == category.getId()) continue;
+            targetOptions.add(c);
+            String iconStr = c.getIcon() != null && !c.getIcon().isEmpty() ? c.getIcon() + " " : "";
+            displayNames.add(iconStr + c.getName());
+          }
+
+          if (targetOptions.isEmpty()) {
+            Toast.makeText(getContext(), "Tidak ada kategori lain untuk pemindahan", Toast.LENGTH_SHORT).show();
+            return;
+          }
+
+          new MaterialAlertDialogBuilder(getContext())
+              .setTitle("Pilih Kategori Tujuan")
+              .setItems(displayNames.toArray(new String[0]), (dialog, which) -> {
+                Category selectedTarget = targetOptions.get(which);
+                confirmReassignAndDelete(selectedTarget);
+              })
+              .setNegativeButton(android.R.string.cancel, null)
+              .show();
+        });
+  }
+
+  private void confirmReassignAndDelete(Category target) {
+    String targetIcon = target.getIcon() != null && !target.getIcon().isEmpty() ? target.getIcon() + " " : "";
     new MaterialAlertDialogBuilder(getContext())
-        .setTitle("Hapus Kategori")
-        .setMessage(message)
+        .setTitle("Konfirmasi Pemindahan & Penghapusan")
+        .setMessage("Sebanyak " + transactionCount + " transaksi akan dipindahkan ke kategori '" + targetIcon + target.getName() + "', lalu kategori '" + category.getName() + "' akan dihapus. Lanjutkan?")
         .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton("Hapus", (dialog, which) -> deleteCategory())
+        .setPositiveButton("Pindahkan & Hapus", (dialog, which) -> deleteCategoryAndReassign(target.getId()))
         .show();
   }
 
-  private void deleteCategory() {
+  private void deleteCategoryAndReassign(@Nullable Long targetCategoryId) {
     services.dbWorker.compute(
-        () -> services.categoryDao.delete(category.getId()),
+        () -> {
+          try {
+            return services.categoryDao.deleteAndReassign(category.getId(), targetCategoryId);
+          } catch (RuntimeException e) {
+            return false;
+          }
+        },
         success -> {
           if (!isShowing()) {
             return;
           }
           if (Boolean.TRUE.equals(success)) {
-            Toast.makeText(getContext(), "Kategori berhasil dihapus", Toast.LENGTH_SHORT).show();
+            String msg = targetCategoryId != null
+                ? "Transaksi dipindahkan dan kategori dihapus"
+                : "Kategori berhasil dihapus";
+            Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
             dismiss();
             onSaved.accept(category);
           } else {
-            Toast.makeText(getContext(), "Gagal menghapus kategori", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), R.string.category_error_save, Toast.LENGTH_SHORT).show();
           }
         });
   }
 
   private static final class SaveResult {
-    private final Category saved;
-    private final boolean duplicate;
+    final @Nullable Category saved;
+    final boolean duplicate;
 
-    private SaveResult(Category saved, boolean duplicate) {
+    private SaveResult(@Nullable Category saved, boolean duplicate) {
       this.saved = saved;
       this.duplicate = duplicate;
     }
 
-    private static SaveResult success(Category saved) {
+    static SaveResult success(@NonNull Category saved) {
       return new SaveResult(saved, false);
     }
 
-    private static SaveResult duplicate() {
+    static SaveResult duplicate() {
       return new SaveResult(null, true);
     }
 
-    private static SaveResult failed() {
+    static SaveResult failed() {
       return new SaveResult(null, false);
     }
   }

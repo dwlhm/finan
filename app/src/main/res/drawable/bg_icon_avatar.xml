@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/finan_chip_bg">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/finan_control_bg" />
+            <corners android:radius="16dp" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/finan_primary" />
+        </shape>
+    </item>
+</ripple>

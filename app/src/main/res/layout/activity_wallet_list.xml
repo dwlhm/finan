@@ -27,19 +27,16 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/wallet_total_balance_label"
-            android:textAppearance="@style/Finan.Text.SectionLabel" />
+            android:text="Ringkasan Dompet"
+            android:textAppearance="@style/Finan.Text.SectionLabel"
+            android:textColor="@color/finan_primary"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/wallet_total_balance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:includeFontPadding="false"
-            android:textColor="@color/finan_text_primary"
-            android:textSize="28sp"
-            android:textStyle="bold" />
-
+            android:visibility="gone" />
         <TextView
             android:id="@+id/wallet_count"
             android:layout_width="match_parent"
