@@ -8,6 +8,7 @@ import com.dwlhm.finan.data.dao.CategoryGateway;
 import com.dwlhm.finan.data.dao.SqliteCategoryDao;
 import com.dwlhm.finan.data.dao.SqliteTransactionDao;
 import com.dwlhm.finan.data.dao.SqliteWalletBalanceDao;
+import com.dwlhm.finan.data.dao.TransactionTemplateDao;
 import com.dwlhm.finan.data.dao.SummaryDao;
 import com.dwlhm.finan.data.dao.TransactionDao;
 import com.dwlhm.finan.data.dao.TransactionGateway;
@@ -50,7 +51,7 @@ public final class AppServices {
   public final DbWorker dbWorker;
   public final WalletService walletService;
   public final CashFlowReportService cashFlowReportService;
-
+  public final TransactionTemplateDao transactionTemplateDao;
   private AppServices(
       FinanDatabaseHelper databaseHelper,
       TransactionService transactionService,
@@ -68,7 +69,8 @@ public final class AppServices {
       DefaultsStore defaultsStore,
       DbWorker dbWorker,
       WalletService walletService,
-      CashFlowReportService cashFlowReportService) {
+      CashFlowReportService cashFlowReportService,
+      TransactionTemplateDao transactionTemplateDao) {
     this.databaseHelper = databaseHelper;
     this.cashFlowReportService = cashFlowReportService;
     this.transactionService = transactionService;
@@ -86,8 +88,8 @@ public final class AppServices {
     this.defaultsStore = defaultsStore;
     this.dbWorker = dbWorker;
     this.walletService = walletService;
+    this.transactionTemplateDao = transactionTemplateDao;
   }
-
   public static AppServices create(Context context) {
     FinanDatabaseHelper databaseHelper = new FinanDatabaseHelper(context);
     SQLiteDatabase db = databaseHelper.getWritableDatabase();
@@ -97,7 +99,7 @@ public final class AppServices {
     WalletDao walletTable = new WalletDao(db);
     TransferDao transferTable = new TransferDao(db);
     SummaryDao summaryDao = new SummaryDao(db);
-
+    TransactionTemplateDao transactionTemplateDao = new TransactionTemplateDao(db);
     TransactionGateway transactionGateway =
         new SqliteTransactionDao(transactionTable);
     CategoryGateway categoryGateway = new SqliteCategoryDao(categoryTable);
@@ -162,6 +164,7 @@ public final class AppServices {
         defaultsStore,
         new DbWorker(),
         walletService,
-        cashFlowReportService);
+        cashFlowReportService,
+        transactionTemplateDao);
   }
 }

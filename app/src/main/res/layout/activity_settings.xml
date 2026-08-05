@@ -239,9 +239,9 @@
                 android:layout_marginBottom="6dp"
                 android:background="@color/finan_divider" />
 
-            <!-- Pintasan Nominal Quick Input Row -->
+            <!-- Shortcut Transaksi Row -->
             <LinearLayout
-                android:id="@+id/settings_amount_shortcuts"
+                android:id="@+id/settings_transaction_templates"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?android:attr/selectableItemBackground"
@@ -271,7 +271,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/settings_amount_shortcuts_title"
+                        android:text="Shortcut Transaksi"
                         android:textColor="@color/finan_text_primary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -280,7 +280,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="@string/settings_amount_shortcuts_subtitle"
+                        android:text="Kelola shortcut &amp; pintasan transaksi cepat"
                         android:textColor="@color/finan_text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -295,189 +295,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- SECTION 2: Tampilan & Privasi -->
-        <LinearLayout
-            android:id="@+id/settings_section_display_privacy"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_card"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:text="@string/settings_section_display_privacy"
-                android:textAppearance="@style/Finan.Text.SectionLabel"
-                android:textColor="@color/finan_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <!-- Mode Sensor -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:minHeight="54dp"
-                android:orientation="horizontal"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-
-                <TextView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/bg_chip"
-                    android:gravity="center"
-                    android:text="👁️"
-                    android:textSize="18sp" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_sensor_mode_title"
-                        android:textColor="@color/finan_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/settings_sensor_mode_subtitle"
-                        android:textColor="@color/finan_text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/settings_sensor_mode_switch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@color/finan_divider" />
-
-            <!-- Mode Ringkasan -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:minHeight="54dp"
-                android:orientation="horizontal"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-
-                <TextView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/bg_chip"
-                    android:gravity="center"
-                    android:text="📊"
-                    android:textSize="18sp" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_summary_mode_title"
-                        android:textColor="@color/finan_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/settings_summary_mode_subtitle"
-                        android:textColor="@color/finan_text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/settings_summary_mode_switch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@color/finan_divider" />
-
-            <!-- Mode Dasbor -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:minHeight="54dp"
-                android:orientation="horizontal"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-
-                <TextView
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/bg_chip"
-                    android:gravity="center"
-                    android:text="📈"
-                    android:textSize="18sp" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_dashboard_mode_title"
-                        android:textColor="@color/finan_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="@string/settings_dashboard_mode_subtitle"
-                        android:textColor="@color/finan_text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/settings_dashboard_mode_switch"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- SECTION 3: Data & Cadangan -->
+        <!-- SECTION 2: Data & Cadangan -->
         <LinearLayout
             android:id="@+id/settings_section_data_backup"
             android:layout_width="match_parent"
@@ -698,7 +516,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- SECTION 4: Informasi Aplikasi -->
+        <!-- SECTION 3: Informasi Aplikasi -->
         <LinearLayout
             android:id="@+id/settings_section_about"
             android:layout_width="match_parent"

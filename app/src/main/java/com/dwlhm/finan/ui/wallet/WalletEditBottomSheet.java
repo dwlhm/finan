@@ -112,6 +112,13 @@ public final class WalletEditBottomSheet extends BottomSheetDialog {
       return;
     }
 
+    Wallet duplicate = services.walletDao.findByNameIgnoreCase(name);
+    if (duplicate != null && duplicate.getId() != wallet.getId()) {
+      nameInput.setError(getContext().getString(R.string.wallet_error_duplicate));
+      nameInput.requestFocus();
+      return;
+    }
+
     String icon = iconInput.getText().toString().trim();
     boolean makeDefault = defaultInput != null && defaultInput.isChecked();
     actionsView.setPrimaryEnabled(false);

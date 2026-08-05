@@ -7,7 +7,6 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import androidx.appcompat.widget.SwitchCompat;
 import com.dwlhm.finan.data.prefs.DefaultsStore;
-import com.dwlhm.finan.ui.capture.AmountShortcutDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -51,9 +50,6 @@ import java.util.List;
 import java.util.Map;
 
 public final class SettingsFragment extends ScreenFragment {
-
-  private static final String MASKED_MODE_PREFS_KEY = "settings_wallet_masked_mode";
-
   private ActivityResultLauncher<Intent> exportLauncher;
   private ActivityResultLauncher<Intent> importLauncher;
   private View exportButton;
@@ -62,7 +58,6 @@ public final class SettingsFragment extends ScreenFragment {
   private TextView exportStatus;
   private boolean exportInProgress;
   private boolean importInProgress;
-  private boolean maskedMode;
   @Nullable private Long exportStartDate;
   @Nullable private Long exportEndDate;
   private TextView payrollCycleValue;
@@ -140,46 +135,19 @@ public final class SettingsFragment extends ScreenFragment {
     }
     updatePayrollCycleValue();
 
-    View shortcutsButton = view.findViewById(R.id.settings_amount_shortcuts);
-    if (shortcutsButton != null) {
-      shortcutsButton.setOnClickListener(v -> openAmountShortcutsDialog());
+    View templatesButton = view.findViewById(R.id.settings_transaction_templates);
+    if (templatesButton != null) {
+      templatesButton.setOnClickListener(v -> openTransactionTemplatesDialog());
     }
-
-    SharedPreferences prefs = requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE);
-
-    SwitchCompat sensorSwitch = view.findViewById(R.id.settings_sensor_mode_switch);
-    if (sensorSwitch != null) {
-      sensorSwitch.setChecked(maskedMode);
-      sensorSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
-        if (isChecked != maskedMode) {
-          setMaskedMode(isChecked);
-        }
-      });
-    }
-
-    SwitchCompat summarySwitch = view.findViewById(R.id.settings_summary_mode_switch);
-    if (summarySwitch != null) {
-      boolean summaryMode = prefs.getBoolean("summary_percentage_mode", false);
-      summarySwitch.setChecked(summaryMode);
-      summarySwitch.setOnCheckedChangeListener((btn, isChecked) ->
-          prefs.edit().putBoolean("summary_percentage_mode", isChecked).apply());
-    }
-
-    SwitchCompat dashboardSwitch = view.findViewById(R.id.settings_dashboard_mode_switch);
-    if (dashboardSwitch != null) {
-      boolean dashboardMode = prefs.getBoolean("pref_display_mode", false);
-      dashboardSwitch.setChecked(dashboardMode);
-      dashboardSwitch.setOnCheckedChangeListener((btn, isChecked) ->
-          prefs.edit()
-              .putBoolean("pref_display_mode", isChecked)
-              .putInt("dashboard_display_mode", isChecked ? 1 : 0)
-              .apply());
-    }
-
     View resetButton = view.findViewById(R.id.settings_reset_data);
     if (resetButton != null) {
       resetButton.setOnClickListener(v -> showResetDataConfirmationDialog());
     }
+  }
+
+  private void openTransactionTemplatesDialog() {
+    AppServices services = ServicesProvider.get(requireContext());
+    new TransactionTemplateManagerDialog(requireContext(), services, null).show();
   }
 
   @Override
@@ -197,22 +165,6 @@ public final class SettingsFragment extends ScreenFragment {
         null,
         (ScreenNavigator) requireActivity());
   }
-
-  private void setMaskedMode(boolean masked) {
-    maskedMode = masked;
-    requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
-        .edit()
-        .putBoolean(MASKED_MODE_PREFS_KEY, masked)
-        .apply();
-    View view = getView();
-    if (view != null) {
-      SwitchCompat sensorSwitch = view.findViewById(R.id.settings_sensor_mode_switch);
-      if (sensorSwitch != null && sensorSwitch.isChecked() != masked) {
-        sensorSwitch.setChecked(masked);
-      }
-    }
-  }
-
   private void openWalletOverview(Wallet wallet, List<Wallet> allWallets) {
     AppServices services = ServicesProvider.get(requireContext());
     new WalletOverviewBottomSheet(
@@ -410,19 +362,6 @@ public final class SettingsFragment extends ScreenFragment {
                 Toast.LENGTH_SHORT).show();
           }
         });
-  }
-
-  private void openAmountShortcutsDialog() {
-    AppServices services = ServicesProvider.get(requireContext());
-    DefaultsStore defaultsStore = services.defaultsStore != null
-        ? services.defaultsStore
-        : new DefaultsStore(requireContext());
-    List<Long> shortcuts = defaultsStore.getAmountShortcuts();
-    new AmountShortcutDialog(
-        requireContext(),
-        shortcuts,
-        newShortcuts -> defaultsStore.setAmountShortcuts(newShortcuts))
-        .show();
   }
 
   private void showResetDataConfirmationDialog() {

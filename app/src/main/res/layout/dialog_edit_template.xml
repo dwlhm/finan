@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="20dp">
+
+    <!-- Bottom Sheet Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_bottom_sheet_handle" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Title & Subtitle -->
+            <TextView
+                android:id="@+id/dialog_edit_template_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/Finan.Text.Title"
+                android:textColor="@color/finan_text_primary" />
+
+            <TextView
+                android:id="@+id/dialog_edit_template_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Atur ikon, nama, tipe, nominal, dan catatan default"
+                android:textAppearance="@style/Finan.Text.Body"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Icon & Name Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:baselineAligned="false"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Interactive Emoji Icon Avatar Container -->
+                <FrameLayout
+                    android:id="@+id/template_icon_container"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_marginEnd="14dp"
+                    android:background="@drawable/bg_icon_avatar"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground">
+
+                    <TextView
+                        android:id="@+id/template_icon_preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="⚡"
+                        android:textSize="32sp" />
+
+                    <!-- Edit Badge -->
+                    <TextView
+                        android:id="@+id/template_icon_edit_badge"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="bottom|end"
+                        android:layout_marginEnd="2dp"
+                        android:layout_marginBottom="2dp"
+                        android:background="@drawable/bg_chip_selected"
+                        android:gravity="center"
+                        android:text="✏️"
+                        android:textSize="10sp" />
+                </FrameLayout>
+
+                <!-- Shortcut Name Field -->
+                <com.dwlhm.finan.ui.common.LabeledEditTextView
+                    android:id="@+id/template_name_field"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:inputType="textCapWords"
+                    app:fieldHint="misal: Kopi Pagi"
+                    app:labelText="Nama Shortcut" />
+            </LinearLayout>
+
+            <!-- Type Section ("Tipe Transaksi") -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="Tipe Transaksi"
+                android:textAppearance="@style/Finan.Text.SectionLabel"
+                android:textColor="@color/finan_primary"
+                android:textStyle="bold" />
+
+            <!-- Visual Type Cards Container -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <!-- Expense Card -->
+                <LinearLayout
+                    android:id="@+id/template_type_expense_card"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_category_type_inactive"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💸 "
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/template_type_expense_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pengeluaran"
+                        android:textColor="@color/finan_text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Income Card -->
+                <LinearLayout
+                    android:id="@+id/template_type_income_card"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_category_type_inactive"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💰 "
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/template_type_income_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pemasukan"
+                        android:textColor="@color/finan_text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Transfer Card -->
+                <LinearLayout
+                    android:id="@+id/template_type_transfer_card"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_category_type_inactive"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="↔️ "
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/template_type_transfer_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Transfer"
+                        android:textColor="@color/finan_text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Nominal Field -->
+            <com.dwlhm.finan.ui.common.LabeledEditTextView
+                android:id="@+id/template_amount_field"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:inputType="number"
+                app:fieldHint="Rp 0"
+                app:labelText="Nominal" />
+
+            <!-- Catatan Default Field -->
+            <com.dwlhm.finan.ui.common.LabeledEditTextView
+                android:id="@+id/template_note_field"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:inputType="textCapSentences"
+                app:fieldHint="misal: Kopi Latte"
+                app:labelText="Catatan Default (Opsional)" />
+
+            <!-- Delete Button row for existing shortcut -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/template_delete"
+                    style="@style/Finan.Button.Nav"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:text="Hapus Shortcut"
+                    android:textColor="@color/finan_error"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Action Buttons (Save/Cancel) -->
+            <com.dwlhm.finan.ui.common.DialogActionsView
+                android:id="@+id/template_editor_actions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                app:primaryText="Simpan" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

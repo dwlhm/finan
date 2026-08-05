@@ -17,9 +17,13 @@ public final class WalletService {
     }
 
     public Wallet create(String name, String currencyCode, boolean makeDefault, long openingBalanceMinor, String icon) {
+        String trimmed = name == null ? "" : name.trim();
+        if (walletDao.findByNameIgnoreCase(trimmed) != null) {
+            throw new IllegalArgumentException("Wallet name already exists");
+        }
         db.beginTransaction();
         try {
-            long walletId = walletDao.insert(name, currencyCode, makeDefault, openingBalanceMinor, System.currentTimeMillis(), icon);
+            long walletId = walletDao.insert(trimmed, currencyCode, makeDefault, openingBalanceMinor, System.currentTimeMillis(), icon);
             if (walletId <= 0L) {
                 throw new IllegalStateException("Failed to create wallet");
             }
@@ -35,9 +39,14 @@ public final class WalletService {
     }
 
     public void updateNameAndDefault(long walletId, String name, boolean makeDefault) {
+        String trimmed = name == null ? "" : name.trim();
+        Wallet existing = walletDao.findByNameIgnoreCase(trimmed);
+        if (existing != null && existing.getId() != walletId) {
+            throw new IllegalArgumentException("Wallet name already exists");
+        }
         db.beginTransaction();
         try {
-            walletDao.updateNameAndDefault(walletId, name, makeDefault);
+            walletDao.updateNameAndDefault(walletId, trimmed, makeDefault);
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
@@ -45,9 +54,14 @@ public final class WalletService {
     }
 
     public void updateNameDefaultAndIcon(long walletId, String name, boolean makeDefault, String icon) {
+        String trimmed = name == null ? "" : name.trim();
+        Wallet existing = walletDao.findByNameIgnoreCase(trimmed);
+        if (existing != null && existing.getId() != walletId) {
+            throw new IllegalArgumentException("Wallet name already exists");
+        }
         db.beginTransaction();
         try {
-            walletDao.updateNameDefaultAndIcon(walletId, name, makeDefault, icon);
+            walletDao.updateNameDefaultAndIcon(walletId, trimmed, makeDefault, icon);
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();

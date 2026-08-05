@@ -23,11 +23,16 @@ import com.dwlhm.finan.data.prefs.DefaultsStore;
 import com.dwlhm.finan.data.prefs.TransactionFormDraft;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.domain.model.TransactionTemplate;
+import com.dwlhm.finan.service.transaction.TransactionTemplateService;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import android.view.LayoutInflater;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.category.CategoryEditorDialog;
 import com.dwlhm.finan.ui.common.EntitySearchBottomSheet;
 import com.dwlhm.finan.ui.wallet.WalletInputDialog;
+import com.dwlhm.finan.ui.settings.TransactionTemplateEditorDialog;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.common.DateTimeBottomSheet;
@@ -81,9 +86,9 @@ public final class CaptureFragment extends ScreenFragment {
 
   private FinanToast activeToast;
   @Nullable private PendingSaveUndo pendingUndo;
-
   private List<Wallet> wallets = new ArrayList<>();
   private List<Category> allCategoriesForType = new ArrayList<>();
+  private List<TransactionTemplate> loadedTemplates = new ArrayList<>();
   private boolean captureDraftRestored;
   private int refreshGeneration;
   private boolean isDataLoaded = false;
@@ -118,6 +123,18 @@ public final class CaptureFragment extends ScreenFragment {
     walletText = view.findViewById(R.id.capture_wallet_text);
     dateText = view.findViewById(R.id.capture_date_text);
     noteInput = view.findViewById(R.id.capture_note);
+    if (noteInput != null) {
+      noteInput.addTextChangedListener(new android.text.TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+          updateFilteredTemplates();
+        }
+        @Override
+        public void afterTextChanged(android.text.Editable s) {}
+      });
+    }
     captureSaveButtonArea = view.findViewById(R.id.capture_save_button_area);
     captureSaveLabel = view.findViewById(R.id.capture_save_label);
     captureUndoRow = view.findViewById(R.id.capture_undo_row);
@@ -434,7 +451,289 @@ public final class CaptureFragment extends ScreenFragment {
           tryRestoreCaptureDraft();
           bindWallets();
           updateCategoryLabel();
+          loadedTemplates = state.templates != null ? state.templates : new ArrayList<>();
+          updateFilteredTemplates();
         });
+  }
+
+  private void updateFilteredTemplates() {
+    if (loadedTemplates == null || loadedTemplates.isEmpty()) {
+      renderTemplateChips(new ArrayList<>());
+      return;
+    }
+    String query = noteInput != null && noteInput.getText() != null
+        ? noteInput.getText().toString().trim().toLowerCase()
+        : "";
+
+    List<TransactionTemplate> filtered = new ArrayList<>();
+    for (TransactionTemplate t : loadedTemplates) {
+      if (t.getType() != null && t.getType() != selectedType) {
+        continue;
+      }
+      if (!query.isEmpty()) {
+        boolean matchesName = t.getName() != null && t.getName().toLowerCase().contains(query);
+        boolean matchesNote = t.getNote() != null && t.getNote().toLowerCase().contains(query);
+        if (!matchesName && !matchesNote) {
+          continue;
+        }
+      }
+      filtered.add(t);
+    }
+    renderTemplateChips(filtered);
+  }
+
+  private void renderTemplateChips(@Nullable List<TransactionTemplate> templates) {
+    View view = getView();
+    if (view == null) return;
+    ViewGroup chipsLayout = view.findViewById(R.id.capture_template_chips_layout);
+    if (chipsLayout == null) return;
+    chipsLayout.removeAllViews();
+
+    LayoutInflater inflater = LayoutInflater.from(requireContext());
+    if (templates != null) {
+      for (TransactionTemplate template : templates) {
+        View chipView = inflater.inflate(R.layout.item_template_chip, chipsLayout, false);
+        TextView iconView = chipView.findViewById(R.id.chip_template_icon);
+        TextView nameView = chipView.findViewById(R.id.chip_template_name);
+        TextView detailsView = chipView.findViewById(R.id.chip_template_details);
+
+        if (iconView != null) iconView.setText(template.getIcon());
+        if (nameView != null) nameView.setText(template.getName());
+
+        if (detailsView != null) {
+          StringBuilder details = new StringBuilder();
+          if (template.getAmountMinor() > 0) {
+            details.append(" • ").append(MoneyFormatter.format(template.getAmountMinor()));
+          } else if (template.getCategoryId() != null && template.getCategoryId() > 0) {
+            for (Category cat : allCategoriesForType) {
+              if (cat.getId() == template.getCategoryId()) {
+                details.append(" • ").append(cat.getName());
+                break;
+              }
+            }
+          }
+          detailsView.setText(details.toString());
+          detailsView.setVisibility(details.length() > 0 ? View.VISIBLE : View.GONE);
+        }
+
+        chipView.setOnClickListener(v -> executeShortcut(template));
+        chipsLayout.addView(chipView);
+      }
+    }
+
+    // Add button (Catat page allows creating new shortcuts only; no edit or delete)
+    View addChip = inflater.inflate(R.layout.item_template_add_chip, chipsLayout, false);
+    addChip.setOnClickListener(v -> showCreateTemplateDialog());
+    chipsLayout.addView(addChip);
+  }
+
+  private void executeShortcut(@NonNull TransactionTemplate template) {
+    if (saveInProgress) return;
+
+    TransactionType type = template.getType() != null ? template.getType() : selectedType;
+
+    long amountMinor = template.getAmountMinor();
+    if (amountMinor <= 0) {
+      String rawInput = getRawInput();
+      if (!rawInput.isEmpty()) {
+        try {
+          amountMinor = Long.parseLong(rawInput);
+        } catch (NumberFormatException ignored) {}
+      }
+    }
+    if (amountMinor <= 0) {
+      Toast.makeText(requireContext(), "Masukkan nominal untuk pintasan \"" + template.getName() + "\"", Toast.LENGTH_SHORT).show();
+      if (amountInput != null) {
+        amountInput.requestFocus();
+      }
+      return;
+    }
+
+    Wallet walletToUse = null;
+    if (template.getWalletId() != null && template.getWalletId() > 0) {
+      for (Wallet w : wallets) {
+        if (w.getId() == template.getWalletId()) {
+          walletToUse = w;
+          break;
+        }
+      }
+    }
+    if (walletToUse == null) {
+      walletToUse = activeWallet;
+    }
+    if (walletToUse == null && !wallets.isEmpty()) {
+      walletToUse = wallets.get(0);
+    }
+    if (walletToUse == null) {
+      Toast.makeText(requireContext(), R.string.capture_error_wallet, Toast.LENGTH_SHORT).show();
+      return;
+    }
+
+    String noteToUse = template.getNote();
+    if (TextUtils.isEmpty(noteToUse)) {
+      noteToUse = template.getName();
+    }
+
+    long occurredAt = occurredAtMillis;
+
+    if (type.isTransfer()) {
+      Wallet destWalletToUse = null;
+      if (template.getDestinationWalletId() != null && template.getDestinationWalletId() > 0) {
+        for (Wallet w : wallets) {
+          if (w.getId() == template.getDestinationWalletId()) {
+            destWalletToUse = w;
+            break;
+          }
+        }
+      }
+      if (destWalletToUse == null) {
+        destWalletToUse = destinationWallet;
+      }
+      if (destWalletToUse == null || destWalletToUse.getId() == walletToUse.getId()) {
+        Toast.makeText(requireContext(), R.string.wallet_transfer_same_wallet, Toast.LENGTH_SHORT).show();
+        return;
+      }
+
+      final Wallet finalSource = walletToUse;
+      final Wallet finalDest = destWalletToUse;
+      final long finalAmount = amountMinor;
+      final String finalNote = noteToUse;
+
+      saveInProgress = true;
+      services.dbWorker.compute(
+          () -> {
+            try {
+              return services.transferService.create(
+                  finalSource.getId(),
+                  finalDest.getId(),
+                  finalAmount,
+                  occurredAt,
+                  finalNote);
+            } catch (RuntimeException e) {
+              return 0L;
+            }
+          },
+          transferId -> {
+            saveInProgress = false;
+            if (!isAdded()) return;
+            if (transferId == null || transferId <= 0L) {
+              Toast.makeText(requireContext(), R.string.wallet_transfer_error_save, Toast.LENGTH_SHORT).show();
+              return;
+            }
+            defaultsStore.setLastWalletId(finalSource.getId());
+            defaultsStore.clearCaptureDraft();
+            dismissUndoBar();
+            pendingUndo = PendingSaveUndo.transfer(
+                transferId,
+                finalAmount,
+                finalSource.getId(),
+                finalDest.getId(),
+                occurredAt,
+                finalNote);
+            showUndoState();
+            forceClearSavedForm();
+            refreshCaptureData(false);
+          });
+    } else {
+      Category catToUse = null;
+      if (template.getCategoryId() != null && template.getCategoryId() > 0) {
+        for (Category c : allCategoriesForType) {
+          if (c.getId() == template.getCategoryId()) {
+            catToUse = c;
+            break;
+          }
+        }
+      }
+      if (catToUse == null) {
+        catToUse = selectedCategory;
+      }
+      if (catToUse == null && !allCategoriesForType.isEmpty()) {
+        catToUse = allCategoriesForType.get(0);
+      }
+      if (catToUse == null) {
+        Toast.makeText(requireContext(), R.string.capture_error_category, Toast.LENGTH_SHORT).show();
+        return;
+      }
+
+      final Wallet finalWallet = walletToUse;
+      final Category finalCategory = catToUse;
+      final long finalAmount = amountMinor;
+      final String finalNote = noteToUse;
+
+      Transaction tx = new Transaction(
+          0L,
+          finalAmount,
+          type,
+          finalWallet.getId(),
+          finalCategory.getId(),
+          occurredAt,
+          null);
+      tx.setNote(finalNote);
+
+      saveInProgress = true;
+      services.dbWorker.compute(
+          () -> {
+            try {
+              return transactionService.save(tx);
+            } catch (IllegalArgumentException e) {
+              return 0L;
+            }
+          },
+          savedId -> {
+            saveInProgress = false;
+            if (!isAdded()) return;
+            if (savedId == null || savedId <= 0L) {
+              Toast.makeText(requireContext(), R.string.capture_error_save, Toast.LENGTH_SHORT).show();
+              return;
+            }
+            defaultsStore.setLastWalletId(finalWallet.getId());
+            defaultsStore.clearCaptureDraft();
+            dismissUndoBar();
+            pendingUndo = snapshotPendingSaveUndo(
+                savedId, type, finalWallet.getId(), finalCategory.getId(), finalAmount, finalNote, occurredAt);
+            showUndoState();
+            forceClearSavedForm();
+            refreshCaptureData(false);
+          });
+    }
+  }
+
+  private void showCreateTemplateDialog() {
+    long currentAmount = 0L;
+    String raw = getRawInput();
+    if (!raw.isEmpty()) {
+      try {
+        currentAmount = Long.parseLong(raw);
+      } catch (NumberFormatException ignored) {}
+    }
+    String defaultNote = noteInput != null ? noteInput.getText().toString().trim() : "";
+    String defaultName = "";
+    if (!TextUtils.isEmpty(defaultNote)) {
+      defaultName = defaultNote;
+    } else if (selectedCategory != null) {
+      defaultName = selectedCategory.getName();
+    }
+
+    TransactionTemplate draft = new TransactionTemplate(
+        0L,
+        defaultName,
+        selectedType,
+        currentAmount,
+        selectedCategory != null ? selectedCategory.getId() : null,
+        activeWallet != null ? activeWallet.getId() : null,
+        destinationWallet != null ? destinationWallet.getId() : null,
+        defaultNote,
+        "⚡",
+        0
+    );
+
+    TransactionTemplateEditorDialog dialog = new TransactionTemplateEditorDialog(
+        requireContext(),
+        services,
+        draft,
+        () -> refreshCaptureData(true)
+    );
+    dialog.show();
   }
 
   private CaptureState loadCaptureState(TransactionType type, @Nullable Category retainedCategory) {
@@ -458,7 +757,8 @@ public final class CaptureFragment extends ScreenFragment {
       }
     }
     
-    return new CaptureState(loadedWallets, resolvedWallet, categoriesForType, selected);
+    List<TransactionTemplate> templates = services.transactionTemplateDao.findAll();
+    return new CaptureState(loadedWallets, resolvedWallet, categoriesForType, selected, templates);
   }
 
   private Wallet resolveActiveWallet(List<Wallet> loadedWallets) {
@@ -1098,18 +1398,36 @@ public final class CaptureFragment extends ScreenFragment {
 
   private PendingSaveUndo snapshotPendingSaveUndo(
       long transactionId,
+      TransactionType type,
+      long walletId,
+      long categoryId,
       long amountMinor,
-      @Nullable String note) {
+      @Nullable String note,
+      long occurredAt) {
     return new PendingSaveUndo(
         transactionId,
         false,
         amountMinor,
-        selectedType,
-        activeWallet.getId(),
-        selectedCategory.getId(),
+        type,
+        walletId,
+        categoryId,
         null,
-        occurredAtMillis,
+        occurredAt,
         note);
+  }
+
+  private PendingSaveUndo snapshotPendingSaveUndo(
+      long transactionId,
+      long amountMinor,
+      @Nullable String note) {
+    return snapshotPendingSaveUndo(
+        transactionId,
+        selectedType,
+        activeWallet != null ? activeWallet.getId() : 0L,
+        selectedCategory != null ? selectedCategory.getId() : 0L,
+        amountMinor,
+        note,
+        occurredAtMillis);
   }
 
   private void restoreDraft(@NonNull PendingSaveUndo draft) {
@@ -1438,16 +1756,19 @@ public final class CaptureFragment extends ScreenFragment {
     private final Wallet activeWallet;
     private final List<Category> categoriesForType;
     private final Category selectedCategory;
+    private final List<TransactionTemplate> templates;
 
     private CaptureState(
         List<Wallet> wallets,
         Wallet activeWallet,
         List<Category> categoriesForType,
-        Category selectedCategory) {
+        Category selectedCategory,
+        List<TransactionTemplate> templates) {
       this.wallets = wallets;
       this.activeWallet = activeWallet;
       this.categoriesForType = categoriesForType;
       this.selectedCategory = selectedCategory;
+      this.templates = templates;
     }
   }
 }

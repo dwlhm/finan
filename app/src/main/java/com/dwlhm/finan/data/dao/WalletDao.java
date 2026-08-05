@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.dwlhm.finan.data.entity.Wallet;
+import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -177,6 +178,28 @@ public final class WalletDao {
             null,
             "name = ?",
             new String[]{name},
+            null,
+            null,
+            null,
+            "1")) {
+      if (!c.moveToFirst()) {
+        return null;
+      }
+      return map(c);
+    }
+  }
+
+  @Nullable
+  public Wallet findByNameIgnoreCase(@Nullable String name) {
+    if (name == null || name.trim().isEmpty()) {
+      return null;
+    }
+    try (Cursor c =
+        db.query(
+            "wallets",
+            null,
+            "name = ? COLLATE NOCASE",
+            new String[] {name.trim()},
             null,
             null,
             null,

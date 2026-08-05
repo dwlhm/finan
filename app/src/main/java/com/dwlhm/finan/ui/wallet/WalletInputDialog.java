@@ -117,6 +117,13 @@ public final class WalletInputDialog extends BottomSheetDialog {
       return;
     }
 
+    Wallet duplicate = services.walletDao.findByNameIgnoreCase(name);
+    if (duplicate != null) {
+      nameInput.setError(getContext().getString(R.string.wallet_error_duplicate));
+      nameInput.requestFocus();
+      return;
+    }
+
     long initialBalanceMinor = 0L;
     String balanceText = balanceInput.getText().toString().trim();
     if (!balanceText.isEmpty()) {

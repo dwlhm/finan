@@ -141,6 +141,7 @@
     <string name="wallet_initial_balance_example">Rp 0</string>
     <string name="wallet_make_default">Jadikan dompet default</string>
     <string name="wallet_error_name">Nama dompet tidak boleh kosong</string>
+    <string name="wallet_error_duplicate">Dompet dengan nama ini sudah ada</string>
     <string name="wallet_error_balance">Saldo awal tidak valid</string>
     <string name="wallet_error_create">Gagal membuat dompet</string>
     <string name="wallet_created">Dompet dibuat</string>
@@ -247,15 +248,8 @@
 
     <!-- Pengaturan UI/UX Redesign -->
     <string name="settings_section_master_data">Keuangan &amp; Master Data</string>
-    <string name="settings_section_display_privacy">Tampilan &amp; Privasi</string>
     <string name="settings_section_data_backup">Data &amp; Cadangan</string>
     <string name="settings_section_about">Tentang Aplikasi</string>
-    <string name="settings_sensor_mode_title">Mode Sensor (Sembunyikan Saldo)</string>
-    <string name="settings_sensor_mode_subtitle">Menyamarkan angka saldo dan nominal transaksi dengan *** pada Dasbor, Ringkasan, Riwayat, dan Pengaturan.</string>
-    <string name="settings_summary_mode_title">Mode Tampilan Ringkasan</string>
-    <string name="settings_summary_mode_subtitle">Menampilkan alokasi pengeluaran dalam bentuk persentase secara langsung pada layar Ringkasan.</string>
-    <string name="settings_dashboard_mode_title">Mode Tampilan Dasbor</string>
-    <string name="settings_dashboard_mode_subtitle">Pilihan tampilan default pada layar Dasbor Utama.</string>
     <string name="settings_amount_shortcuts_title">Pintasan Nominal Quick Input</string>
     <string name="settings_amount_shortcuts_subtitle">Kelola daftar nominal cepat yang tampil pada keyboard layar Pencatatan.</string>
     <string name="settings_export_subtitle">Simpan riwayat transaksi, dompet, dan kategori ke dalam file CSV.</string>
