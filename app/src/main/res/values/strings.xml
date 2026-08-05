@@ -430,5 +430,16 @@
     <string name="auto_str_698031c4">*</string>
     <string name="auto_dompet_rekening">Dompet &amp; Rekening</string>
     <string name="auto_str_598bfe6d">*</string>
+    <string name="wallet_hero_total_label">Total Saldo Dompet</string>
+    <string name="wallet_hero_add_action">+ Tambah Dompet</string>
+    <string name="wallet_hero_transfer_action">Transfer Saldo</string>
+    <string name="wallet_hero_default_indicator">★ %1$s</string>
+    <string name="wallet_list_section_label">Daftar Dompet</string>
+    <string name="wallet_empty_title">Belum ada dompet</string>
+    <string name="wallet_empty_body">Buat dompet pertama untuk mulai mencatat keuangan</string>
+    <string name="wallet_empty_action">Tambah Dompet Pertama</string>
+    <string name="wallet_balance_masked">•••••</string>
+    <string name="wallet_card_adjust_short">Sesuaikan</string>
+    <string name="wallet_error_delete_last">Tidak dapat menghapus dompet terakhir</string>
 </resources>
 

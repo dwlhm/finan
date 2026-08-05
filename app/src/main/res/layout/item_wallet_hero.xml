@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_wallet_hero"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:layout_marginBottom="4dp">
+
+    <TextView
+        android:id="@+id/wallet_hero_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/wallet_hero_total_label"
+        android:textAppearance="@style/Finan.Text.WalletHeroLabel" />
+
+    <TextView
+        android:id="@+id/wallet_hero_total_balance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:autoSizeMaxTextSize="28sp"
+        android:autoSizeMinTextSize="20sp"
+        android:autoSizeStepGranularity="1sp"
+        android:autoSizeTextType="uniform"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:textAppearance="@style/Finan.Text.WalletHeroAmount" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/wallet_hero_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_wallet_hero_count_pill"
+            android:paddingStart="10dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="4dp"
+            android:textAppearance="@style/Finan.Text.WalletHeroSecondary" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="10dp"
+            android:background="@color/finan_summary_hero_divider" />
+
+        <TextView
+            android:id="@+id/wallet_hero_default"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:textAppearance="@style/Finan.Text.WalletHeroSecondary" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="@color/finan_summary_hero_divider" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/wallet_hero_add_btn"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_wallet_hero_btn"
+            android:drawablePadding="6dp"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/wallet_hero_add_action"
+            android:textAppearance="@style/Finan.Text.WalletHeroButton"
+            app:drawableStartCompat="@drawable/ic_add"
+            app:drawableTint="#1F4E4E" />
+
+        <Space
+            android:layout_width="10dp"
+            android:layout_height="match_parent" />
+
+        <Button
+            android:id="@+id/wallet_hero_transfer_btn"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_wallet_hero_btn"
+            android:drawablePadding="6dp"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/wallet_hero_transfer_action"
+            android:textAppearance="@style/Finan.Text.WalletHeroButton"
+            app:drawableStartCompat="@drawable/ic_transfer"
+            app:drawableTint="#1F4E4E" />
+    </LinearLayout>
+</LinearLayout>

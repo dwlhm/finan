@@ -1,6 +1,5 @@
 package com.dwlhm.finan.ui.wallet;
 
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.Editable;
@@ -9,10 +8,11 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,6 +20,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Wallet;
@@ -36,6 +39,7 @@ import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
 import com.dwlhm.finan.util.ui.ViewPressAnimator;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -48,13 +52,8 @@ public final class WalletListFragment extends ScreenFragment {
 
   private AppServices services;
   private int reloadGeneration;
-  private WalletAdapter adapter;
-  private ListView listView;
-  private TextView emptyView;
-  private View summaryView;
-  private TextView totalBalanceView;
-  private TextView walletCountView;
-  private TextView defaultWalletView;
+  private WalletListAdapter adapter;
+  private RecyclerView recyclerView;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -69,17 +68,15 @@ public final class WalletListFragment extends ScreenFragment {
 
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
-    listView = view.findViewById(R.id.wallet_list);
-    emptyView = view.findViewById(R.id.wallet_empty);
-    summaryView = view.findViewById(R.id.wallet_summary);
-    totalBalanceView = view.findViewById(R.id.wallet_total_balance);
-    walletCountView = view.findViewById(R.id.wallet_count);
-    defaultWalletView = view.findViewById(R.id.wallet_default);
     ScreenHeaderView headerView = view.findViewById(R.id.wallet_header);
-    headerView.setOnBackClickListener(v -> goBack());
-    headerView.setOnActionClickListener(v -> showAddWalletDialog());
-    adapter = new WalletAdapter(requireContext());
-    listView.setAdapter(adapter);
+    if (headerView != null) {
+      headerView.setOnBackClickListener(v -> goBack());
+    }
+    recyclerView = view.findViewById(R.id.wallet_recycler);
+    recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+    recyclerView.setItemAnimator(new DefaultItemAnimator());
+    adapter = new WalletListAdapter();
+    recyclerView.setAdapter(adapter);
   }
 
   @Override
@@ -103,36 +100,7 @@ public final class WalletListFragment extends ScreenFragment {
             return;
           }
           adapter.setWallets(wallets);
-          bindSummary(wallets);
-          boolean empty = wallets.isEmpty();
-          summaryView.setVisibility(empty ? View.GONE : View.VISIBLE);
-          emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
-          listView.setVisibility(empty ? View.GONE : View.VISIBLE);
         });
-  }
-
-  private void bindSummary(List<Wallet> wallets) {
-    Map<String, Long> totalsByCurrency = new LinkedHashMap<>();
-    Wallet defaultWallet = null;
-    for (Wallet wallet : wallets) {
-      String currencyCode = MoneyFormatter.normalizeCurrencyCode(wallet.getCurrencyCode());
-      totalsByCurrency.compute(
-          currencyCode,
-          (ignored, current) ->
-              (current == null ? 0L : current) + wallet.getCachedBalanceMinor());
-      if (wallet.isDefault()) {
-        defaultWallet = wallet;
-      }
-    }
-
-    if (totalBalanceView != null) {
-      totalBalanceView.setVisibility(View.GONE);
-    }
-    walletCountView.setText(
-        getResources().getQuantityString(R.plurals.wallet_count, wallets.size(), wallets.size()));
-    String defaultWalletName =
-        defaultWallet == null ? getString(R.string.wallet_default_none) : defaultWallet.getName();
-    defaultWalletView.setText(getString(R.string.wallet_default_format, defaultWalletName));
   }
 
   private void goBack() {
@@ -207,6 +175,7 @@ public final class WalletListFragment extends ScreenFragment {
 
   private void bindAdjustmentDifference(
       Wallet wallet, EditText targetInput, TextView differenceView) {
+    if (differenceView == null) return;
     try {
       if (BottomSheetHelper.isMasked(requireContext())) {
         differenceView.setText("***");
@@ -216,9 +185,6 @@ public final class WalletListFragment extends ScreenFragment {
       }
       long target = MoneyParser.parse(targetInput.getText().toString());
       long difference = Math.subtractExact(target, wallet.getCachedBalanceMinor());
-      if (difference == Long.MIN_VALUE) {
-        throw new ArithmeticException();
-      }
       if (difference == 0L) {
         differenceView.setText(R.string.wallet_adjust_no_change);
         differenceView.setTextColor(
@@ -289,7 +255,7 @@ public final class WalletListFragment extends ScreenFragment {
         });
   }
 
-  private void showTransferDialog(Wallet sourceWallet) {
+  private void showTransferDialog(@Nullable Wallet sourceWallet) {
     List<Wallet> wallets = adapter.getWallets();
     if (wallets.size() < 2) {
       Toast.makeText(requireContext(), R.string.wallet_transfer_need_two, Toast.LENGTH_SHORT).show();
@@ -319,6 +285,7 @@ public final class WalletListFragment extends ScreenFragment {
     List<String> labels = new ArrayList<>();
     int sourceIndex = 0;
     int destinationIndex = 0;
+    long targetSourceId = sourceWallet != null ? sourceWallet.getId() : -1L;
     for (int i = 0; i < wallets.size(); i++) {
       Wallet wallet = wallets.get(i);
       labels.add(
@@ -328,15 +295,12 @@ public final class WalletListFragment extends ScreenFragment {
                   ? "***"
                   : MoneyFormatter.formatWithCurrencyCode(
                       wallet.getCurrencyCode(), wallet.getCachedBalanceMinor())));
-      if (wallet.getId() == sourceWallet.getId()) {
+      if (wallet.getId() == targetSourceId) {
         sourceIndex = i;
-      } else if (destinationIndex == sourceIndex) {
-        destinationIndex = i;
       }
     }
-    if (destinationIndex == sourceIndex) {
-      destinationIndex = sourceIndex == 0 ? 1 : 0;
-    }
+    destinationIndex = sourceIndex == 0 ? 1 : 0;
+
     ArrayAdapter<String> spinnerAdapter =
         new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, labels);
     spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -426,6 +390,10 @@ public final class WalletListFragment extends ScreenFragment {
   }
 
   private void showDeleteWalletDialog(Wallet wallet) {
+    if (adapter.getWallets().size() <= 1) {
+      Toast.makeText(requireContext(), R.string.wallet_error_delete_last, Toast.LENGTH_SHORT).show();
+      return;
+    }
     BottomSheetDialog dialog = new BottomSheetDialog(requireContext(), R.style.Finan_BottomSheetDialog);
     dialog.setContentView(R.layout.dialog_confirm_delete);
     TextView titleView = dialog.findViewById(R.id.confirm_delete_title);
@@ -472,19 +440,17 @@ public final class WalletListFragment extends ScreenFragment {
     BottomSheetHelper.show(dialog);
   }
 
-  private final class WalletAdapter extends BaseAdapter {
+  private final class WalletListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
-    private final Context context;
-    private final LayoutInflater inflater;
+    private static final int TYPE_HERO = 0;
+    private static final int TYPE_SECTION = 1;
+    private static final int TYPE_WALLET = 2;
+    private static final int TYPE_EMPTY = 3;
+
     private List<Wallet> wallets = new ArrayList<>();
 
-    WalletAdapter(Context context) {
-      this.context = context;
-      this.inflater = LayoutInflater.from(context);
-    }
-
-    void setWallets(List<Wallet> wallets) {
-      this.wallets = wallets != null ? wallets : new ArrayList<>();
+    void setWallets(List<Wallet> newWallets) {
+      this.wallets = newWallets != null ? newWallets : new ArrayList<>();
       notifyDataSetChanged();
     }
 
@@ -493,51 +459,200 @@ public final class WalletListFragment extends ScreenFragment {
     }
 
     @Override
-    public int getCount() {
-      return wallets.size();
+    public int getItemViewType(int position) {
+      if (position == 0) return TYPE_HERO;
+      if (position == 1) return TYPE_SECTION;
+      if (wallets.isEmpty()) return TYPE_EMPTY;
+      return TYPE_WALLET;
     }
 
     @Override
-    public Wallet getItem(int position) {
-      return wallets.get(position);
+    public int getItemCount() {
+      return 2 + Math.max(wallets.size(), 1);
     }
 
+    @NonNull
     @Override
-    public long getItemId(int position) {
-      return getItem(position).getId();
-    }
-
-    @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-      if (convertView == null) {
-        convertView = inflater.inflate(R.layout.item_wallet, parent, false);
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+      LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+      if (viewType == TYPE_HERO) {
+        View view = inflater.inflate(R.layout.item_wallet_hero, parent, false);
+        return new HeroViewHolder(view);
+      } else if (viewType == TYPE_SECTION) {
+        View view = inflater.inflate(R.layout.item_wallet_section_label, parent, false);
+        return new SectionViewHolder(view);
+      } else if (viewType == TYPE_EMPTY) {
+        View view = inflater.inflate(R.layout.item_wallet_empty, parent, false);
+        return new EmptyViewHolder(view);
+      } else {
+        View view = inflater.inflate(R.layout.item_wallet, parent, false);
+        return new WalletViewHolder(view);
       }
-      View card = convertView.findViewById(R.id.item_wallet_card);
-      TextView name = convertView.findViewById(R.id.item_wallet_name);
-      TextView defaultBadge = convertView.findViewById(R.id.item_wallet_default_badge);
-      TextView balance = convertView.findViewById(R.id.item_wallet_balance);
-      View editButton = convertView.findViewById(R.id.item_wallet_edit);
-      View deleteButton = convertView.findViewById(R.id.item_wallet_delete);
-      View adjustButton = convertView.findViewById(R.id.item_wallet_adjust);
-      View transferButton = convertView.findViewById(R.id.item_wallet_transfer);
-      Wallet wallet = getItem(position);
-      String currencyCode = MoneyFormatter.normalizeCurrencyCode(wallet.getCurrencyCode());
-      name.setText(wallet.getName());
-      card.setBackgroundResource(
-          wallet.isDefault() ? R.drawable.bg_card_wallet_default : R.drawable.bg_card);
-      defaultBadge.setVisibility(wallet.isDefault() ? View.VISIBLE : View.GONE);
-      if (balance != null) {
-        balance.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+      int viewType = getItemViewType(position);
+      if (viewType == TYPE_HERO) {
+        ((HeroViewHolder) holder).bind(wallets);
+      } else if (viewType == TYPE_WALLET) {
+        ((WalletViewHolder) holder).bind(wallets.get(position - 2));
+      } else if (viewType == TYPE_EMPTY) {
+        ((EmptyViewHolder) holder).bind();
       }
-      ViewPressAnimator.bindScale(editButton);
-      ViewPressAnimator.bindScale(deleteButton);
-      editButton.setOnClickListener(v -> showEditWalletDialog(wallet));
-      deleteButton.setOnClickListener(v -> showDeleteWalletDialog(wallet));
-      adjustButton.setOnClickListener(v -> showAdjustmentDialog(wallet));
-      transferButton.setEnabled(wallets.size() > 1);
-      transferButton.setAlpha(wallets.size() > 1 ? 1f : 0.5f);
-      transferButton.setOnClickListener(v -> showTransferDialog(wallet));
-      return convertView;
+    }
+
+    final class HeroViewHolder extends RecyclerView.ViewHolder {
+      private final TextView totalBalanceView;
+      private final TextView countView;
+      private final TextView defaultWalletView;
+      private final Button addButton;
+      private final Button transferButton;
+
+      HeroViewHolder(@NonNull View itemView) {
+        super(itemView);
+        totalBalanceView = itemView.findViewById(R.id.wallet_hero_total_balance);
+        countView = itemView.findViewById(R.id.wallet_hero_count);
+        defaultWalletView = itemView.findViewById(R.id.wallet_hero_default);
+        addButton = itemView.findViewById(R.id.wallet_hero_add_btn);
+        transferButton = itemView.findViewById(R.id.wallet_hero_transfer_btn);
+        ViewPressAnimator.bindScale(addButton);
+        ViewPressAnimator.bindScale(transferButton);
+      }
+
+      void bind(List<Wallet> walletList) {
+        Map<String, Long> totalsByCurrency = new LinkedHashMap<>();
+        Wallet defaultWallet = null;
+        for (Wallet w : walletList) {
+          String currencyCode = MoneyFormatter.normalizeCurrencyCode(w.getCurrencyCode());
+          totalsByCurrency.compute(
+              currencyCode,
+              (k, current) -> (current == null ? 0L : current) + w.getCachedBalanceMinor());
+          if (w.isDefault()) {
+            defaultWallet = w;
+          }
+        }
+
+        Context context = itemView.getContext();
+        boolean masked = BottomSheetHelper.isMasked(context);
+        if (masked) {
+          totalBalanceView.setText(R.string.wallet_balance_masked);
+        } else if (totalsByCurrency.isEmpty()) {
+          totalBalanceView.setText(MoneyFormatter.formatWithCurrencyCode("IDR", 0L));
+        } else {
+          StringBuilder sb = new StringBuilder();
+          int i = 0;
+          for (Map.Entry<String, Long> entry : totalsByCurrency.entrySet()) {
+            if (i++ > 0) sb.append("\n");
+            sb.append(MoneyFormatter.formatWithCurrencyCode(entry.getKey(), entry.getValue()));
+          }
+          totalBalanceView.setText(sb.toString());
+        }
+
+        countView.setText(
+            context.getResources().getQuantityString(R.plurals.wallet_count, walletList.size(), walletList.size()));
+        String defaultName = defaultWallet != null ? defaultWallet.getName() : context.getString(R.string.wallet_default_none);
+        defaultWalletView.setText(context.getString(R.string.wallet_hero_default_indicator, defaultName));
+
+        addButton.setOnClickListener(v -> showAddWalletDialog());
+        transferButton.setEnabled(walletList.size() > 1);
+        transferButton.setAlpha(walletList.size() > 1 ? 1.0f : 0.5f);
+        transferButton.setOnClickListener(v -> showTransferDialog(walletList.isEmpty() ? null : walletList.get(0)));
+      }
+    }
+
+    final class SectionViewHolder extends RecyclerView.ViewHolder {
+      SectionViewHolder(@NonNull View itemView) {
+        super(itemView);
+      }
+    }
+
+    final class EmptyViewHolder extends RecyclerView.ViewHolder {
+      private final Button emptyActionButton;
+
+      EmptyViewHolder(@NonNull View itemView) {
+        super(itemView);
+        emptyActionButton = itemView.findViewById(R.id.wallet_empty_action);
+        ViewPressAnimator.bindScale(emptyActionButton);
+      }
+
+      void bind() {
+        emptyActionButton.setOnClickListener(v -> showAddWalletDialog());
+      }
+    }
+
+    final class WalletViewHolder extends RecyclerView.ViewHolder {
+      private final View cardView;
+      private final ImageView iconImage;
+      private final TextView iconEmoji;
+      private final TextView nameView;
+      private final TextView defaultBadge;
+      private final TextView currencyView;
+      private final TextView balanceView;
+      private final ImageButton editButton;
+      private final ImageButton deleteButton;
+      private final Button adjustButton;
+      private final Button transferButton;
+
+      WalletViewHolder(@NonNull View itemView) {
+        super(itemView);
+        cardView = itemView.findViewById(R.id.item_wallet_card);
+        iconImage = itemView.findViewById(R.id.item_wallet_icon_image);
+        iconEmoji = itemView.findViewById(R.id.item_wallet_icon_emoji);
+        nameView = itemView.findViewById(R.id.item_wallet_name);
+        defaultBadge = itemView.findViewById(R.id.item_wallet_default_badge);
+        currencyView = itemView.findViewById(R.id.item_wallet_currency);
+        balanceView = itemView.findViewById(R.id.item_wallet_balance);
+        editButton = itemView.findViewById(R.id.item_wallet_edit);
+        deleteButton = itemView.findViewById(R.id.item_wallet_delete);
+        adjustButton = itemView.findViewById(R.id.item_wallet_adjust);
+        transferButton = itemView.findViewById(R.id.item_wallet_transfer);
+
+        ViewPressAnimator.bindScale(cardView);
+        ViewPressAnimator.bindScale(editButton);
+        ViewPressAnimator.bindScale(deleteButton);
+        ViewPressAnimator.bindScale(adjustButton);
+        ViewPressAnimator.bindScale(transferButton);
+      }
+
+      void bind(Wallet wallet) {
+        Context context = itemView.getContext();
+        cardView.setBackgroundResource(
+            wallet.isDefault() ? R.drawable.bg_wallet_card_default : R.drawable.bg_wallet_card);
+
+        String icon = wallet.getIcon();
+        if (!TextUtils.isEmpty(icon)) {
+          iconEmoji.setText(icon);
+          iconEmoji.setVisibility(View.VISIBLE);
+          iconImage.setVisibility(View.GONE);
+        } else {
+          iconEmoji.setVisibility(View.GONE);
+          iconImage.setVisibility(View.VISIBLE);
+        }
+
+        nameView.setText(wallet.getName());
+        defaultBadge.setVisibility(wallet.isDefault() ? View.VISIBLE : View.GONE);
+        currencyView.setText(MoneyFormatter.normalizeCurrencyCode(wallet.getCurrencyCode()));
+
+        if (BottomSheetHelper.isMasked(context)) {
+          balanceView.setText(R.string.wallet_balance_masked);
+        } else {
+          balanceView.setText(
+              MoneyFormatter.formatWithCurrencyCode(
+                  wallet.getCurrencyCode(), wallet.getCachedBalanceMinor()));
+        }
+
+        editButton.setOnClickListener(v -> showEditWalletDialog(wallet));
+        boolean canDelete = wallets.size() > 1;
+        deleteButton.setAlpha(canDelete ? 1.0f : 0.4f);
+        deleteButton.setOnClickListener(v -> showDeleteWalletDialog(wallet));
+        adjustButton.setOnClickListener(v -> showAdjustmentDialog(wallet));
+
+        boolean canTransfer = wallets.size() > 1;
+        transferButton.setEnabled(canTransfer);
+        transferButton.setAlpha(canTransfer ? 1.0f : 0.5f);
+        transferButton.setOnClickListener(v -> showTransferDialog(wallet));
+      }
     }
   }
 }

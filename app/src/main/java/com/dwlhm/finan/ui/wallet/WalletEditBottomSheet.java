@@ -1,10 +1,14 @@
 package com.dwlhm.finan.ui.wallet;
 
-import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
+import android.text.TextUtils;
+import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -15,7 +19,9 @@ import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.DialogActionsView;
 import com.dwlhm.finan.ui.common.EmojiConstants;
+import com.dwlhm.finan.ui.common.EmojiPickerBottomSheet;
 import com.dwlhm.finan.ui.common.LabeledEditTextView;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 public final class WalletEditBottomSheet extends BottomSheetDialog {
 
@@ -38,27 +44,50 @@ public final class WalletEditBottomSheet extends BottomSheetDialog {
   }
 
   private void setupViews() {
-    LabeledEditTextView iconField = findViewById(R.id.wallet_icon_field);
     LabeledEditTextView nameField = findViewById(R.id.wallet_name_field);
-    EditText iconInput = iconField != null ? iconField.getEditText() : null;
     EditText nameInput = nameField != null ? nameField.getEditText() : null;
-    if (iconInput == null || nameInput == null) return;
-    iconInput.setFilters(new android.text.InputFilter[] { new android.text.InputFilter.LengthFilter(2) });
-    CheckBox defaultInput = findViewById(R.id.wallet_default_input);
-    DialogActionsView actionsView = findViewById(R.id.wallet_actions);
+    if (nameInput == null) return;
+
+    FrameLayout iconContainer = findViewById(R.id.wallet_icon_container);
+    TextView iconPreview = findViewById(R.id.wallet_icon_preview);
+    EditText iconInput = new EditText(getContext());
 
     String currentIcon = wallet.getIcon();
-    if (currentIcon != null) {
-      iconInput.setText(currentIcon);
+    if (TextUtils.isEmpty(currentIcon)) {
+      currentIcon = EmojiConstants.WALLET_EMOJIS[0];
     }
-    nameInput.setText(wallet.getName());
-    nameInput.setSelection(nameInput.getText().length());
-    if (defaultInput != null) {
-      defaultInput.setChecked(wallet.isDefault());
-      defaultInput.setEnabled(!wallet.isDefault());
-      defaultInput.setAlpha(wallet.isDefault() ? 0.72f : 1f);
+    if (iconPreview != null) iconPreview.setText(currentIcon);
+    iconInput.setText(currentIcon);
+
+    if (iconContainer != null) {
+      iconContainer.setOnClickListener(v -> {
+        InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && getCurrentFocus() != null) {
+          imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+        }
+        EmojiPickerBottomSheet picker = new EmojiPickerBottomSheet(
+            getContext(),
+            iconInput.getText().toString(),
+            selectedEmoji -> {
+              if (iconPreview != null) iconPreview.setText(selectedEmoji);
+              iconInput.setText(selectedEmoji);
+            });
+        BottomSheetHelper.show(picker);
+      });
     }
 
+    nameInput.setText(wallet.getName());
+    nameInput.setSelection(nameInput.getText().length());
+
+    CheckBox defaultInput = findViewById(R.id.wallet_default_input);
+    if (defaultInput != null) {
+      defaultInput.setChecked(wallet.isDefault());
+      if (wallet.isDefault()) {
+        defaultInput.setEnabled(false);
+      }
+    }
+
+    DialogActionsView actionsView = findViewById(R.id.wallet_actions);
     if (actionsView != null) {
       actionsView.setOnCancelClickListener(v -> dismiss());
       actionsView.setOnPrimaryClickListener(
@@ -82,25 +111,30 @@ public final class WalletEditBottomSheet extends BottomSheetDialog {
       nameInput.setError(getContext().getString(R.string.wallet_error_name));
       return;
     }
+
     String icon = iconInput.getText().toString().trim();
-    if (icon.isEmpty()) {
-      icon = EmojiConstants.WALLET_EMOJIS[new java.security.SecureRandom().nextInt(EmojiConstants.WALLET_EMOJIS.length)];
-    }
-    boolean makeDefault = defaultInput.isChecked();
-    final String finalIcon = icon;
+    boolean makeDefault = defaultInput != null && defaultInput.isChecked();
     actionsView.setPrimaryEnabled(false);
 
     services.dbWorker.compute(
         () -> {
-          services.walletService.updateNameDefaultAndIcon(
-              wallet.getId(), name, makeDefault, finalIcon);
-          return Boolean.TRUE;
+          try {
+            services.walletService.updateNameDefaultAndIcon(
+                wallet.getId(), name, makeDefault, icon);
+            return Boolean.TRUE;
+          } catch (Exception e) {
+            return Boolean.FALSE;
+          }
         },
-        updated -> {
+        success -> {
           if (!isShowing()) {
             return;
           }
           actionsView.setPrimaryEnabled(true);
+          if (!Boolean.TRUE.equals(success)) {
+            Toast.makeText(getContext(), R.string.wallet_error_name, Toast.LENGTH_SHORT).show();
+            return;
+          }
           Toast.makeText(getContext(), R.string.wallet_updated, Toast.LENGTH_SHORT).show();
           dismiss();
           onSaved.run();
