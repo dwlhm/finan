@@ -4,6 +4,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -65,6 +68,9 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
   private TextView categoryView;
   private TextView dateView;
   private TextView noteView;
+  private FrameLayout iconContainer;
+  private ImageView iconView;
+  private TextView iconEmojiView;
   private android.view.View detailPanel;
   private android.view.View editPanel;
   private EditText amountInput;
@@ -134,6 +140,9 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
     titleView = findViewById(R.id.transaction_dialog_title);
     detailPanel = findViewById(R.id.transaction_detail_panel);
     editPanel = findViewById(R.id.transaction_edit_panel);
+    iconContainer = findViewById(R.id.transaction_detail_icon_container);
+    iconView = findViewById(R.id.transaction_detail_icon);
+    iconEmojiView = findViewById(R.id.transaction_detail_icon_emoji);
     amountView = findViewById(R.id.transaction_detail_amount);
     typeView = findViewById(R.id.transaction_detail_type);
     walletView = findViewById(R.id.transaction_detail_wallet);
@@ -192,12 +201,45 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
         });
   }
 
+  private static final int[] CATEGORY_COLORS = {
+    Color.rgb(84, 105, 212),
+    Color.rgb(205, 93, 127),
+    Color.rgb(76, 144, 111),
+    Color.rgb(205, 126, 70),
+    Color.rgb(117, 95, 173),
+    Color.rgb(56, 137, 162)
+  };
+
   private void bindDetail(
       @Nullable Category category,
       @Nullable Wallet wallet) {
-    titleView.setText(R.string.transaction_detail_title);
+    titleView.setVisibility(android.view.View.GONE);
     detailPanel.setVisibility(android.view.View.VISIBLE);
     editPanel.setVisibility(android.view.View.GONE);
+
+    // Icon / emoji
+    String emoji = category != null ? category.getIcon() : null;
+    if (emoji != null && !emoji.trim().isEmpty()) {
+      iconView.setImageDrawable(null);
+      iconView.setBackground(null);
+      iconEmojiView.setVisibility(android.view.View.VISIBLE);
+      iconEmojiView.setText(emoji.trim());
+    } else {
+      GradientDrawable bg = new GradientDrawable();
+      bg.setShape(GradientDrawable.OVAL);
+      long cid = transaction.getCategoryId();
+      int hash = Long.hashCode(cid);
+      if (category != null && !TextUtils.isEmpty(category.getName())) {
+        hash = 31 * hash + category.getName().hashCode();
+      }
+      bg.setColor(CATEGORY_COLORS[Math.floorMod(hash, CATEGORY_COLORS.length)]);
+      bg.setCornerRadius(24f * getContext().getResources().getDisplayMetrics().density);
+      iconView.setBackground(bg);
+      iconView.setImageResource(R.drawable.ic_summary_filter);
+      iconEmojiView.setVisibility(android.view.View.GONE);
+    }
+
+    // Amount
     amountView.setText(
         getContext()
             .getString(
@@ -206,12 +248,16 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
     amountView.setTextColor(
         ContextCompat.getColor(
             getContext(), TransactionRowLabels.amountColor(transaction.getType())));
-    typeView.setText(TransactionRowLabels.typeLabel(transaction.getType()));
-    walletView.setText(wallet != null ? wallet.getName() : "—");
+
+    // Category name + type label
     categoryView.setText(
         transaction.getType().isRegular() && category != null
             ? category.getName()
             : getContext().getString(R.string.transaction_system_category));
+    typeView.setText(getContext().getString(TransactionRowLabels.typeLabel(transaction.getType())));
+
+    // Info rows
+    walletView.setText(wallet != null ? wallet.getName() : "—");
     dateView.setText(dateFormat.format(new Date(transaction.getOccurredAt())));
     String note = transaction.getNote();
     boolean hasNote = !TextUtils.isEmpty(note);
@@ -220,14 +266,28 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
         ContextCompat.getColor(
             getContext(), hasNote ? R.color.finan_text_primary : R.color.finan_text_hint));
 
-    secondaryButton.setText(android.R.string.cancel);
-    secondaryButton.setOnClickListener(v -> dismiss());
+    // Actions
     if (transaction.getType().isSystem()) {
+      // System tx: only delete is allowed, no edit
+      primaryButton.setBackgroundResource(R.drawable.bg_button_danger);
+      primaryButton.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_error));
       primaryButton.setText(R.string.transaction_delete_action);
       primaryButton.setOnClickListener(v -> confirmDeleteSystemTransaction());
+      secondaryButton.setBackgroundResource(android.R.color.transparent);
+      secondaryButton.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_primary));
+      secondaryButton.setText(android.R.string.cancel);
+      secondaryButton.setOnClickListener(v -> dismiss());
     } else {
+      // Regular tx: edit primary, delete secondary
+      primaryButton.setBackgroundResource(R.drawable.bg_button_primary);
+      primaryButton.setTextColor(
+          ContextCompat.getColor(getContext(), R.color.finan_btn_pill_text));
       primaryButton.setText(R.string.transaction_edit_action);
       primaryButton.setOnClickListener(v -> beginEdit());
+      secondaryButton.setBackgroundResource(R.drawable.bg_button_danger);
+      secondaryButton.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_error));
+      secondaryButton.setText(R.string.transaction_delete_action);
+      secondaryButton.setOnClickListener(v -> confirmDeleteTransaction());
     }
   }
 
@@ -277,6 +337,45 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
         });
   }
 
+  private void confirmDeleteTransaction() {
+    BottomSheetHelper.showConfirmation(
+        getContext(),
+        getContext().getString(R.string.transaction_delete_action),
+        getContext().getString(R.string.transaction_delete_confirmation),
+        getContext().getString(R.string.transaction_delete_action),
+        null,
+        getContext().getString(android.R.string.cancel),
+        this::deleteTransaction);
+  }
+
+  private void deleteTransaction() {
+    services.dbWorker.compute(
+        () -> {
+          try {
+            services.transactionService.delete(transactionId);
+            return Boolean.TRUE;
+          } catch (RuntimeException e) {
+            return Boolean.FALSE;
+          }
+        },
+        deleted -> {
+          if (!isShowing()) {
+            return;
+          }
+          if (!Boolean.TRUE.equals(deleted)) {
+            Toast.makeText(getContext(), R.string.transaction_delete_error, Toast.LENGTH_SHORT)
+                .show();
+            return;
+          }
+          if (listener != null) {
+            listener.onTransactionChanged();
+          }
+          Toast.makeText(getContext(), R.string.transaction_deleted, Toast.LENGTH_SHORT).show();
+          dismiss();
+        });
+  }
+
+
   private void beginEdit() {
     int generation = ++loadGeneration;
     TransactionType type = transaction.getType();
@@ -310,6 +409,7 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
   }
 
   private void bindEdit() {
+    titleView.setVisibility(android.view.View.VISIBLE);
     titleView.setText(R.string.transaction_edit_title);
     detailPanel.setVisibility(android.view.View.GONE);
     editPanel.setVisibility(android.view.View.VISIBLE);
@@ -339,6 +439,9 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
 
     tryRestoreEditDraft();
 
+    // Reset button styles to edit-mode appearance
+    secondaryButton.setBackgroundResource(android.R.color.transparent);
+    secondaryButton.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_primary));
     secondaryButton.setText(android.R.string.cancel);
     secondaryButton.setOnClickListener(
         v -> {
@@ -346,6 +449,9 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
           editing = false;
           loadDetail();
         });
+    primaryButton.setBackgroundResource(R.drawable.bg_button_primary);
+    primaryButton.setTextColor(
+        ContextCompat.getColor(getContext(), R.color.finan_btn_pill_text));
     primaryButton.setText(R.string.transaction_edit_save);
     primaryButton.setOnClickListener(v -> saveEdit());
   }

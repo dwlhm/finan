@@ -92,6 +92,7 @@
     <string name="transaction_edit_action">Edit</string>
     <string name="transaction_delete_action">Hapus</string>
     <string name="transaction_delete_system_confirmation">Hapus operasi ini dan pulihkan saldo dompet terkait?</string>
+    <string name="transaction_delete_confirmation">Hapus transaksi ini dan pulihkan saldo dompet terkait?</string>
     <string name="transaction_deleted">Operasi dihapus</string>
     <string name="transaction_delete_error">Gagal menghapus operasi</string>
     <string name="transaction_edit_save">Simpan</string>
