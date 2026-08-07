@@ -1,7 +1,10 @@
 package com.dwlhm.finan.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 
+import android.os.Handler;
+import android.os.Looper;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,12 +18,23 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.ui.capture.CaptureFragment;
 import com.dwlhm.finan.ui.category.CategoryListFragment;
 import com.dwlhm.finan.ui.common.ScreenNavigator;
+import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.components.FloatingBottomNavView;
 import com.dwlhm.finan.ui.dashboard.DashboardFragment;
 import com.dwlhm.finan.ui.settings.SettingsFragment;
+import com.dwlhm.finan.ui.settings.TransactionTemplateManagerDialog;
 import com.dwlhm.finan.ui.wallet.WalletListFragment;
 
 public final class MainActivity extends AppCompatActivity implements ScreenNavigator {
+
+  public static final String EXTRA_NAV_TARGET = "com.dwlhm.finan.EXTRA_NAV_TARGET";
+  public static final String EXTRA_OPEN_TEMPLATE_MANAGER = "com.dwlhm.finan.EXTRA_OPEN_TEMPLATE_MANAGER";
+  public static final String EXTRA_TEMPLATE_ID = "com.dwlhm.finan.EXTRA_TEMPLATE_ID";
+  public static final String NAV_TARGET_CAPTURE = "capture";
+  public static final String NAV_TARGET_DASHBOARD = "dashboard";
+  public static final String NAV_TARGET_SETTINGS = "settings";
+  public static final String NAV_TARGET_WALLETS = "wallets";
+  public static final String NAV_TARGET_CATEGORIES = "categories";
 
   private static final String KEY_SELECTED_SCREEN = "selected_screen";
   private static final String BACK_STACK_CATEGORY = "category";
@@ -51,12 +65,70 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     } else {
       showScreen(selectedScreen, false);
     }
+
+    handleNavIntent(getIntent());
   }
 
   @Override
   protected void onSaveInstanceState(@NonNull Bundle outState) {
     outState.putString(KEY_SELECTED_SCREEN, selectedScreen.tag);
     super.onSaveInstanceState(outState);
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    handleNavIntent(intent);
+  }
+
+  private void handleNavIntent(@Nullable Intent intent) {
+    if (intent == null) {
+      return;
+    }
+    if (intent.getBooleanExtra(EXTRA_OPEN_TEMPLATE_MANAGER, false)) {
+      intent.removeExtra(EXTRA_OPEN_TEMPLATE_MANAGER);
+      new TransactionTemplateManagerDialog(this, ServicesProvider.get(this), null).show();
+    }
+    if (intent.hasExtra(EXTRA_TEMPLATE_ID)) {
+      long templateId = intent.getLongExtra(EXTRA_TEMPLATE_ID, 0L);
+      intent.removeExtra(EXTRA_TEMPLATE_ID);
+      showScreen(Screen.CAPTURE, false);
+      new Handler(Looper.getMainLooper()).postDelayed(
+          () -> {
+            Fragment fragment =
+                getSupportFragmentManager().findFragmentByTag(Screen.CAPTURE.tag);
+            if (fragment instanceof CaptureFragment) {
+              ((CaptureFragment) fragment).executeTemplateById(templateId);
+            }
+          },
+          150L);
+    }
+    if (!intent.hasExtra(EXTRA_NAV_TARGET)) {
+      return;
+    }
+    String target = intent.getStringExtra(EXTRA_NAV_TARGET);
+    intent.removeExtra(EXTRA_NAV_TARGET);
+    if (target == null) {
+      return;
+    }
+    switch (target) {
+      case NAV_TARGET_CAPTURE:
+        showScreen(Screen.CAPTURE, false);
+        break;
+      case NAV_TARGET_DASHBOARD:
+        showScreen(Screen.DASHBOARD, false);
+        break;
+      case NAV_TARGET_SETTINGS:
+        showScreen(Screen.SETTINGS, false);
+        break;
+      case NAV_TARGET_WALLETS:
+        openWallets();
+        break;
+      case NAV_TARGET_CATEGORIES:
+        openCategories();
+        break;
+    }
   }
 
   @Override

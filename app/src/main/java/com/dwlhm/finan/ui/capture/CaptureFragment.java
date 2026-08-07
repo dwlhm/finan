@@ -70,6 +70,7 @@ public final class CaptureFragment extends ScreenFragment {
   private View captureHoldProgress;
   private android.animation.ValueAnimator holdAnimator;
   private android.os.CountDownTimer undoCountdownTimer;
+  private TextView captureUndoTitle;
   private TextView captureUndoActionText;
   private CaptureFormValidation formValidation;
 
@@ -137,6 +138,7 @@ public final class CaptureFragment extends ScreenFragment {
     captureSaveButtonArea = view.findViewById(R.id.capture_save_button_area);
     captureSaveLabel = view.findViewById(R.id.capture_save_label);
     captureUndoRow = view.findViewById(R.id.capture_undo_row);
+    captureUndoTitle = view.findViewById(R.id.capture_undo_title);
     captureHoldProgress = view.findViewById(R.id.capture_hold_progress);
     captureUndoActionText = view.findViewById(R.id.capture_undo_action_text);
     View captureUndoAction = view.findViewById(R.id.capture_undo_action);
@@ -524,6 +526,17 @@ public final class CaptureFragment extends ScreenFragment {
     View addChip = inflater.inflate(R.layout.item_template_add_chip, chipsLayout, false);
     addChip.setOnClickListener(v -> showCreateTemplateDialog());
     chipsLayout.addView(addChip);
+  }
+
+  public void executeTemplateById(long templateId) {
+    if (services == null || services.transactionTemplateDao == null) return;
+    services.dbWorker.compute(
+        () -> services.transactionTemplateDao.findById(templateId),
+        template -> {
+          if (template != null) {
+            executeShortcut(template);
+          }
+        });
   }
 
   private void executeShortcut(@NonNull TransactionTemplate template) {
@@ -1295,39 +1308,87 @@ public final class CaptureFragment extends ScreenFragment {
 
   private void showUndoState() {
     if (captureSaveButtonArea != null && captureUndoRow != null) {
-      captureSaveButtonArea.setVisibility(View.GONE);
-      captureUndoRow.setVisibility(View.VISIBLE);
-      
       if (undoCountdownTimer != null) {
-          undoCountdownTimer.cancel();
+        undoCountdownTimer.cancel();
+        undoCountdownTimer = null;
       }
-      undoCountdownTimer = new android.os.CountDownTimer(4000, 1000) {
-          @Override
-          public void onTick(long millisUntilFinished) {
-              if (captureUndoActionText != null) {
-                  int seconds = (int) (millisUntilFinished / 1000) + 1;
-                  captureUndoActionText.setText(getString(R.string.java_CaptureFragment_batalkan) + seconds + ")");
-              }
-          }
 
-          @Override
-          public void onFinish() {
-              hideUndoState();
+      if (captureUndoTitle != null && pendingUndo != null) {
+        String formatted = MoneyFormatter.format(pendingUndo.amountMinor);
+        captureUndoTitle.setText("✓ " + formatted + " tersimpan");
+      } else if (captureUndoTitle != null) {
+        captureUndoTitle.setText("✓ Tersimpan");
+      }
+
+      captureSaveButtonArea.animate()
+          .alpha(0f)
+          .setDuration(180)
+          .withEndAction(() -> {
+            captureSaveButtonArea.setVisibility(View.GONE);
+            captureSaveButtonArea.setAlpha(1f);
+          })
+          .start();
+
+      captureUndoRow.setVisibility(View.VISIBLE);
+      captureUndoRow.setAlpha(0f);
+      captureUndoRow.setScaleX(0.94f);
+      captureUndoRow.setScaleY(0.94f);
+      captureUndoRow.animate()
+          .alpha(1f)
+          .scaleX(1f)
+          .scaleY(1f)
+          .setDuration(220)
+          .setInterpolator(new androidx.interpolator.view.animation.FastOutSlowInInterpolator())
+          .start();
+
+      try {
+        captureUndoRow.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM);
+      } catch (Exception ignored) {}
+
+      undoCountdownTimer = new android.os.CountDownTimer(5000, 1000) {
+        @Override
+        public void onTick(long millisUntilFinished) {
+          if (captureUndoActionText != null) {
+            int seconds = (int) Math.ceil(millisUntilFinished / 1000.0);
+            captureUndoActionText.setText("Batalkan (" + seconds + "s)");
           }
+        }
+
+        @Override
+        public void onFinish() {
+          hideUndoState();
+        }
       }.start();
     }
   }
 
   private void hideUndoState() {
     if (undoCountdownTimer != null) {
-        undoCountdownTimer.cancel();
-        undoCountdownTimer = null;
+      undoCountdownTimer.cancel();
+      undoCountdownTimer = null;
     }
-    if (captureUndoRow != null) {
-      captureUndoRow.setVisibility(View.GONE);
-    }
-    if (captureSaveButtonArea != null) {
+    if (captureUndoRow != null && captureUndoRow.getVisibility() == View.VISIBLE) {
+      captureUndoRow.animate()
+          .alpha(0f)
+          .scaleX(0.95f)
+          .scaleY(0.95f)
+          .setDuration(180)
+          .withEndAction(() -> {
+            captureUndoRow.setVisibility(View.GONE);
+            captureUndoRow.setAlpha(1f);
+            captureUndoRow.setScaleX(1f);
+            captureUndoRow.setScaleY(1f);
+            if (captureSaveButtonArea != null) {
+              captureSaveButtonArea.setVisibility(View.VISIBLE);
+              captureSaveButtonArea.setAlpha(0f);
+              captureSaveButtonArea.animate().alpha(1f).setDuration(180).start();
+              checkSaveButtonState();
+            }
+          })
+          .start();
+    } else if (captureSaveButtonArea != null) {
       captureSaveButtonArea.setVisibility(View.VISIBLE);
+      captureSaveButtonArea.setAlpha(1f);
       checkSaveButtonState();
     }
   }
@@ -1390,7 +1451,9 @@ public final class CaptureFragment extends ScreenFragment {
           }
           restoreDraft(draft);
           persistCaptureDraft();
-          Toast.makeText(requireContext(), R.string.capture_undo_done, Toast.LENGTH_SHORT).show();
+          if (getActivity() != null) {
+            FinanToast.show(getActivity(), "✓ Transaksi dibatalkan. Form dikembalikan.");
+          }
           refreshCaptureData(true);
         });
   }

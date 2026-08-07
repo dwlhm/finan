@@ -23,5 +23,33 @@
         <activity
             android:name=".ui.search.SearchTransactionActivity"
             android:windowSoftInputMode="stateHidden|adjustResize" />
+
+        <receiver
+            android:name=".widget.QuickTransactionWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.dwlhm.finan.ACTION_DATA_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_transaction_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ShortcutWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.dwlhm.finan.ACTION_DATA_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shortcut_widget_info" />
+        </receiver>
+        <service
+            android:name=".widget.ShortcutWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
     </application>
 </manifest>

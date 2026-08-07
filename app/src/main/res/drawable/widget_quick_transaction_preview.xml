@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="250dp"
+    android:height="260dp"
+    android:viewportWidth="250"
+    android:viewportHeight="260">
+
+    <!-- Card Base Background -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,0 H234 A16,16 0 0,1 250,16 V244 A16,16 0 0,1 234,260 H16 A16,16 0 0,1 0,244 V16 A16,16 0 0,1 16,0 Z" />
+
+    <!-- Card Border -->
+    <path
+        android:strokeColor="#DDE3E8"
+        android:strokeWidth="1"
+        android:pathData="M16,0.5 H234 A15.5,15.5 0 0,1 249.5,16 V244 A15.5,15.5 0 0,1 234,259.5 H16 A15.5,15.5 0 0,1 0.5,244 V16 A15.5,15.5 0 0,1 16,0.5 Z" />
+
+    <!-- Title Bar -->
+    <path
+        android:fillColor="#1A2830"
+        android:pathData="M16,16 H85 V28 H16 Z" />
+
+    <!-- Segmented Toggle Track & Active Expense Tab -->
+    <path
+        android:fillColor="#E8ECEF"
+        android:pathData="M135,12 H234 A8,8 0 0,1 242,20 V28 A8,8 0 0,1 234,36 H135 A8,8 0 0,1 127,28 V20 A8,8 0 0,1 135,12 Z" />
+    <path
+        android:fillColor="#C45C4A"
+        android:pathData="M137,14 H182 A6,6 0 0,1 188,20 V26 A6,6 0 0,1 182,32 H137 A6,6 0 0,1 131,26 V20 A6,6 0 0,1 137,14 Z" />
+
+    <!-- Wallet & Category Chips -->
+    <path
+        android:fillColor="#E8ECEF"
+        android:pathData="M16,46 H118 V66 H16 Z" />
+    <path
+        android:fillColor="#E8ECEF"
+        android:pathData="M126,46 H234 V66 H126 Z" />
+
+    <!-- Amount Display Box -->
+    <path
+        android:fillColor="#F4F6F8"
+        android:pathData="M16,74 H234 V106 H16 Z" />
+    <path
+        android:fillColor="#2D6A6A"
+        android:pathData="M24,84 H130 V98 H24 Z" />
+
+    <!-- Keypad Grid -->
+    <path
+        android:fillColor="#F4F6F8"
+        android:pathData="M16,114 H234 V210 H16 Z" />
+
+    <!-- Save Button -->
+    <path
+        android:fillColor="#2D6A6A"
+        android:pathData="M16,218 H234 V246 H16 Z" />
+</vector>

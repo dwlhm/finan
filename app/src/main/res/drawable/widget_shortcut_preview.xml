@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="68dp"
+    android:height="68dp"
+    android:viewportWidth="68"
+    android:viewportHeight="68">
+
+    <!-- Card Base Background -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,0 H56 A12,12 0 0,1 68,12 V56 A12,12 0 0,1 56,68 H12 A12,12 0 0,1 0,56 V12 A12,12 0 0,1 12,0 Z" />
+
+    <!-- Card Border -->
+    <path
+        android:strokeColor="#DDE3E8"
+        android:strokeWidth="1"
+        android:pathData="M12,0.5 H56 A11.5,11.5 0 0,1 67.5,12 V56 A11.5,11.5 0 0,1 56,67.5 H12 A11.5,11.5 0 0,1 0.5,56 V12 A11.5,11.5 0 0,1 12,0.5 Z" />
+
+    <!-- Shortcut Tile Button Base -->
+    <path
+        android:fillColor="#E8ECEF"
+        android:pathData="M15,5 H53 A10,10 0 0,1 63,15 V53 A10,10 0 0,1 53,63 H15 A10,10 0 0,1 5,53 V15 A10,10 0 0,1 15,5 Z" />
+
+    <path
+        android:strokeColor="#DDE3E8"
+        android:strokeWidth="1"
+        android:pathData="M15,5.5 H53 A9.5,9.5 0 0,1 62.5,15 V53 A9.5,9.5 0 0,1 53,62.5 H15 A9.5,9.5 0 0,1 5.5,53 V15 A9.5,9.5 0 0,1 15,5.5 Z" />
+
+    <!-- Emoji / Icon Badge Background -->
+    <path
+        android:fillColor="#2D6A6A"
+        android:pathData="M34,10 C40.075,10 45,14.925 45,21 C45,27.075 40.075,32 34,32 C27.925,32 23,27.075 23,21 C23,14.925 27.925,10 34,10 Z" />
+
+    <!-- Emoji / Icon Symbol (Lightning Bolt) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,14 L29,22 H34 L32,28 L39,20 H34 Z" />
+
+    <!-- Bold Name Placeholder -->
+    <path
+        android:fillColor="#1A2830"
+        android:pathData="M16,36 H52 A3,3 0 0,1 55,39 V39 A3,3 0 0,1 52,42 H16 A3,3 0 0,1 13,39 V39 A3,3 0 0,1 16,36 Z" />
+
+    <!-- Amount Placeholder -->
+    <path
+        android:fillColor="#5C6B73"
+        android:pathData="M22,46 H46 A2.5,2.5 0 0,1 48.5,48.5 V48.5 A2.5,2.5 0 0,1 46,51 H22 A2.5,2.5 0 0,1 19.5,48.5 V48.5 A2.5,2.5 0 0,1 22,46 Z" />
+</vector>
