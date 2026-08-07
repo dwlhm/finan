@@ -13,7 +13,7 @@
         android:layout_width="40dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="16dp"
         android:background="@drawable/bg_bottom_sheet_handle" />
 
     <LinearLayout
@@ -56,14 +56,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_chip"
+                    android:background="@drawable/bg_chip_selected"
                     android:paddingStart="8dp"
                     android:paddingEnd="8dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp"
                     android:text="@string/wallet_default_badge"
-                    android:textColor="@color/finan_primary"
+                    android:textColor="@color/finan_chip_text_selected"
                     android:textSize="11sp"
+                    android:textStyle="bold"
                     android:visibility="gone" />
             </LinearLayout>
 
@@ -82,10 +83,10 @@
         android:id="@+id/wallet_overview_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="16dp"
         android:background="@drawable/bg_control_surface"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="14dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -106,7 +107,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/finan_text_primary"
-                android:textSize="13sp" />
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
@@ -131,7 +133,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/finan_text_primary"
-                android:textSize="13sp" />
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
@@ -155,7 +158,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/finan_text_primary"
-                android:textSize="13sp" />
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
@@ -171,54 +175,66 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
         android:drawablePadding="12dp"
+        android:drawableStart="@drawable/ic_edit"
+        android:drawableTint="@color/finan_text_primary"
+        android:focusable="true"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
         android:text="@string/hc_dialog_wallet_overview_edit_dompet"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
-        android:clickable="true"
-        android:focusable="true" />
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/wallet_action_adjust"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
         android:drawablePadding="12dp"
+        android:drawableStart="@drawable/ic_schedule"
+        android:drawableTint="@color/finan_text_primary"
+        android:focusable="true"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
         android:text="@string/hc_dialog_wallet_overview_sesuaikan_saldo"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
-        android:clickable="true"
-        android:focusable="true" />
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/wallet_action_transfer"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
         android:drawablePadding="12dp"
+        android:drawableStart="@drawable/ic_transfer"
+        android:drawableTint="@color/finan_text_primary"
+        android:focusable="true"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
         android:text="@string/hc_dialog_wallet_overview_transfer"
         android:textColor="@color/finan_text_primary"
         android:textSize="15sp"
-        android:clickable="true"
-        android:focusable="true" />
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/wallet_action_delete"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="?android:attr/selectableItemBackground"
+        android:clickable="true"
         android:drawablePadding="12dp"
+        android:drawableStart="@drawable/ic_delete"
+        android:drawableTint="@color/finan_error"
+        android:focusable="true"
         android:gravity="center_vertical"
         android:paddingStart="4dp"
         android:text="@string/hc_dialog_wallet_overview_hapus_dompet"
         android:textColor="@color/finan_error"
         android:textSize="15sp"
-        android:clickable="true"
-        android:focusable="true" />
+        android:textStyle="bold" />
 </LinearLayout>

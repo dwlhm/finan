@@ -29,6 +29,7 @@ import com.dwlhm.finan.ui.common.TransactionOccurredAtPicker;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 import com.dwlhm.finan.util.money.MoneyInputFormatter;
 import com.dwlhm.finan.util.money.MoneyParser;
+import com.dwlhm.finan.util.ui.ViewPressAnimator;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -110,9 +111,14 @@ public final class WalletOverviewBottomSheet extends BottomSheetDialog {
     }
 
     int usage = wallet.getUsageCount();
-    if (usage > 0 && transactionRow != null && transactionCountView != null) {
-      transactionRow.setVisibility(View.VISIBLE);
-      transactionCountView.setText(transactionCountView.getContext().getString(R.string.java_WalletOverviewBottomSheet_transaksi, usage));
+    if (transactionRow != null && transactionCountView != null) {
+      if (usage > 0) {
+        transactionRow.setVisibility(View.VISIBLE);
+        transactionCountView.setText(
+            getContext().getString(R.string.java_WalletOverviewBottomSheet_transaksi, usage));
+      } else {
+        transactionRow.setVisibility(View.GONE);
+      }
     }
 
     TextView createdAtView = findViewById(R.id.wallet_overview_created_at);
@@ -129,14 +135,45 @@ public final class WalletOverviewBottomSheet extends BottomSheetDialog {
     TextView deleteAction = findViewById(R.id.wallet_action_delete);
 
     if (editAction != null) {
-      editAction.setOnClickListener(v -> {
-        dismiss();
-        new WalletEditBottomSheet(getContext(), services, wallet, onDataChanged);
-      });
+      ViewPressAnimator.bindScale(editAction);
+      editAction.setOnClickListener(
+          v -> {
+            dismiss();
+            new WalletEditBottomSheet(getContext(), services, wallet, onDataChanged);
+          });
     }
-    if (adjustAction != null) adjustAction.setOnClickListener(v -> showAdjustDialog());
-    if (transferAction != null) transferAction.setOnClickListener(v -> showTransferDialog());
-    if (deleteAction != null) deleteAction.setOnClickListener(v -> confirmDelete());
+    if (adjustAction != null) {
+      ViewPressAnimator.bindScale(adjustAction);
+      adjustAction.setOnClickListener(v -> showAdjustDialog());
+    }
+    if (transferAction != null) {
+      ViewPressAnimator.bindScale(transferAction);
+      if (allWallets.size() < 2) {
+        transferAction.setAlpha(0.4f);
+        transferAction.setOnClickListener(
+            v ->
+                Toast.makeText(
+                        getContext(), R.string.wallet_transfer_need_two, Toast.LENGTH_SHORT)
+                    .show());
+      } else {
+        transferAction.setAlpha(1.0f);
+        transferAction.setOnClickListener(v -> showTransferDialog());
+      }
+    }
+    if (deleteAction != null) {
+      ViewPressAnimator.bindScale(deleteAction);
+      if (allWallets.size() <= 1) {
+        deleteAction.setAlpha(0.4f);
+        deleteAction.setOnClickListener(
+            v ->
+                Toast.makeText(
+                        getContext(), R.string.wallet_error_delete_last, Toast.LENGTH_SHORT)
+                    .show());
+      } else {
+        deleteAction.setAlpha(1.0f);
+        deleteAction.setOnClickListener(v -> confirmDelete());
+      }
+    }
   }
 
   private void showAdjustDialog() {
@@ -427,8 +464,8 @@ public final class WalletOverviewBottomSheet extends BottomSheetDialog {
                 if (Boolean.TRUE.equals(success)) {
                   FinanToast.show(
                       activity,
-                      "Dompet \"" + deleteName + "\" dihapus",
-                      "Urungkan",
+                      getContext().getString(R.string.wallet_deleted, deleteName),
+                      getContext().getString(R.string.wallet_delete_undo),
                       () -> services.dbWorker.compute(
                           () -> services.walletService.insertUndo(
                               deleteName, deleteCurrencyCode, deleteIsDefault,
@@ -436,7 +473,7 @@ public final class WalletOverviewBottomSheet extends BottomSheetDialog {
                           id -> onDataChanged.run()));
                   onDataChanged.run();
                 } else {
-                  Toast.makeText(getContext(), "Gagal menghapus dompet", Toast.LENGTH_SHORT).show();
+                  Toast.makeText(getContext(), getContext().getString(R.string.wallet_delete_error), Toast.LENGTH_SHORT).show();
                 }
               });
         });

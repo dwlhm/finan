@@ -641,6 +641,10 @@ public final class WalletListFragment extends ScreenFragment {
               MoneyFormatter.formatWithCurrencyCode(
                   wallet.getCurrencyCode(), wallet.getCachedBalanceMinor()));
         }
+        cardView.setOnClickListener(
+            v ->
+                new WalletOverviewBottomSheet(
+                    requireContext(), services, wallet, getWallets(), WalletListFragment.this::reload));
 
         editButton.setOnClickListener(v -> showEditWalletDialog(wallet));
         boolean canDelete = wallets.size() > 1;

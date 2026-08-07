@@ -439,5 +439,8 @@
     <string name="wallet_balance_masked">•••••</string>
     <string name="wallet_card_adjust_short">Sesuaikan</string>
     <string name="wallet_error_delete_last">Tidak dapat menghapus dompet terakhir</string>
+    <string name="wallet_deleted">Dompet \"%1$s\" dihapus</string>
+    <string name="wallet_delete_undo">Urungkan</string>
+    <string name="wallet_delete_error">Gagal menghapus dompet</string>
 </resources>
 
