@@ -1,8 +1,12 @@
 package com.dwlhm.finan.ui.common;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -20,6 +24,7 @@ public final class CustomTimePickerView extends LinearLayout {
   private int hour, minute;
   private OnTimeSelectedListener listener;
   private final TextView hourDisplay, minuteDisplay;
+  private final Handler repeatHandler = new Handler(Looper.getMainLooper());
 
   private static class PickerColumn {
     final LinearLayout root;
@@ -78,6 +83,22 @@ public final class CustomTimePickerView extends LinearLayout {
     this.listener = l;
   }
 
+  public int getHour() {
+    return hour;
+  }
+
+  public int getMinute() {
+    return minute;
+  }
+
+  public void addMinutes(int deltaMinutes) {
+    int totalMinutes = hour * 60 + minute + deltaMinutes;
+    totalMinutes = ((totalMinutes % 1440) + 1440) % 1440;
+    this.hour = totalMinutes / 60;
+    this.minute = totalMinutes % 60;
+    refreshDisplay();
+  }
+
   private void refreshDisplay() {
     hourDisplay.setText(String.format(java.util.Locale.getDefault(), "%02d", hour));
     minuteDisplay.setText(String.format(java.util.Locale.getDefault(), "%02d", minute));
@@ -102,7 +123,7 @@ public final class CustomTimePickerView extends LinearLayout {
     col.addView(lbl);
 
     ImageButton upBtn = makeArrowBtn(R.drawable.ic_arrow_up, selBg);
-    upBtn.setOnClickListener(v -> { inc.run(); refreshDisplay(); });
+    setupRepeatTouch(upBtn, () -> { inc.run(); refreshDisplay(); });
     col.addView(upBtn);
 
     TextView val = new TextView(ctx);
@@ -116,10 +137,41 @@ public final class CustomTimePickerView extends LinearLayout {
     col.addView(val);
 
     ImageButton downBtn = makeArrowBtn(R.drawable.ic_arrow_down, selBg);
-    downBtn.setOnClickListener(v -> { dec.run(); refreshDisplay(); });
+    setupRepeatTouch(downBtn, () -> { dec.run(); refreshDisplay(); });
     col.addView(downBtn);
 
     return new PickerColumn(col, val);
+  }
+
+  private void setupRepeatTouch(View button, Runnable action) {
+    Runnable repeatRunnable = new Runnable() {
+      @Override
+      public void run() {
+        action.run();
+        repeatHandler.postDelayed(this, 90);
+      }
+    };
+
+    button.setOnTouchListener((v, event) -> {
+      int actionCode = event.getAction();
+      if (actionCode == MotionEvent.ACTION_DOWN) {
+        v.setPressed(true);
+        repeatHandler.removeCallbacks(repeatRunnable);
+        action.run();
+        repeatHandler.postDelayed(repeatRunnable, 400);
+        return true;
+      } else if (actionCode == MotionEvent.ACTION_UP
+          || actionCode == MotionEvent.ACTION_CANCEL
+          || actionCode == MotionEvent.ACTION_OUTSIDE) {
+        v.setPressed(false);
+        repeatHandler.removeCallbacks(repeatRunnable);
+        if (actionCode == MotionEvent.ACTION_UP) {
+          v.performClick();
+        }
+        return true;
+      }
+      return false;
+    });
   }
 
   private ImageButton makeArrowBtn(int drawableRes, int selBg) {

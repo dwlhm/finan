@@ -8,6 +8,7 @@ import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -48,7 +49,7 @@ public final class CustomDatePickerView extends LinearLayout {
 
   private final TextView headerText;
   private final LinearLayout grid, yearGrid;
-  private final TextView navLeft, navRight;
+  private final ImageView navLeft, navRight;
   private final int colorPrimary, colorSecondary, colorDim, colorWeekend, colorSelected, colorRangeBg;
   private final int selBgRes;
   private int year, month, selectedDay = 1, selectedMonth, selectedYear, yearRangeStart;
@@ -90,8 +91,8 @@ public final class CustomDatePickerView extends LinearLayout {
     header.setOrientation(HORIZONTAL);
     header.setGravity(Gravity.CENTER_VERTICAL);
 
-    navLeft  = makeNav("‹", selBgRes);
-    navRight = makeNav("›", selBgRes);
+    navLeft  = makeNav(R.drawable.ic_chevron_left, selBgRes);
+    navRight = makeNav(R.drawable.ic_chevron_right, selBgRes);
 
     headerText = new TextView(context);
     headerText.setTextSize(16f);
@@ -102,6 +103,8 @@ public final class CustomDatePickerView extends LinearLayout {
     headerText.setClickable(true);
     headerText.setFocusable(true);
     headerText.setForeground(ContextCompat.getDrawable(context, selBgRes));
+    headerText.setCompoundDrawablePadding(dp(6));
+    headerText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_expand_more, 0);
     headerText.setOnClickListener(v -> {
       showingYears = !showingYears;
       if (showingYears) yearRangeStart = (year / 20) * 20;
@@ -253,19 +256,16 @@ public final class CustomDatePickerView extends LinearLayout {
 
   // ── Nav helper ────────────────────────────────────────────────────────────────
 
-  private TextView makeNav(String label, int selBg) {
-    TextView tv = new TextView(getContext());
-    tv.setText(label);
-    tv.setTextSize(22f);
-    tv.setTextColor(colorPrimary);
-    tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
-    tv.setGravity(Gravity.CENTER);
-    tv.setMinimumWidth(dp(44));
-    tv.setMinimumHeight(dp(44));
-    tv.setClickable(true);
-    tv.setFocusable(true);
-    tv.setForeground(ContextCompat.getDrawable(getContext(), selBg));
-    return tv;
+  private ImageView makeNav(int iconRes, int selBg) {
+    ImageView iv = new ImageView(getContext());
+    iv.setImageResource(iconRes);
+    iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+    iv.setPadding(dp(10), dp(10), dp(10), dp(10));
+    iv.setLayoutParams(new LayoutParams(dp(44), dp(44)));
+    iv.setClickable(true);
+    iv.setFocusable(true);
+    iv.setForeground(ContextCompat.getDrawable(getContext(), selBg));
+    return iv;
   }
 
   // ── Cell accessors ────────────────────────────────────────────────────────────
@@ -285,7 +285,8 @@ public final class CustomDatePickerView extends LinearLayout {
     DayCell cell = findCell(day, m, y);
     if (cell == null) return;
 
-    boolean isToday   = todayDay == day && m == month && y == year;
+    LocalDate today = LocalDate.now();
+    boolean isToday   = today.getDayOfMonth() == day && today.getMonthValue() == m && today.getYear() == y;
     boolean isWeekend = pos >= 0 && ((pos % 7) == 0 || (pos % 7) == 6);
 
     boolean inRange = false, isRangeStart = false, isRangeEnd = false, isSingleDay = false;
@@ -551,8 +552,34 @@ public final class CustomDatePickerView extends LinearLayout {
     render();
   }
 
-  public void setOnDateSelectedListener(OnDateSelectedListener l) { this.listener = l; }
+  public void selectDate(LocalDate targetDate) {
+    if (targetDate == null) return;
+    year = targetDate.getYear();
+    month = targetDate.getMonthValue();
+    selectedYear = targetDate.getYear();
+    selectedMonth = targetDate.getMonthValue();
+    selectedDay = targetDate.getDayOfMonth();
+    showingYears = false;
+    render();
+    if (rangeMode) {
+      rangeStartDay   = selectedDay;
+      rangeStartMonth = selectedMonth;
+      rangeStartYear  = selectedYear;
+      rangeEndDay = null; rangeEndMonth = null; rangeEndYear = null;
+      fireRangeSelected();
+    } else {
+      fireSelected();
+    }
+  }
 
+  public long getSelectedMillis() {
+    return LocalDate.of(selectedYear, selectedMonth, selectedDay)
+        .atStartOfDay(ZoneId.systemDefault())
+        .toInstant()
+        .toEpochMilli();
+  }
+
+  public void setOnDateSelectedListener(OnDateSelectedListener l) { this.listener = l; }
   private int dp(int v) {
     return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
   }
