@@ -80,8 +80,19 @@ public class DashboardFragment extends ScreenFragment {
     }
     
     @Override
+    public void onStart() {
+        super.onStart();
+        if (searchInput != null) {
+            searchInput.clearFocus();
+        }
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
+        if (searchInput != null) {
+            searchInput.clearFocus();
+        }
         loadGlobalInboxPrompt();
     }
     
@@ -234,6 +245,14 @@ public class DashboardFragment extends ScreenFragment {
                 setDisplayMode(DashboardViewModel.DisplayMode.MASKED);
             }
         });
+        
+        searchInput.setOnClickListener(v -> openSearchPage(searchInput.getText() != null ? searchInput.getText().toString().trim() : ""));
+        searchInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                openSearchPage(searchInput.getText() != null ? searchInput.getText().toString().trim() : "");
+            }
+        });
+
         searchWatcher = new DebouncedTextWatcher(500L, value -> {
             String query = value.trim();
             if (query.length() > 3) {
@@ -253,9 +272,7 @@ public class DashboardFragment extends ScreenFragment {
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
                 (event != null && event.getKeyCode() == android.view.KeyEvent.KEYCODE_ENTER && event.getAction() == android.view.KeyEvent.ACTION_DOWN)) {
                 String query = searchInput.getText().toString().trim();
-                if (!query.isEmpty()) {
-                    openSearchPage(query);
-                }
+                openSearchPage(query);
                 return true;
             }
             return false;
@@ -265,10 +282,16 @@ public class DashboardFragment extends ScreenFragment {
     }
 
     private void openSearchPage(String query) {
-        searchInput.setText(""); // clear so it doesn't re-trigger when returning
+        if (searchInput != null) {
+            searchInput.clearFocus();
+            searchInput.setText(""); // clear so it doesn't re-trigger when returning
+        }
         android.content.Intent intent = new android.content.Intent(requireContext(), com.dwlhm.finan.ui.search.SearchTransactionActivity.class);
         intent.putExtra("EXTRA_QUERY", query);
         startActivity(intent);
+        if (getActivity() != null) {
+            getActivity().overridePendingTransition(R.anim.screen_enter, R.anim.screen_exit);
+        }
     }
 
     private void observeViewModel() {

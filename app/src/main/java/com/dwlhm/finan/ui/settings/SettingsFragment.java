@@ -1,7 +1,7 @@
 package com.dwlhm.finan.ui.settings;
 
 import android.app.Activity;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
@@ -266,19 +266,19 @@ public final class SettingsFragment extends ScreenFragment {
       }
     }
 
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(R.string.settings_change_payroll_cycle)
-        .setSingleChoiceItems(options, selectedIndex, (dialog, which) -> {
+    BottomSheetHelper.showOptionPicker(
+        requireContext(),
+        getString(R.string.settings_change_payroll_cycle),
+        options,
+        selectedIndex,
+        (which, option) -> {
           int newCutoff = values[which];
           requireContext().getSharedPreferences("finan_prefs", Context.MODE_PRIVATE)
               .edit()
               .putInt("cutoff_day", newCutoff)
               .apply();
           updatePayrollCycleValue();
-          dialog.dismiss();
-        })
-        .setNegativeButton(android.R.string.cancel, null)
-        .show();
+        });
   }
 
   private static String getPayrollCycleLabel(int cutoffDay) {
@@ -365,12 +365,14 @@ public final class SettingsFragment extends ScreenFragment {
   }
 
   private void showResetDataConfirmationDialog() {
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(R.string.settings_reset_data_confirm_title)
-        .setMessage(R.string.settings_reset_data_confirm_msg)
-        .setPositiveButton(R.string.hc_dialog_confirm_delete_hapus, (dialog, which) -> resetAllData())
-        .setNegativeButton(android.R.string.cancel, null)
-        .show();
+    BottomSheetHelper.showConfirmation(
+        requireContext(),
+        getString(R.string.settings_reset_data_confirm_title),
+        getString(R.string.settings_reset_data_confirm_msg),
+        getString(R.string.hc_dialog_confirm_delete_hapus),
+        null,
+        getString(android.R.string.cancel),
+        this::resetAllData);
   }
 
   private void resetAllData() {

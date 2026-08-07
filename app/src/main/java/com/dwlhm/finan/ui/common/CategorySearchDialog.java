@@ -2,9 +2,11 @@ package com.dwlhm.finan.ui.common;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,13 +14,13 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-
+import androidx.core.content.ContextCompat;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.dao.CategoryDao;
 import com.dwlhm.finan.data.entity.Category;
@@ -173,6 +175,7 @@ public final class CategorySearchDialog extends BottomSheetDialog {
   }
 
   private void showAddNewDialog() {
+    BottomSheetDialog dialog = new BottomSheetDialog(getContext(), R.style.Finan_BottomSheetDialog);
     View dialogView =
         LayoutInflater.from(getContext()).inflate(R.layout.dialog_category_name_input, null);
     EditText nameInput = dialogView.findViewById(R.id.category_name_input);
@@ -182,48 +185,75 @@ public final class CategorySearchDialog extends BottomSheetDialog {
       nameInput.setSelection(prefill.length());
     }
 
-    new MaterialAlertDialogBuilder(getContext())
-        .setTitle(R.string.capture_category_add_new_dialog_title)
-        .setView(dialogView)
-        .setPositiveButton(
-            android.R.string.ok,
-            (d, which) -> {
-              String name = nameInput.getText().toString().trim();
-              if (name.isEmpty()) {
-                Toast.makeText(
-                        getContext(), R.string.capture_category_name_empty, Toast.LENGTH_SHORT)
+    LinearLayout root = new LinearLayout(getContext());
+    root.setOrientation(LinearLayout.VERTICAL);
+    root.setBackgroundResource(R.drawable.bg_bottom_sheet);
+    int p20 = UiComponentStyles.dp(getContext(), 20);
+    int p16 = UiComponentStyles.dp(getContext(), 16);
+    root.setPadding(p20, p16, p20, p20);
+
+    View handle = new View(getContext());
+    LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams(
+        UiComponentStyles.dp(getContext(), 40), UiComponentStyles.dp(getContext(), 4));
+    handleLp.gravity = Gravity.CENTER_HORIZONTAL;
+    handleLp.bottomMargin = p16;
+    handle.setLayoutParams(handleLp);
+    handle.setBackgroundResource(R.drawable.bg_bottom_sheet_handle);
+    root.addView(handle);
+
+    TextView titleView = new TextView(getContext());
+    titleView.setText(R.string.capture_category_add_new_dialog_title);
+    titleView.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
+    titleView.setTextSize(18f);
+    titleView.setTypeface(titleView.getTypeface(), Typeface.BOLD);
+    root.addView(titleView);
+
+    root.addView(dialogView);
+
+    DialogActionsView actionsView = new DialogActionsView(getContext());
+    actionsView.setPrimaryText(getContext().getString(android.R.string.ok));
+    actionsView.setOnCancelClickListener(v -> dialog.dismiss());
+    actionsView.setOnPrimaryClickListener(
+        v -> {
+          String name = nameInput.getText().toString().trim();
+          if (name.isEmpty()) {
+            Toast.makeText(
+                    getContext(), R.string.capture_category_name_empty, Toast.LENGTH_SHORT)
+                .show();
+            return;
+          }
+          dialog.dismiss();
+          dbWorker.compute(
+              () -> {
+                Category existing = categoryDao.findByNameIgnoreCase(name);
+                if (existing != null) {
+                  return new CategoryCreateResult(existing, false, true);
+                }
+                Category created = categoryClassificationService.create(name, null, transactionType.name(), CashFlowActivity.UNCLASSIFIED, false);
+                return new CategoryCreateResult(created, true, false);
+              },
+              result -> {
+                if (!isShowing() || result == null || result.category == null) {
+                  return;
+                }
+                if (result.alreadyExists) {
+                  Toast.makeText(
+                          getContext(),
+                          R.string.capture_category_already_exists,
+                          Toast.LENGTH_SHORT)
+                      .show();
+                  chooseCategory(result.category, false);
+                  return;
+                }
+                Toast.makeText(getContext(), R.string.capture_category_created, Toast.LENGTH_SHORT)
                     .show();
-                return;
-              }
-              dbWorker.compute(
-                  () -> {
-                    Category existing = categoryDao.findByNameIgnoreCase(name);
-                    if (existing != null) {
-                      return new CategoryCreateResult(existing, false, true);
-                    }
-                    Category created = categoryClassificationService.create(name, null, transactionType.name(), CashFlowActivity.UNCLASSIFIED, false);
-                    return new CategoryCreateResult(created, true, false);
-                  },
-                  result -> {
-                    if (!isShowing() || result == null || result.category == null) {
-                      return;
-                    }
-                    if (result.alreadyExists) {
-                      Toast.makeText(
-                              getContext(),
-                              R.string.capture_category_already_exists,
-                              Toast.LENGTH_SHORT)
-                          .show();
-                      chooseCategory(result.category, false);
-                      return;
-                    }
-                    Toast.makeText(getContext(), R.string.capture_category_created, Toast.LENGTH_SHORT)
-                        .show();
-                    chooseCategory(result.category, result.created);
-                  });
-            })
-        .setNegativeButton(android.R.string.cancel, null)
-        .show();
+                chooseCategory(result.category, result.created);
+              });
+        });
+    root.addView(actionsView);
+
+    dialog.setContentView(root);
+    BottomSheetHelper.show(dialog);
   }
 
   private static final class CategoryCreateResult {

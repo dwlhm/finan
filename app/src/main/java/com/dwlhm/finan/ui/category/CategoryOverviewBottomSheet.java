@@ -8,7 +8,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.data.entity.Category;
@@ -137,12 +136,14 @@ public final class CategoryOverviewBottomSheet extends BottomSheetDialog {
           } else {
             message = "Apakah Anda yakin ingin menghapus kategori \"" + category.getName() + "\"?";
           }
-          new MaterialAlertDialogBuilder(getContext())
-              .setTitle("Hapus Kategori")
-              .setMessage(message)
-              .setNegativeButton(android.R.string.cancel, null)
-              .setPositiveButton("Hapus", (d, which) -> deleteCategory())
-              .show();
+          BottomSheetHelper.showConfirmation(
+              getContext(),
+              "Hapus Kategori",
+              message,
+              "Hapus",
+              null,
+              getContext().getString(android.R.string.cancel),
+              this::deleteCategory);
         });
   }
 

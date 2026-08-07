@@ -1,7 +1,6 @@
 package com.dwlhm.finan.ui.summary;
 
 import android.annotation.SuppressLint;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Color;
@@ -238,9 +237,20 @@ public final class SummaryDateRangeBottomSheet extends BottomSheetDialog {
   }
 
   private void showCyclePicker() {
-    new MaterialAlertDialogBuilder(getContext())
-        .setTitle("Pilih Siklus Gajian")
-        .setItems(CYCLE_OPTIONS, (dialog, which) -> {
+    int selectedIndex = -1;
+    for (int i = 0; i < CYCLE_VALUES.length; i++) {
+      if (CYCLE_VALUES[i] == pendingCutoffDay) {
+        selectedIndex = i;
+        break;
+      }
+    }
+
+    BottomSheetHelper.showOptionPicker(
+        getContext(),
+        "Pilih Siklus Gajian",
+        CYCLE_OPTIONS,
+        selectedIndex,
+        (which, option) -> {
           pendingCutoffDay = CYCLE_VALUES[which];
           cycleValue.setText(getCycleLabel(pendingCutoffDay));
 
@@ -254,8 +264,7 @@ public final class SummaryDateRangeBottomSheet extends BottomSheetDialog {
             long e = pendingEnd.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
             datePicker.setRange(s, e);
           }
-        })
-        .show();
+        });
   }
 
   private static String getCycleLabel(int cutoffDay) {

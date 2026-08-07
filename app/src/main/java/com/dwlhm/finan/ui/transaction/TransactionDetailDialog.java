@@ -1,8 +1,8 @@
 package com.dwlhm.finan.ui.transaction;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -232,12 +232,14 @@ public final class TransactionDetailDialog extends BottomSheetDialog {
   }
 
   private void confirmDeleteSystemTransaction() {
-    new MaterialAlertDialogBuilder(getContext())
-        .setMessage(R.string.transaction_delete_system_confirmation)
-        .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton(
-            R.string.transaction_delete_action, (dialog, which) -> deleteSystemTransaction())
-        .show();
+    BottomSheetHelper.showConfirmation(
+        getContext(),
+        getContext().getString(R.string.transaction_delete_action),
+        getContext().getString(R.string.transaction_delete_system_confirmation),
+        getContext().getString(R.string.transaction_delete_action),
+        null,
+        getContext().getString(android.R.string.cancel),
+        this::deleteSystemTransaction);
   }
 
   private void deleteSystemTransaction() {

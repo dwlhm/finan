@@ -25,7 +25,6 @@ import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.domain.model.TransactionTemplate;
 import com.dwlhm.finan.service.transaction.TransactionTemplateService;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import android.view.LayoutInflater;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.ui.common.AppServices;

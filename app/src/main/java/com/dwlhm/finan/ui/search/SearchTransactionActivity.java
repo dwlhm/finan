@@ -55,13 +55,17 @@ public class SearchTransactionActivity extends AppCompatActivity {
     private TransactionRecyclerAdapter adapter;
     private View emptyView;
     private ImageButton filterButton;
+    private TextView filterBadge;
     private ImageButton searchClearButton;
     private ImageButton backButton;
     private EditText searchInput;
     private TextView dateRangeView;
+    private TextView chipTypeAll;
+    private TextView chipTypeExpense;
+    private TextView chipTypeIncome;
     private TextView emptyTitleView;
     private TextView emptyHintView;
-
+    private View emptyResetButton;
     private LocalDate selectedStartDate;
     private LocalDate selectedEndDate;
     private Long selectedWalletId;
@@ -91,17 +95,43 @@ public class SearchTransactionActivity extends AppCompatActivity {
         searchList = findViewById(R.id.search_list);
         emptyView = findViewById(R.id.search_empty);
         filterButton = findViewById(R.id.search_filter_button);
+        filterBadge = findViewById(R.id.search_filter_badge);
         searchInput = findViewById(R.id.search_input);
         searchClearButton = findViewById(R.id.search_clear);
         backButton = findViewById(R.id.search_back_button);
         dateRangeView = findViewById(R.id.search_date_range);
+        chipTypeAll = findViewById(R.id.chip_type_all);
+        chipTypeExpense = findViewById(R.id.chip_type_expense);
+        chipTypeIncome = findViewById(R.id.chip_type_income);
         emptyTitleView = findViewById(R.id.search_empty_title);
         emptyHintView = findViewById(R.id.search_empty_hint);
+        emptyResetButton = findViewById(R.id.search_empty_reset);
 
         backButton.setOnClickListener(v -> finish());
         filterButton.setOnClickListener(v -> showFilterDialog());
         dateRangeView.setOnClickListener(v -> showDateRangeDialog());
 
+        if (chipTypeAll != null) {
+            chipTypeAll.setOnClickListener(v -> selectTypeFilter(null));
+        }
+        if (chipTypeExpense != null) {
+            chipTypeExpense.setOnClickListener(v -> selectTypeFilter(TYPE_EXPENSE_ID));
+        }
+        if (chipTypeIncome != null) {
+            chipTypeIncome.setOnClickListener(v -> selectTypeFilter(TYPE_INCOME_ID));
+        }
+        if (emptyResetButton != null) {
+            emptyResetButton.setOnClickListener(v -> resetAllFilters());
+        }
+
+        searchInput.requestFocus();
+        searchInput.post(() -> {
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.showSoftInput(searchInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
         searchInput.setText(searchQuery);
         searchInput.setSelection(searchInput.length());
         searchWatcher = new DebouncedTextWatcher(SEARCH_DEBOUNCE_MS, value -> {
@@ -357,16 +387,76 @@ public class SearchTransactionActivity extends AppCompatActivity {
         sheet.show();
     }
 
+    private void selectTypeFilter(@Nullable Long typeId) {
+        if (Objects.equals(selectedTypeId, typeId)) {
+            return;
+        }
+        selectedTypeId = typeId;
+        updateChipVisualStates();
+        reload(false);
+    }
+
+    private void updateChipVisualStates() {
+        updateChipStyle(chipTypeAll, selectedTypeId == null);
+        updateChipStyle(chipTypeExpense, Objects.equals(selectedTypeId, TYPE_EXPENSE_ID));
+        updateChipStyle(chipTypeIncome, Objects.equals(selectedTypeId, TYPE_INCOME_ID));
+    }
+
+    private void updateChipStyle(@Nullable TextView chip, boolean selected) {
+        if (chip == null) return;
+        if (selected) {
+            chip.setBackgroundResource(R.drawable.bg_chip_selected);
+            chip.setTextColor(ContextCompat.getColor(this, R.color.finan_chip_text_selected));
+        } else {
+            chip.setBackgroundResource(R.drawable.bg_chip);
+            chip.setTextColor(ContextCompat.getColor(this, R.color.finan_chip_text));
+        }
+    }
+
+    private void resetAllFilters() {
+        searchQuery = "";
+        selectedTypeId = null;
+        selectedWalletId = null;
+        selectedCategoryId = null;
+        selectedStartDate = null;
+        selectedEndDate = null;
+        selectedSortId = null;
+        if (searchInput != null) {
+            searchInput.setText("");
+        }
+        if (searchWatcher != null) {
+            searchWatcher.cancel();
+        }
+        updateSearchControls();
+        updateDateRangeView();
+        updateChipVisualStates();
+        reload(false);
+    }
+
     private void updateFilterButton() {
         if (filterButton == null) return;
-        boolean active = selectedWalletId != null
-                || selectedCategoryId != null
-                || selectedTypeId != null
-                || selectedSortId != null;
+        int activeCount = 0;
+        if (selectedWalletId != null) activeCount++;
+        if (selectedCategoryId != null) activeCount++;
+        if (selectedTypeId != null) activeCount++;
+        if (selectedSortId != null) activeCount++;
+        if (selectedStartDate != null || selectedEndDate != null) activeCount++;
+
+        boolean active = activeCount > 0;
         filterButton.setAlpha(active ? 1f : 0.82f);
         filterButton.setColorFilter(
                 ContextCompat.getColor(
                         this, active ? R.color.finan_warm_accent : R.color.finan_primary));
+
+        if (filterBadge != null) {
+            if (activeCount > 0) {
+                filterBadge.setText(String.valueOf(activeCount));
+                filterBadge.setVisibility(View.VISIBLE);
+            } else {
+                filterBadge.setVisibility(View.GONE);
+            }
+        }
+        updateChipVisualStates();
     }
 
     private void updateDateRangeView() {

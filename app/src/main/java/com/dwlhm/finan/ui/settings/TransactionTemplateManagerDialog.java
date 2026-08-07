@@ -14,8 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-
+import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.domain.model.TransactionTemplate;
 import com.dwlhm.finan.domain.model.TransactionType;
@@ -102,16 +101,18 @@ public final class TransactionTemplateManagerDialog extends BottomSheetDialog {
   }
 
   private void confirmDelete(TransactionTemplate template) {
-    new MaterialAlertDialogBuilder(getContext())
-        .setTitle("Hapus Shortcut")
-        .setMessage("Apakah kamu yakin ingin menghapus shortcut \"" + template.getName() + "\"?")
-        .setPositiveButton("Hapus", (dialog, which) -> {
+    BottomSheetHelper.showConfirmation(
+        getContext(),
+        "Hapus Shortcut",
+        "Apakah kamu yakin ingin menghapus shortcut \"" + template.getName() + "\"?",
+        "Hapus",
+        null,
+        "Batal",
+        () -> {
           services.transactionTemplateDao.delete(template.getId());
           Toast.makeText(getContext(), "Shortcut dihapus", Toast.LENGTH_SHORT).show();
           refreshList();
-        })
-        .setNegativeButton("Batal", null)
-        .show();
+        });
   }
 
   private void showEditDialog(@Nullable TransactionTemplate existingTemplate) {

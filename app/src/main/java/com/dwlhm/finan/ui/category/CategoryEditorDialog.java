@@ -18,8 +18,6 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SwitchCompat;
 
 import com.dwlhm.finan.R;
@@ -259,27 +257,17 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
   private void showHistoryScope(EditorDraft draft, DialogActionsView actions) {
     boolean defaultAll =
         CashFlowActivity.UNCLASSIFIED.name().equals(draft.original.getCashFlowActivity());
-    int[] selected = {defaultAll ? 1 : 0};
-    AlertDialog dialog =
-        new MaterialAlertDialogBuilder(getContext())
-            .setTitle(R.string.category_history_scope_title)
-            .setMessage(
-                defaultAll
-                    ? R.string.category_history_scope_unclassified_hint
-                    : R.string.category_history_scope_classified_hint)
-            .setSingleChoiceItems(
-                new String[] {
-                  getContext().getString(R.string.category_history_scope_future),
-                  getContext().getString(R.string.category_history_scope_all)
-                },
-                selected[0],
-                (d, which) -> selected[0] = which)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(
-                R.string.category_history_scope_apply,
-                (d, which) -> save(draft, actions, selected[0] == 1))
-            .create();
-    dialog.show();
+    int defaultSelected = defaultAll ? 1 : 0;
+    String[] options = new String[] {
+        getContext().getString(R.string.category_history_scope_future),
+        getContext().getString(R.string.category_history_scope_all)
+    };
+    BottomSheetHelper.showOptionPicker(
+        getContext(),
+        getContext().getString(R.string.category_history_scope_title),
+        options,
+        defaultSelected,
+        (which, option) -> save(draft, actions, which == 1));
   }
 
   private void save(EditorDraft draft, DialogActionsView actions, boolean includeHistory) {
@@ -346,19 +334,19 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
       }
       return;
     }
-    new MaterialAlertDialogBuilder(getContext())
-        .setTitle(R.string.category_discard_title)
-        .setMessage(R.string.category_discard_message)
-        .setNegativeButton(R.string.category_keep_editing, null)
-        .setPositiveButton(
-            R.string.category_discard,
-            (d, which) -> {
-              dismiss();
-              if (afterClose != null) {
-                afterClose.run();
-              }
-            })
-        .show();
+    BottomSheetHelper.showConfirmation(
+        getContext(),
+        getContext().getString(R.string.category_discard_title),
+        getContext().getString(R.string.category_discard_message),
+        getContext().getString(R.string.category_discard),
+        null,
+        getContext().getString(R.string.category_keep_editing),
+        () -> {
+          dismiss();
+          if (afterClose != null) {
+            afterClose.run();
+          }
+        });
   }
 
   private static final class EditorDraft {
@@ -465,20 +453,31 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
     if (category == null) return;
 
     if (transactionCount <= 0) {
-      new MaterialAlertDialogBuilder(getContext())
-          .setTitle("Hapus Kategori")
-          .setMessage("Apakah Anda yakin ingin menghapus kategori \"" + category.getName() + "\"?")
-          .setNegativeButton(android.R.string.cancel, null)
-          .setPositiveButton("Hapus", (dialog, which) -> deleteCategoryAndReassign(null))
-          .show();
+      BottomSheetHelper.showConfirmation(
+          getContext(),
+          "Hapus Kategori",
+          "Apakah Anda yakin ingin menghapus kategori \"" + category.getName() + "\"?",
+          "Hapus",
+          null,
+          getContext().getString(android.R.string.cancel),
+          () -> deleteCategoryAndReassign(null));
     } else {
-      new MaterialAlertDialogBuilder(getContext())
-          .setTitle("Hapus Kategori \"" + category.getName() + "\"")
-          .setMessage("Kategori ini sedang digunakan pada " + transactionCount + " transaksi. Pilih tindakan untuk transaksi tersebut:")
-          .setNeutralButton(android.R.string.cancel, null)
-          .setNegativeButton("Hapus Tanpa Memindahkan", (dialog, which) -> deleteCategoryAndReassign(null))
-          .setPositiveButton("Pindahkan Transaksi", (dialog, which) -> showReassignCategoryPicker())
-          .show();
+      String[] options = new String[] {
+          "Pindahkan Transaksi ke Kategori Lain",
+          "Hapus Tanpa Memindahkan (" + transactionCount + " transaksi)"
+      };
+      BottomSheetHelper.showOptionPicker(
+          getContext(),
+          "Hapus Kategori \"" + category.getName() + "\"",
+          options,
+          -1,
+          (which, option) -> {
+            if (which == 0) {
+              showReassignCategoryPicker();
+            } else {
+              deleteCategoryAndReassign(null);
+            }
+          });
     }
   }
 
@@ -502,25 +501,28 @@ public final class CategoryEditorDialog extends BottomSheetDialog {
             return;
           }
 
-          new MaterialAlertDialogBuilder(getContext())
-              .setTitle("Pilih Kategori Tujuan")
-              .setItems(displayNames.toArray(new String[0]), (dialog, which) -> {
+          BottomSheetHelper.showOptionPicker(
+              getContext(),
+              "Pilih Kategori Tujuan",
+              displayNames.toArray(new String[0]),
+              -1,
+              (which, option) -> {
                 Category selectedTarget = targetOptions.get(which);
                 confirmReassignAndDelete(selectedTarget);
-              })
-              .setNegativeButton(android.R.string.cancel, null)
-              .show();
+              });
         });
   }
 
   private void confirmReassignAndDelete(Category target) {
     String targetIcon = target.getIcon() != null && !target.getIcon().isEmpty() ? target.getIcon() + " " : "";
-    new MaterialAlertDialogBuilder(getContext())
-        .setTitle("Konfirmasi Pemindahan & Penghapusan")
-        .setMessage("Sebanyak " + transactionCount + " transaksi akan dipindahkan ke kategori '" + targetIcon + target.getName() + "', lalu kategori '" + category.getName() + "' akan dihapus. Lanjutkan?")
-        .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton("Pindahkan & Hapus", (dialog, which) -> deleteCategoryAndReassign(target.getId()))
-        .show();
+    BottomSheetHelper.showConfirmation(
+        getContext(),
+        "Konfirmasi Pemindahan & Penghapusan",
+        "Sebanyak " + transactionCount + " transaksi akan dipindahkan ke kategori '" + targetIcon + target.getName() + "', lalu kategori '" + category.getName() + "' akan dihapus. Lanjutkan?",
+        "Pindahkan & Hapus",
+        null,
+        getContext().getString(android.R.string.cancel),
+        () -> deleteCategoryAndReassign(target.getId()));
   }
 
   private void deleteCategoryAndReassign(@Nullable Long targetCategoryId) {

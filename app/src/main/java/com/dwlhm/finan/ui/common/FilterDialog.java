@@ -1,13 +1,13 @@
 package com.dwlhm.finan.ui.common;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -77,14 +77,39 @@ public final class FilterDialog {
       @NonNull List<Group> groups,
       @NonNull ApplyListener applyListener,
       @NonNull ResetListener resetListener) {
+    BottomSheetDialog dialog = new BottomSheetDialog(context, R.style.Finan_BottomSheetDialog);
+
+    LinearLayout root = new LinearLayout(context);
+    root.setOrientation(LinearLayout.VERTICAL);
+    root.setBackgroundResource(R.drawable.bg_bottom_sheet);
+    int horizontalPadding = UiComponentStyles.dp(context, 20);
+    int topPadding = UiComponentStyles.dp(context, 12);
+    int bottomPadding = UiComponentStyles.dp(context, 20);
+    root.setPadding(horizontalPadding, topPadding, horizontalPadding, bottomPadding);
+
+    View handle = new View(context);
+    LinearLayout.LayoutParams handleLp = new LinearLayout.LayoutParams(
+        UiComponentStyles.dp(context, 40), UiComponentStyles.dp(context, 4));
+    handleLp.gravity = Gravity.CENTER_HORIZONTAL;
+    handleLp.bottomMargin = UiComponentStyles.dp(context, 16);
+    handle.setLayoutParams(handleLp);
+    handle.setBackgroundResource(R.drawable.bg_bottom_sheet_handle);
+    root.addView(handle);
+
+    if (!TextUtils.isEmpty(title)) {
+      TextView titleView = new TextView(context);
+      titleView.setText(title);
+      titleView.setTextColor(ContextCompat.getColor(context, R.color.finan_text_primary));
+      titleView.setTextSize(18f);
+      titleView.setTypeface(titleView.getTypeface(), Typeface.BOLD);
+      root.addView(titleView);
+    }
+
     ArrayList<Long> pendingIds = new ArrayList<>();
     ArrayList<TextView> valueViews = new ArrayList<>();
 
     LinearLayout content = new LinearLayout(context);
     content.setOrientation(LinearLayout.VERTICAL);
-    int horizontalPadding = UiComponentStyles.dp(context, 20);
-    int topPadding = UiComponentStyles.dp(context, 6);
-    content.setPadding(horizontalPadding, topPadding, horizontalPadding, 0);
 
     for (int i = 0; i < groups.size(); i++) {
       Group group = groups.get(i);
@@ -104,14 +129,42 @@ public final class FilterDialog {
       valueViews.add(valueView);
       content.addView(createPickerRow(context, group.label, valueView));
     }
+    root.addView(content);
 
-    new MaterialAlertDialogBuilder(context)
-        .setTitle(title)
-        .setView(content)
-        .setNeutralButton(resetText, (dialog, which) -> resetListener.onReset())
-        .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton(applyText, (dialog, which) -> applyListener.onApply(pendingIds))
-        .show();
+    TextView resetButton = new TextView(context);
+    resetButton.setText(resetText);
+    resetButton.setTextColor(ContextCompat.getColor(context, R.color.finan_warm_accent));
+    resetButton.setTextSize(13f);
+    resetButton.setTypeface(resetButton.getTypeface(), Typeface.BOLD);
+    resetButton.setClickable(true);
+    resetButton.setFocusable(true);
+    int p = UiComponentStyles.dp(context, 4);
+    resetButton.setPadding(p, p, p, p);
+    LinearLayout.LayoutParams resetLp = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    resetLp.topMargin = UiComponentStyles.dp(context, 16);
+    resetButton.setLayoutParams(resetLp);
+    resetButton.setOnClickListener(v -> {
+      resetListener.onReset();
+      dialog.dismiss();
+    });
+    root.addView(resetButton);
+
+    DialogActionsView actions = new DialogActionsView(context);
+    actions.setPrimaryText(applyText);
+    LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+    actionsLp.topMargin = UiComponentStyles.dp(context, 12);
+    actions.setLayoutParams(actionsLp);
+    actions.setOnPrimaryClickListener(v -> {
+      applyListener.onApply(pendingIds);
+      dialog.dismiss();
+    });
+    actions.setOnCancelClickListener(v -> dialog.dismiss());
+    root.addView(actions);
+
+    dialog.setContentView(root);
+    BottomSheetHelper.show(dialog);
   }
 
   private static void showChoiceDialog(
@@ -126,17 +179,12 @@ public final class FilterDialog {
       }
     }
 
-    new MaterialAlertDialogBuilder(context)
-        .setTitle(group.pickerTitle)
-        .setSingleChoiceItems(
-            labels,
-            checkedIndex,
-            (dialog, which) -> {
-              listener.onChoice(group.options.get(which).getId());
-              dialog.dismiss();
-            })
-        .setNegativeButton(android.R.string.cancel, null)
-        .show();
+    BottomSheetHelper.showOptionPicker(
+        context,
+        group.pickerTitle,
+        labels,
+        checkedIndex,
+        (which, option) -> listener.onChoice(group.options.get(which).getId()));
   }
 
   private static LinearLayout createPickerRow(
