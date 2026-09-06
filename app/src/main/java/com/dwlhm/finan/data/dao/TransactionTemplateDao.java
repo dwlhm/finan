@@ -6,17 +6,22 @@ import android.database.sqlite.SQLiteDatabase;
 
 import androidx.annotation.Nullable;
 
+import com.dwlhm.finan.domain.model.RecurringFrequency;
 import com.dwlhm.finan.domain.model.TransactionTemplate;
 import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public final class TransactionTemplateDao {
+public class TransactionTemplateDao {
 
   public static final String TABLE_NAME = "transaction_templates";
 
   private final SQLiteDatabase db;
+
+  public TransactionTemplateDao() {
+    this(null);
+  }
 
   public TransactionTemplateDao(SQLiteDatabase db) {
     this.db = db;
@@ -123,6 +128,35 @@ public final class TransactionTemplateDao {
     return list;
   }
 
+  public List<TransactionTemplate> findScheduledTemplates() {
+    List<TransactionTemplate> list = new ArrayList<>();
+    Cursor cursor =
+        db.query(
+            TABLE_NAME,
+            null,
+            "is_scheduled = 1",
+            null,
+            null,
+            null,
+            "sort_order ASC, id ASC");
+    if (cursor != null) {
+      try {
+        while (cursor.moveToNext()) {
+          list.add(fromCursor(cursor));
+        }
+      } finally {
+        cursor.close();
+      }
+    }
+    return list;
+  }
+
+  public boolean markRecorded(long templateId, long timestampMillis) {
+    ContentValues values = new ContentValues();
+    values.put("last_recorded_at", timestampMillis);
+    return db.update(TABLE_NAME, values, "id = ?", new String[] {String.valueOf(templateId)}) > 0;
+  }
+
   @Nullable
   public TransactionTemplate findById(long id) {
     Cursor cursor =
@@ -184,6 +218,10 @@ public final class TransactionTemplateDao {
     values.put("note", t.getNote());
     values.put("icon", t.getIcon());
     values.put("sort_order", t.getSortOrder());
+    values.put("frequency", t.getFrequency() != null ? t.getFrequency().name() : RecurringFrequency.NONE.name());
+    values.put("due_day", t.getDueDay());
+    values.put("is_scheduled", t.isScheduled() ? 1 : 0);
+    values.put("last_recorded_at", t.getLastRecordedAt());
     return values;
   }
 
@@ -204,7 +242,46 @@ public final class TransactionTemplateDao {
     String icon = c.getString(c.getColumnIndexOrThrow("icon"));
     int sortOrder = c.getInt(c.getColumnIndexOrThrow("sort_order"));
 
+    RecurringFrequency frequency = RecurringFrequency.NONE;
+    int freqIdx = c.getColumnIndex("frequency");
+    if (freqIdx != -1 && !c.isNull(freqIdx)) {
+      try {
+        frequency = RecurringFrequency.valueOf(c.getString(freqIdx));
+      } catch (Exception ignored) {}
+    }
+
+    int dueDay = 0;
+    int dueDayIdx = c.getColumnIndex("due_day");
+    if (dueDayIdx != -1 && !c.isNull(dueDayIdx)) {
+      dueDay = c.getInt(dueDayIdx);
+    }
+
+    boolean isScheduled = false;
+    int isSchedIdx = c.getColumnIndex("is_scheduled");
+    if (isSchedIdx != -1 && !c.isNull(isSchedIdx)) {
+      isScheduled = c.getInt(isSchedIdx) == 1;
+    }
+
+    long lastRecordedAt = 0L;
+    int lastRecIdx = c.getColumnIndex("last_recorded_at");
+    if (lastRecIdx != -1 && !c.isNull(lastRecIdx)) {
+      lastRecordedAt = c.getLong(lastRecIdx);
+    }
+
     return new TransactionTemplate(
-        id, name, type, amountMinor, categoryId, walletId, destWalletId, note, icon != null ? icon : "⚡", sortOrder);
+        id,
+        name,
+        type,
+        amountMinor,
+        categoryId,
+        walletId,
+        destWalletId,
+        note,
+        icon != null ? icon : "⚡",
+        sortOrder,
+        frequency,
+        dueDay,
+        isScheduled,
+        lastRecordedAt);
   }
 }

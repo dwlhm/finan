@@ -1,10 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- 1. Central Frosted Glass Diffusion Lens -->
+    <path android:pathData="M54,54m-38,0a38,38 0 1,0 76,0a38,38 0 1,0 -76,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="54"
+                android:centerY="54"
+                android:gradientRadius="38"
+                android:type="radial"
+                android:startColor="#66FFFFFF"
+                android:centerColor="#26FFFFFF"
+                android:endColor="#00FFFFFF" />
+        </aapt:attr>
+    </path>
+
+    <!-- 2. Luminous Diagonal Light Sheen -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M32,54 L54,32 L76,54 L54,76 Z" />
+        android:fillColor="#33FFFFFF"
+        android:pathData="M16,16 L92,16 L16,92 Z" />
+
+    <!-- 3. Upper-Left Pure White Specular Rim Highlight -->
+    <path
+        android:strokeWidth="1.8"
+        android:pathData="M26,38 C32,24 48,18 68,22 C78,24 84,30 88,38">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="26"
+                android:startY="38"
+                android:endX="88"
+                android:endY="38"
+                android:type="linear"
+                android:startColor="#00FFFFFF"
+                android:centerColor="#CCFFFFFF"
+                android:endColor="#00FFFFFF" />
+        </aapt:attr>
+    </path>
+
+    <!-- 4. Lower-Right Warm Sheen Refraction Arc -->
+    <path
+        android:strokeWidth="1.8"
+        android:pathData="M82,70 C76,84 60,90 40,86 C30,84 24,78 20,70">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="82"
+                android:startY="70"
+                android:endX="20"
+                android:endY="70"
+                android:type="linear"
+                android:startColor="#00FFFFFF"
+                android:centerColor="#80FFFFFF"
+                android:endColor="#00FFFFFF" />
+        </aapt:attr>
+    </path>
+
+    <!-- 5. Center Optical Prism Glow -->
+    <path android:pathData="M54,54m-14,0a14,14 0 1,0 28,0a14,14 0 1,0 -28,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="54"
+                android:centerY="54"
+                android:gradientRadius="14"
+                android:type="radial"
+                android:startColor="#80FFFFFF"
+                android:endColor="#00FFFFFF" />
+        </aapt:attr>
+    </path>
+
 </vector>

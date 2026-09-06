@@ -46,6 +46,7 @@ import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.tabs.TabLayout;
 import com.dwlhm.finan.domain.model.CashFlowReportResult;
+import com.dwlhm.finan.domain.model.ForwardCashFlowSummary;
 import com.dwlhm.finan.domain.model.MonthlySummary;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.CashFlowActivityTotal;
@@ -120,6 +121,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private MonthlySummary cachedSummary;
     private MonthlySummary cachedPrevSummary;
     private MonthlySummary cachedPrevPrevSummary;
+    private ForwardCashFlowSummary cachedForwardSummary;
     
     private HistoryQuery activeQuery = new HistoryQuery(null, null, null, null, null, false, HistorySearch.empty());
     
@@ -346,6 +348,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         cachedSummary = null;
         cachedPrevSummary = null;
         cachedPrevPrevSummary = null;
+        cachedForwardSummary = null;
     }
 
     private void loadData() {
@@ -381,6 +384,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 MonthlySummary summary = null;
                 MonthlySummary prevSummary = null;
                 MonthlySummary prevPrevSummary = null;
+                ForwardCashFlowSummary forwardSummary = null;
                 
                 if (isSummaryActive) {
                     reportResult = services.cashFlowReportService.buildReport(startDate, endDate, cutoffDay, walletId);
@@ -389,9 +393,10 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                     DateRange prevPrevRange = PayrollCycleResolver.shiftMonths(startDate, cutoffDay, -2);
                     prevSummary = services.summaryService.loadRange(prevRange.getStart(), prevRange.getEnd(), walletId, categoryId);
                     prevPrevSummary = services.summaryService.loadRange(prevPrevRange.getStart(), prevPrevRange.getEnd(), walletId, categoryId);
+                    forwardSummary = services.upcomingCashFlowService.calculateForwardSummary(startDate, endDate, walletId);
                 }
                 
-                return new Object[]{wMap, cMap, query, totals, reportResult, summary, prevSummary, prevPrevSummary};
+                return new Object[]{wMap, cMap, query, totals, reportResult, summary, prevSummary, prevPrevSummary, forwardSummary};
             },
             data -> {
                 if (!isAdded() || generation != reloadGeneration || data == null) return;
@@ -409,6 +414,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 if (data[5] != null) cachedSummary = (MonthlySummary) data[5];
                 if (data[6] != null) cachedPrevSummary = (MonthlySummary) data[6];
                 if (data[7] != null) cachedPrevPrevSummary = (MonthlySummary) data[7];
+                if (data[8] != null) cachedForwardSummary = (ForwardCashFlowSummary) data[8];
                 
                 transactionAdapter.setEntityLookups(categoriesById, walletsById);
                 updateDisplayModeUi();
@@ -424,7 +430,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     }
     
     private void loadSummaryDataOnly() {
-        if (cachedReport != null && cachedSummary != null) {
+        if (cachedReport != null && cachedSummary != null && cachedForwardSummary != null) {
             bindSummaryTabUi();
             return;
         }
@@ -440,7 +446,8 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 DateRange prevPrevRange = PayrollCycleResolver.shiftMonths(startDate, cutoffDay, -2);
                 MonthlySummary prevSummary = services.summaryService.loadRange(prevRange.getStart(), prevRange.getEnd(), walletId, categoryId);
                 MonthlySummary prevPrevSummary = services.summaryService.loadRange(prevPrevRange.getStart(), prevPrevRange.getEnd(), walletId, categoryId);
-                return new Object[]{reportResult, summary, prevSummary, prevPrevSummary};
+                ForwardCashFlowSummary forwardSummary = services.upcomingCashFlowService.calculateForwardSummary(startDate, endDate, walletId);
+                return new Object[]{reportResult, summary, prevSummary, prevPrevSummary, forwardSummary};
             },
             data -> {
                 if (!isAdded() || generation != reloadGeneration || data == null) return;
@@ -448,6 +455,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 cachedSummary = (MonthlySummary) data[1];
                 cachedPrevSummary = (MonthlySummary) data[2];
                 cachedPrevPrevSummary = (MonthlySummary) data[3];
+                cachedForwardSummary = (ForwardCashFlowSummary) data[4];
                 bindSummaryTabUi();
             }
         );
@@ -464,6 +472,9 @@ public class MonthlyDashboardFragment extends ScreenFragment {
             transactionAdapter.setDisplayMode(mode, totalIncome);
         }
         updateSummaryUi();
+        if (tabLayout != null && tabLayout.getSelectedTabPosition() == 1) {
+            bindSummaryTabUi();
+        }
     }
     
     private void updateSummaryUi() {
@@ -636,10 +647,85 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     }
 
     private void bindSummaryTabUi() {
-        if (cachedReport == null || summaryScroll.getVisibility() != View.VISIBLE) return;
+        if (summaryScroll.getVisibility() != View.VISIBLE) return;
         
-        bindWeeklyChart(cachedReport);
-        bindCategoryChart(cachedReport);
+        bindRunwayCard();
+        if (cachedReport != null) {
+            bindWeeklyChart(cachedReport);
+            bindCategoryChart(cachedReport);
+        }
+    }
+
+    private void bindRunwayCard() {
+        if (getView() == null) return;
+        View runwayCard = getView().findViewById(R.id.card_monthly_runway);
+        if (runwayCard == null) return;
+        if (cachedForwardSummary == null) {
+            runwayCard.setVisibility(View.GONE);
+            return;
+        }
+        runwayCard.setVisibility(View.VISIBLE);
+
+        TextView tvRemaining = runwayCard.findViewById(R.id.tv_runway_remaining_amount);
+        TextView tvSubtitle = runwayCard.findViewById(R.id.tv_runway_remaining_subtitle);
+        TextView tvCurrentBalance = runwayCard.findViewById(R.id.tv_runway_current_balance);
+        TextView tvScheduledExpense = runwayCard.findViewById(R.id.tv_runway_scheduled_expense);
+        TextView tvScheduledIncome = runwayCard.findViewById(R.id.tv_runway_scheduled_income);
+        TextView tvProjectedBalance = runwayCard.findViewById(R.id.tv_runway_projected_balance);
+        View btnDetail = runwayCard.findViewById(R.id.btn_runway_detail);
+
+        DashboardViewModel.DisplayMode mode = sharedViewModel.getDisplayMode().getValue();
+        boolean masked = mode == DashboardViewModel.DisplayMode.MASKED;
+
+        if (tvRemaining != null) {
+            tvRemaining.setText(masked ? "••••••" : MoneyFormatter.format(cachedForwardSummary.getRemainingAfterPlansMinor()));
+            if (!masked && cachedForwardSummary.getRemainingAfterPlansMinor() < 0) {
+                tvRemaining.setTextColor(ContextCompat.getColor(requireContext(), R.color.finan_expense));
+            } else {
+                tvRemaining.setTextColor(ContextCompat.getColor(requireContext(), R.color.finan_primary));
+            }
+        }
+
+        if (tvSubtitle != null) {
+            if (masked) {
+                tvSubtitle.setText("Dikurangi •••••• tagihan terjadwal");
+            } else {
+                tvSubtitle.setText("Dikurangi " + MoneyFormatter.format(cachedForwardSummary.getScheduledOutflowMinor()) + " tagihan terjadwal");
+            }
+        }
+
+        if (tvCurrentBalance != null) {
+            tvCurrentBalance.setText(masked ? "••••••" : MoneyFormatter.format(cachedForwardSummary.getCurrentActualBalanceMinor()));
+        }
+
+        if (tvScheduledExpense != null) {
+            tvScheduledExpense.setText(masked ? "••••••" : ("-" + MoneyFormatter.format(cachedForwardSummary.getScheduledOutflowMinor())));
+        }
+
+        if (tvScheduledIncome != null) {
+            tvScheduledIncome.setText(masked ? "••••••" : ("+" + MoneyFormatter.format(cachedForwardSummary.getScheduledInflowMinor())));
+        }
+
+        if (tvProjectedBalance != null) {
+            tvProjectedBalance.setText(masked ? "••••••" : MoneyFormatter.format(cachedForwardSummary.getProjectedEndBalanceMinor()));
+        }
+
+        View.OnClickListener detailClickListener = v -> {
+            if (cachedForwardSummary != null) {
+                UpcomingDetailBottomSheet.show(
+                    requireContext(),
+                    services,
+                    cachedForwardSummary,
+                    sharedViewModel.getDisplayMode().getValue(),
+                    this::loadData
+                );
+            }
+        };
+
+        if (btnDetail != null) {
+            btnDetail.setOnClickListener(detailClickListener);
+        }
+        runwayCard.setOnClickListener(detailClickListener);
     }
     
     private void bindCategoryChart(CashFlowReportResult reportResult) {

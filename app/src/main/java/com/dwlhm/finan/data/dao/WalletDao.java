@@ -10,9 +10,13 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class WalletDao {
+public class WalletDao {
 
   private final SQLiteDatabase db;
+
+  public WalletDao() {
+    this(null);
+  }
 
   public WalletDao(SQLiteDatabase db) {
     this.db = db;

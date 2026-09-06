@@ -10,9 +10,13 @@ import com.dwlhm.finan.domain.model.CashFlowActivity;
 
 import java.util.ArrayList;
 import java.util.List;
-public final class CategoryDao {
+public class CategoryDao {
 
   private final SQLiteDatabase db;
+
+  public CategoryDao() {
+    this(null);
+  }
 
   public CategoryDao(SQLiteDatabase db) {
     this.db = db;

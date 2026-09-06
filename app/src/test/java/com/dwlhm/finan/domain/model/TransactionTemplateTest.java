@@ -3,8 +3,10 @@ package com.dwlhm.finan.domain.model;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TransactionTemplateTest {
 
@@ -81,5 +83,40 @@ public class TransactionTemplateTest {
     assertEquals("Gaji Bulanan", template.getNote());
     assertEquals("💰", template.getIcon());
     assertEquals(10, template.getSortOrder());
+  }
+
+  @Test
+  public void supportsRecurringScheduleProperties() {
+    TransactionTemplate template = new TransactionTemplate(
+        5L,
+        "Internet Indihome",
+        TransactionType.EXPENSE,
+        35000000L,
+        2L,
+        1L,
+        null,
+        "WiFi Bulanan",
+        "🌐",
+        3,
+        RecurringFrequency.MONTHLY,
+        20,
+        true,
+        1700000000000L
+    );
+
+    assertEquals(RecurringFrequency.MONTHLY, template.getFrequency());
+    assertEquals(20, template.getDueDay());
+    assertTrue(template.isScheduled());
+    assertEquals(1700000000000L, template.getLastRecordedAt());
+
+    template.setFrequency(RecurringFrequency.WEEKLY);
+    template.setDueDay(5);
+    template.setScheduled(false);
+    template.setLastRecordedAt(1710000000000L);
+
+    assertEquals(RecurringFrequency.WEEKLY, template.getFrequency());
+    assertEquals(5, template.getDueDay());
+    assertFalse(template.isScheduled());
+    assertEquals(1710000000000L, template.getLastRecordedAt());
   }
 }

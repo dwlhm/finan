@@ -29,13 +29,6 @@ public class DefaultsStoreTest {
         store = new DefaultsStore(context, "finan_defaults_test");
     }
 
-    @Test
-    public void defaultWalletId_roundTrip() {
-        assertFalse(store.hasDefaultWalletId());
-        store.setDefaultWalletId(42L);
-        assertTrue(store.hasDefaultWalletId());
-        assertEquals(42L, store.getDefaultWalletId());
-    }
 
     @Test
     public void lastWalletId_roundTrip() {

@@ -25,6 +25,7 @@ import com.dwlhm.finan.service.export.ExportService;
 import com.dwlhm.finan.service.export.ImportService;
 import com.dwlhm.finan.service.summary.CashFlowReportService;
 import com.dwlhm.finan.service.summary.SummaryService;
+import com.dwlhm.finan.service.summary.UpcomingCashFlowService;
 import com.dwlhm.finan.service.transaction.TransactionService;
 import com.dwlhm.finan.service.transfer.TransferService;
 import com.dwlhm.finan.service.wallet.WalletService;
@@ -52,6 +53,8 @@ public final class AppServices {
   public final WalletService walletService;
   public final CashFlowReportService cashFlowReportService;
   public final TransactionTemplateDao transactionTemplateDao;
+  public final UpcomingCashFlowService upcomingCashFlowService;
+
   private AppServices(
       FinanDatabaseHelper databaseHelper,
       TransactionService transactionService,
@@ -70,7 +73,8 @@ public final class AppServices {
       DbWorker dbWorker,
       WalletService walletService,
       CashFlowReportService cashFlowReportService,
-      TransactionTemplateDao transactionTemplateDao) {
+      TransactionTemplateDao transactionTemplateDao,
+      UpcomingCashFlowService upcomingCashFlowService) {
     this.databaseHelper = databaseHelper;
     this.cashFlowReportService = cashFlowReportService;
     this.transactionService = transactionService;
@@ -89,7 +93,9 @@ public final class AppServices {
     this.dbWorker = dbWorker;
     this.walletService = walletService;
     this.transactionTemplateDao = transactionTemplateDao;
+    this.upcomingCashFlowService = upcomingCashFlowService;
   }
+
   public static AppServices create(Context context) {
     FinanDatabaseHelper databaseHelper = new FinanDatabaseHelper(context);
     SQLiteDatabase db = databaseHelper.getWritableDatabase();
@@ -146,6 +152,14 @@ public final class AppServices {
     WalletService walletService = new WalletService(db, walletTable);
     CashFlowReportService cashFlowReportService =
         new CashFlowReportService(summaryDao, categoryTable, walletTable, timeProvider, ZoneId.systemDefault());
+    UpcomingCashFlowService upcomingCashFlowService =
+        new UpcomingCashFlowService(
+            transactionTemplateDao,
+            walletTable,
+            categoryTable,
+            summaryDao,
+            timeProvider,
+            ZoneId.systemDefault());
 
     return new AppServices(
         databaseHelper,
@@ -165,6 +179,7 @@ public final class AppServices {
         new DbWorker(),
         walletService,
         cashFlowReportService,
-        transactionTemplateDao);
+        transactionTemplateDao,
+        upcomingCashFlowService);
   }
 }

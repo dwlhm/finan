@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class SummaryDao {
+public class SummaryDao {
 
   public static final class CategorySumRow {
     public final long categoryId;
@@ -54,6 +54,10 @@ public final class SummaryDao {
   }
 
   private final SQLiteDatabase db;
+
+  public SummaryDao() {
+    this(null);
+  }
 
   public SummaryDao(SQLiteDatabase db) {
     this.db = db;
