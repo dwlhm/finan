@@ -10,6 +10,7 @@ import com.dwlhm.finan.data.dao.WalletDao;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.ForwardCashFlowSummary;
+import com.dwlhm.finan.domain.model.Horizon;
 import com.dwlhm.finan.domain.model.RecurringFrequency;
 import com.dwlhm.finan.domain.model.TransactionTemplate;
 import com.dwlhm.finan.domain.model.TransactionType;
@@ -46,6 +47,43 @@ public final class UpcomingCashFlowService {
     this.summaryDao = summaryDao;
     this.timeProvider = timeProvider;
     this.zoneId = zoneId;
+  }
+
+  @NonNull
+  public HorizonWindow resolveHorizon(
+      @NonNull Horizon horizon, @NonNull LocalDate today, @NonNull ZoneId zone) {
+    if (zone == null) {
+      throw new IllegalArgumentException("zone must not be null");
+    }
+    switch (horizon) {
+      case SEVEN:
+        return new HorizonWindow(today, today.plusDays(6));
+      case THIRTY:
+        return new HorizonWindow(today, today.plusDays(29));
+      case MONTH_END:
+      default:
+        return new HorizonWindow(today, YearMonth.from(today).atEndOfMonth());
+    }
+  }
+
+  public static final class HorizonWindow {
+    @NonNull private final LocalDate fromDate;
+    @NonNull private final LocalDate toDate;
+
+    public HorizonWindow(@NonNull LocalDate fromDate, @NonNull LocalDate toDate) {
+      this.fromDate = fromDate;
+      this.toDate = toDate;
+    }
+
+    @NonNull
+    public LocalDate getFromDate() {
+      return fromDate;
+    }
+
+    @NonNull
+    public LocalDate getToDate() {
+      return toDate;
+    }
   }
 
   @NonNull

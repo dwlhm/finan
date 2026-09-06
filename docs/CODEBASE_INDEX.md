@@ -6,10 +6,10 @@ Document persistent index map of the `finan` codebase. This document serves as a
 
 ## 1. System Overview & Tech Stack
 
-* **Platform:** Native Android (minSdk: 26, targetSdk: 34)
-* **Language:** Java (Baseline: Java 8+)
+* **Platform:** Native Android (minSdk: 30, targetSdk: 35)
+* **Language:** Java (Baseline: Java 17)
 * **UI Framework:** Native Android Views (XML layouts, ViewBinding/findViewById, Material Design Components)
-* **Database:** Native SQLite via `SQLiteOpenHelper` (`FinanDatabaseHelper`) with explicit manual migration runner (`MigrationRunner`, v1–v11).
+* **Database:** Native SQLite via `SQLiteOpenHelper` (`FinanDatabaseHelper`) with explicit manual migration runner (`MigrationRunner`, DB version 13 (Migration001-Migration013)).
 * **Architecture Pattern:** Clean 4-Tier Manual Architecture (`ui` -> `service` -> `data` -> `domain`), Manual DI via `AppServices` / `ServicesProvider`.
 * **Core Philosophy:** Minimal runtime, zero unnecessary external dependencies, local-first instant save, high input responsiveness (critical path < 50ms).
 
@@ -26,13 +26,13 @@ com.dwlhm.finan/
 ├── data/                          # SQLite DAOs, Migration Runners, Preferences
 │   ├── dao/                       # TransactionDao, WalletDao, CategoryDao, SummaryDao, TransferDao
 │   ├── db/                        # FinanDatabaseHelper (SQLiteOpenHelper)
-│   ├── migration/                 # Migration001 to Migration011
+│   ├── migration/                 # Migration001 to Migration013
 │   ├── entity/                    # Transaction, Wallet, Category database entities
 │   └── prefs/                     # DefaultsStore, TransactionFormDraft
 ├── service/                       # Business Logic & Transaction Services
 │   ├── transaction/               # TransactionService, TransactionSearchResolver, TransactionTemplateService
 │   ├── wallet/                    # WalletService
-│   ├── summary/                   # SummaryService, CashFlowReportService
+│   ├── summary/                   # SummaryService, CashFlowReportService, UpcomingCashFlowService
 │   ├── balance/                   # BalanceService, AdjustmentService
 │   ├── category/                  # CategoryUsageService, CategoryClassificationService
 │   ├── transfer/                  # TransferService
@@ -59,7 +59,7 @@ com.dwlhm.finan/
 
 ## 3. Database & Migration Map (SQLite)
 
-Database File: `finan.db` | Current Version: `11`
+Database File: `finan.db` | Current Version: `13`
 
 * **`Migration001Initial`**: Initial schema (transactions, wallets, categories).
 * **`Migration002TransactionIndexes`**: Speed up queries via date/category/wallet indexes.
@@ -72,6 +72,8 @@ Database File: `finan.db` | Current Version: `11`
 * **`Migration009CategoryDefault`**: Default category seeding.
 * **`Migration010NoOp`**: Schema alignment check.
 * **`Migration011TransactionTemplate`**: Fast transaction template support.
+* **`Migration012RecurringSchedule`**: Recurring schedule support for templates.
+* **`Migration013Indexes`**: Additional performance indexes.
 
 ---
 
@@ -87,6 +89,7 @@ Database File: `finan.db` | Current Version: `11`
 * **`HistoryFilterBottomSheet`**: Category/wallet filter for transaction history.
 * **`WeeklyDetailBottomSheetDialog`**: Weekly cashflow breakdown.
 * **`MonthlyDetailBottomSheetDialog`**: Monthly cashflow breakdown.
+* **`UpcomingDetailBottomSheet`**: Upcoming obligations detail breakdown.
 * **`EmojiPickerBottomSheet`**: Custom emoji selector for categories/wallets.
 * **`DateTimeBottomSheet`**: Custom date-time picker sheet.
 * **`EntitySearchBottomSheet`**: Search bottom sheet for categories/entities.
@@ -100,6 +103,13 @@ Database File: `finan.db` | Current Version: `11`
 * **`FinancialAdviceDialog`**: Automated financial advice insights.
 * **`FinancialKeypadView`**: Custom lightweight numeric keypad with inline calculator.
 * **`FloatingBottomNavView`**: Custom elevated floating navigation bar.
+
+### Widgets (`AppWidgetProvider`)
+* **`QuickTransactionWidgetProvider`**: Home-screen quick transaction entry widget.
+* **`ShortcutWidgetProvider`**: Home-screen template shortcut widget.
+
+### Services
+* **`UpcomingCashFlowService`**: Upcoming obligations & horizon-window cashflow computation.
 
 ---
 

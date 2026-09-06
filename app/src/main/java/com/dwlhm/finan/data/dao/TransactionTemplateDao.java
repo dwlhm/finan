@@ -157,6 +157,15 @@ public class TransactionTemplateDao {
     return db.update(TABLE_NAME, values, "id = ?", new String[] {String.valueOf(templateId)}) > 0;
   }
 
+  /**
+   * Marks a scheduled template as skipped for the current cycle without creating a transaction.
+   * The template stays scheduled; only its suppression timestamp advances so the current-cycle
+   * occurrence is excluded, exactly like a recorded one.
+   */
+  public boolean markSkipped(long templateId, long timestampMillis) {
+    return markRecorded(templateId, timestampMillis);
+  }
+
   @Nullable
   public TransactionTemplate findById(long id) {
     Cursor cursor =

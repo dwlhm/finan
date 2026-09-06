@@ -183,6 +183,19 @@ public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
     dismiss();
   }
 
+  private void skipObligation(UpcomingObligation obligation) {
+    services.transactionTemplateDao.markSkipped(obligation.getTemplateId(), System.currentTimeMillis());
+
+    Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
+    broadcastIntent.setPackage(getContext().getPackageName());
+    getContext().sendBroadcast(broadcastIntent);
+
+    if (onDataChangedCallback != null) {
+      onDataChangedCallback.run();
+    }
+    dismiss();
+  }
+
   private final class UpcomingObligationsAdapter extends RecyclerView.Adapter<UpcomingObligationsAdapter.ViewHolder> {
 
     private final List<UpcomingObligation> items;
@@ -243,6 +256,9 @@ public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
       }
 
       holder.btnRecord.setOnClickListener(v -> recordObligation(item));
+      if (holder.btnSkip != null) {
+        holder.btnSkip.setOnClickListener(v -> skipObligation(item));
+      }
     }
 
     @Override
@@ -258,6 +274,7 @@ public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
       TextView tvWallet;
       TextView tvAmount;
       MaterialButton btnRecord;
+      MaterialButton btnSkip;
 
       ViewHolder(View itemView) {
         super(itemView);
@@ -268,6 +285,7 @@ public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
         tvWallet = itemView.findViewById(R.id.tv_obligation_wallet);
         tvAmount = itemView.findViewById(R.id.tv_obligation_amount);
         btnRecord = itemView.findViewById(R.id.btn_record_obligation);
+        btnSkip = itemView.findViewById(R.id.btn_skip_obligation);
       }
     }
   }

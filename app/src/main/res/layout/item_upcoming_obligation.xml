@@ -131,6 +131,23 @@
                 app:cornerRadius="8dp"
                 app:strokeColor="@color/finan_primary"
                 app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_skip_obligation"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:paddingStart="10dp"
+                android:paddingTop="0dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="0dp"
+                android:text="Lewati"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="11sp"
+                app:cornerRadius="8dp" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -240,7 +240,9 @@
         android:id="@+id/rv_upcoming_obligations"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipToPadding="false"
         android:nestedScrollingEnabled="false"
+        android:paddingBottom="96dp"
         tools:itemCount="3"
         tools:listitem="@layout/item_upcoming_obligation" />
 

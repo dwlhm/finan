@@ -8,6 +8,7 @@ import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.ForwardCashFlowSummary;
+import com.dwlhm.finan.domain.model.Horizon;
 import com.dwlhm.finan.domain.model.RecurringFrequency;
 import com.dwlhm.finan.domain.model.TransactionTemplate;
 import com.dwlhm.finan.domain.model.TransactionType;
@@ -190,6 +191,101 @@ public class UpcomingCashFlowServiceTest {
     assertEquals(28, obligations.get(2).getDueDay());
   }
 
+  @Test
+  public void horizon7_30_eom_resolves() {
+    LocalDate today = LocalDate.of(2026, 8, 1);
+
+    UpcomingCashFlowService.HorizonWindow seven = service.resolveHorizon(Horizon.SEVEN, today, zoneId);
+    assertEquals(today, seven.getFromDate());
+    assertEquals(today.plusDays(6), seven.getToDate());
+
+    UpcomingCashFlowService.HorizonWindow thirty = service.resolveHorizon(Horizon.THIRTY, today, zoneId);
+    assertEquals(today, thirty.getFromDate());
+    assertEquals(today.plusDays(29), thirty.getToDate());
+
+    UpcomingCashFlowService.HorizonWindow eom = service.resolveHorizon(Horizon.MONTH_END, today, zoneId);
+    assertEquals(today, eom.getFromDate());
+    assertEquals(LocalDate.of(2026, 8, 31), eom.getToDate());
+
+    LocalDate febDay = LocalDate.of(2026, 2, 15);
+    UpcomingCashFlowService.HorizonWindow febEom =
+        service.resolveHorizon(Horizon.MONTH_END, febDay, zoneId);
+    assertEquals(febDay, febEom.getFromDate());
+    assertEquals(LocalDate.of(2026, 2, 28), febEom.getToDate());
+  }
+
+  @Test
+  public void emptySchedule_returnsZero() {
+    ForwardCashFlowSummary summary = service.calculateForwardSummary(startDate, endDate, null);
+
+    assertNotNull(summary);
+    assertEquals(0L, summary.getScheduledInflowMinor());
+    assertEquals(0L, summary.getScheduledOutflowMinor());
+    assertTrue(summary.getUpcomingObligations().isEmpty());
+  }
+
+  @Test
+  public void multiWallet_neverSummed() {
+    long fixedEpochMillis = startDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
+    Wallet wUsd = new Wallet(3L, "USD Cash", "USD", false, 100_00L, 100_00L, fixedEpochMillis, 0, "$");
+    walletDao.addWallet(wUsd);
+    summaryDao.setWalletBalance(3L, 100_00L);
+
+    TransactionTemplate tIdr =
+        new TransactionTemplate(
+            10L, "Kos IDR", TransactionType.EXPENSE, 1_000_000_00L, 2L, 1L, null, null, "🏠", 1,
+            RecurringFrequency.MONTHLY, 10, true, 0L);
+    TransactionTemplate tUsd =
+        new TransactionTemplate(
+            11L, "Sub USD", TransactionType.EXPENSE, 10_00L, 2L, 3L, null, null, "🌐", 2,
+            RecurringFrequency.MONTHLY, 10, true, 0L);
+    templateDao.addScheduledTemplate(tIdr);
+    templateDao.addScheduledTemplate(tUsd);
+
+    ForwardCashFlowSummary summary = service.calculateForwardSummary(startDate, endDate, null);
+
+    assertNotNull(summary);
+    assertEquals(2, summary.getUpcomingObligations().size());
+    for (UpcomingObligation obligation : summary.getUpcomingObligations()) {
+      if (obligation.getTemplateId() == 10L) {
+        assertEquals(Long.valueOf(1L), obligation.getWalletId());
+        assertEquals("Rekening Utama", obligation.getWalletName());
+      } else {
+        assertEquals(Long.valueOf(3L), obligation.getWalletId());
+        assertEquals("USD Cash", obligation.getWalletName());
+      }
+    }
+
+    ForwardCashFlowSummary filtered = service.calculateForwardSummary(startDate, endDate, 1L);
+    assertEquals(1, filtered.getUpcomingObligations().size());
+    assertEquals(Long.valueOf(1L), filtered.getUpcomingObligations().get(0).getWalletId());
+
+    assertEquals(6_000_000_00L + 100_00L, summary.getCurrentActualBalanceMinor());
+  }
+
+  @Test
+  public void skip_keepsTemplate() {
+    TransactionTemplate template =
+        new TransactionTemplate(
+            20L, "Langganan", TransactionType.EXPENSE, 50_000_00L, 2L, 1L, null, null, "🌐", 1,
+            RecurringFrequency.MONTHLY, 15, true, 0L);
+    templateDao.addScheduledTemplate(template);
+    assertEquals(1, templateDao.findScheduledTemplates().size());
+
+    long now = endDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
+    assertTrue(templateDao.markSkipped(20L, now));
+
+    List<TransactionTemplate> remaining = templateDao.findScheduledTemplates();
+    assertEquals(1, remaining.size());
+    assertEquals(20L, remaining.get(0).getId());
+    assertTrue(remaining.get(0).isScheduled());
+    assertEquals(now, remaining.get(0).getLastRecordedAt());
+
+    ForwardCashFlowSummary summary = service.calculateForwardSummary(startDate, endDate, null);
+    assertTrue(summary.getUpcomingObligations().isEmpty());
+    assertEquals(0L, summary.getScheduledOutflowMinor());
+  }
+
   // --- Fake Dao Implementations ---
 
   private static class FakeTransactionTemplateDao extends TransactionTemplateDao {
@@ -202,6 +298,16 @@ public class UpcomingCashFlowServiceTest {
     @Override
     public List<TransactionTemplate> findScheduledTemplates() {
       return new ArrayList<>(scheduled);
+    }
+
+    @Override
+    public boolean markSkipped(long templateId, long timestampMillis) {
+      for (TransactionTemplate template : scheduled) {
+        if (template.getId() == templateId) {
+          template.setLastRecordedAt(timestampMillis);
+        }
+      }
+      return true;
     }
   }
 

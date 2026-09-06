@@ -32,6 +32,7 @@ import com.dwlhm.finan.service.wallet.WalletService;
 import com.dwlhm.finan.util.date.SystemTimeProvider;
 
 import java.time.ZoneId;
+import java.util.function.Consumer;
 
 public final class AppServices {
 
@@ -181,5 +182,24 @@ public final class AppServices {
         cashFlowReportService,
         transactionTemplateDao,
         upcomingCashFlowService);
+  }
+
+  public static void createAsync(
+      Context context, Consumer<AppServices> onSuccess, Consumer<Exception> onError) {
+    DbWorker w = new DbWorker();
+    w.compute(
+        () -> {
+          try {
+            return create(context.getApplicationContext());
+          } catch (Exception e) {
+            w.runOnUi(() -> onError.accept(e));
+            return null;
+          }
+        },
+        result -> {
+          if (result != null) {
+            onSuccess.accept(result);
+          }
+        });
   }
 }
