@@ -17,12 +17,13 @@ import com.dwlhm.finan.data.migration.Migration009CategoryDefault;
 import com.dwlhm.finan.data.migration.Migration010NoOp;
 import com.dwlhm.finan.data.migration.Migration011TransactionTemplate;
 import com.dwlhm.finan.data.migration.Migration012RecurringSchedule;
+import com.dwlhm.finan.data.migration.Migration013Indexes;
 import com.dwlhm.finan.data.migration.MigrationRunner;
 
 public final class FinanDatabaseHelper extends SQLiteOpenHelper {
 
   public static final String DATABASE_NAME = "finan.db";
-  public static final int DATABASE_VERSION = 12;
+  public static final int DATABASE_VERSION = 13;
 
   private static final Migration[] MIGRATIONS = {
     new Migration001Initial(),
@@ -36,7 +37,8 @@ public final class FinanDatabaseHelper extends SQLiteOpenHelper {
     new Migration009CategoryDefault(),
     new Migration010NoOp(),
     new Migration011TransactionTemplate(),
-    new Migration012RecurringSchedule()
+    new Migration012RecurringSchedule(),
+    new Migration013Indexes()
   };
 
   public FinanDatabaseHelper(Context context) {
@@ -60,8 +62,6 @@ public final class FinanDatabaseHelper extends SQLiteOpenHelper {
     try {
       db.execSQL("PRAGMA journal_mode=WAL");
       db.execSQL("PRAGMA synchronous=NORMAL");
-      db.execSQL("CREATE INDEX IF NOT EXISTS idx_transactions_cat_occurred ON transactions(category_id, occurred_at)");
-      db.execSQL("CREATE INDEX IF NOT EXISTS idx_transactions_wallet_cat_occurred ON transactions(wallet_id, category_id, occurred_at)");
     } catch (Exception ignored) {}
   }
 }

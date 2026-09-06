@@ -50,4 +50,42 @@ public class MigrationRunnerTest {
             assertTrue(!c.moveToFirst());
         }
     }
+
+    @Test
+    public void migrate_freshToThirteen_createsCoverageIndexes() {
+        MigrationRunner.migrate(db, 0, 13, new Migration[]{
+                new Migration001Initial(),
+                new Migration013Indexes()});
+
+        assertTrue(indexExists(Migration013Indexes.IDX_TRANSACTIONS_CAT_OCCURRED));
+        assertTrue(indexExists(Migration013Indexes.IDX_TRANSACTIONS_WALLET_CAT_OCCURRED));
+    }
+
+    @Test
+    public void migrate_twelveToThirteen_createsCoverageIndexes() {
+        MigrationRunner.migrate(db, 0, 12, new Migration[]{new Migration001Initial()});
+        MigrationRunner.migrate(db, 12, 13, new Migration[]{new Migration013Indexes()});
+
+        assertTrue(indexExists(Migration013Indexes.IDX_TRANSACTIONS_CAT_OCCURRED));
+        assertTrue(indexExists(Migration013Indexes.IDX_TRANSACTIONS_WALLET_CAT_OCCURRED));
+    }
+
+    @Test
+    public void migrate_thirteen_isIdempotent() {
+        MigrationRunner.migrate(db, 0, 13, new Migration[]{
+                new Migration001Initial(),
+                new Migration013Indexes()});
+        MigrationRunner.migrate(db, 12, 13, new Migration[]{new Migration013Indexes()});
+
+        assertTrue(indexExists(Migration013Indexes.IDX_TRANSACTIONS_CAT_OCCURRED));
+        assertTrue(indexExists(Migration013Indexes.IDX_TRANSACTIONS_WALLET_CAT_OCCURRED));
+    }
+
+    private boolean indexExists(String indexName) {
+        try (Cursor c = db.rawQuery(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name=?",
+                new String[]{indexName})) {
+            return c.moveToFirst();
+        }
+    }
 }
