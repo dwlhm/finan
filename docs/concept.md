@@ -8,6 +8,16 @@ Masalah utama yang ingin diselesaikan bukan analisis finansial kompleks, melaink
 
 Aplikasi ini mengambil pendekatan capture-first: buka aplikasi, input nominal, pilih kategori, simpan.
 
+## Brand
+
+Logo menggunakan 5 pill-shaped bar dalam dua warna:
+- **Medium teal** (`#2D6A6A`) — bar kiri atas dan kanan bawah
+- **Dark teal** (`#154242`) — bar kanan atas, tengah penuh, dan kiri bawah
+
+Background logo: `#CBEFEF` (mint cerah).
+
+Palette ini mencerminkan ketenangan, kejernihan, dan kepercayaan — sejalan dengan filosofi produk: pencatatan yang ringan dan tidak mengganggu.
+
 ## Problem
 
 User sering gagal konsisten mencatat transaksi karena proses pencatatan terasa berat.

@@ -458,3 +458,30 @@ Navigasi utama harus mendukung fokus pencatatan tanpa menyita ruang layar atau m
 11. Floating Liquid Glass navigation provides breathing space.
 12. Auto-hide on scroll maximizes content visibility.
 ```
+
+---
+
+## Brand & Visual Identity
+
+### Logo
+
+Logo Finan terdiri dari 5 pill-shaped bar yang tersusun dalam dua baris dan tiga baris, membentuk pola yang terinspirasi dari tabel atau ledger keuangan.
+
+```
+![Finan Logo](../logo.svg)
+```
+
+### Color Palette
+
+| Token | Hex | Penggunaan |
+|---|---|---|
+| `finan_primary` | `#2D6A6A` | CTA, active states, chip selected |
+| `finan_primary_dark` | `#154242` | Pressed states, deep accents |
+| Background logo | `#CBEFEF` | App icon background |
+
+### Usage Rules
+
+- Logo selalu tampil di atas background `#CBEFEF` atau surface putih.
+- Jangan menempatkan logo di atas background gelap tanpa adaptasi warna.
+- Minimum logo size: 32×32dp.
+

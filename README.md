@@ -1,5 +1,9 @@
 # Finan
 
+<p align="center">
+  <img src="logo.svg" alt="Finan logo" width="96" />
+</p>
+
 Capture-first financial tracker for Android (production v1).
 
 ## Stack
