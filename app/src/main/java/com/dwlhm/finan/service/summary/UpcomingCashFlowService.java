@@ -92,6 +92,11 @@ public final class UpcomingCashFlowService {
       @NonNull LocalDate toDate,
       @Nullable Long walletFilterId) {
 
+    if (fromDate == null || toDate == null || fromDate.isAfter(toDate)
+        || fromDate.getYear() < 1900 || toDate.getYear() > 9999
+        || ChronoUnit.DAYS.between(fromDate, toDate) > 3660) {
+      throw new IllegalArgumentException("Invalid forecast horizon (maximum ten years)");
+    }
     LocalDate today = Instant.ofEpochMilli(timeProvider.currentTimeMillis()).atZone(zoneId).toLocalDate();
     long asOfMillis = timeProvider.currentTimeMillis();
 
@@ -104,9 +109,6 @@ public final class UpcomingCashFlowService {
       currentActualBalanceMinor += summaryDao.walletBalanceBefore(wallet.getId(), asOfMillis);
     }
 
-    long cycleStartMillis = fromDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
-    long cycleEndMillis = toDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli();
-
     List<TransactionTemplate> scheduledTemplates = transactionTemplateDao.findScheduledTemplates();
     List<UpcomingObligation> upcomingObligations = new ArrayList<>();
 
@@ -114,16 +116,17 @@ public final class UpcomingCashFlowService {
     long scheduledOutflowMinor = 0L;
 
     for (TransactionTemplate template : scheduledTemplates) {
-      if (walletFilterId != null && template.getWalletId() != null && !template.getWalletId().equals(walletFilterId)) {
-        continue;
-      }
-
-      if (template.getLastRecordedAt() >= cycleStartMillis && template.getLastRecordedAt() < cycleEndMillis) {
-        continue;
-      }
+      boolean transfer = template.getType() == TransactionType.TRANSFER_OUT;
+      boolean destinationSelected = transfer && walletFilterId != null
+          && walletFilterId.equals(template.getDestinationWalletId());
+      if (walletFilterId != null && template.getWalletId() != null
+          && !template.getWalletId().equals(walletFilterId) && !destinationSelected) continue;
 
       List<LocalDate> candidateDates = findOccurrences(template, fromDate, toDate);
+      boolean hasHistory = transactionTemplateDao.hasOccurrenceHistory(template.getId());
       for (LocalDate candidateDate : candidateDates) {
+        if (transactionTemplateDao.isOccurrenceHandled(template.getId(), candidateDate.toString())
+            || (!hasHistory && isLegacyHandled(template, candidateDate))) continue;
         long dueEpochMillis = candidateDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         int daysRemaining = (int) ChronoUnit.DAYS.between(today, candidateDate);
 
@@ -161,9 +164,9 @@ public final class UpcomingCashFlowService {
 
         upcomingObligations.add(obligation);
 
-        if (template.getType() == TransactionType.INCOME) {
+        if (template.getType() == TransactionType.INCOME || destinationSelected) {
           scheduledInflowMinor += template.getAmountMinor();
-        } else if (template.getType() == TransactionType.EXPENSE || template.getType() == TransactionType.TRANSFER_OUT) {
+        } else if (template.getType() == TransactionType.EXPENSE || (template.getType() == TransactionType.TRANSFER_OUT && walletFilterId != null)) {
           scheduledOutflowMinor += template.getAmountMinor();
         }
       }
@@ -190,6 +193,19 @@ public final class UpcomingCashFlowService {
         upcomingObligations,
         horizonDays,
         toDate);
+  }
+
+  private boolean isLegacyHandled(TransactionTemplate template, LocalDate candidate) {
+    if (template.getLastRecordedAt() <= 0) return false;
+    LocalDate recorded = Instant.ofEpochMilli(template.getLastRecordedAt()).atZone(zoneId).toLocalDate();
+    switch (template.getFrequency()) {
+      case DAILY: return candidate.equals(recorded);
+      case WEEKLY:
+        return candidate.with(java.time.DayOfWeek.MONDAY)
+            .equals(recorded.with(java.time.DayOfWeek.MONDAY));
+      case YEARLY: return candidate.getYear() == recorded.getYear();
+      default: return YearMonth.from(candidate).equals(YearMonth.from(recorded));
+    }
   }
 
   private List<LocalDate> findOccurrences(
@@ -230,7 +246,8 @@ public final class UpcomingCashFlowService {
       int startYear = fromDate.getYear();
       int endYear = toDate.getYear();
       for (int yr = startYear; yr <= endYear; yr++) {
-        int month = fromDate.getMonthValue();
+        int month = template.getDueMonth();
+        if (month < 1 || month > 12) continue;
         int day = template.getDueDay() > 0 ? template.getDueDay() : 1;
         int maxDays = YearMonth.of(yr, month).lengthOfMonth();
         LocalDate candidate = LocalDate.of(yr, month, Math.min(day, maxDays));

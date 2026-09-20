@@ -66,7 +66,20 @@ public class ExportService {
     writeLine(buffered, VERSION_HEADER);
     writeWallets(buffered, wallets);
     writeCategories(buffered, categories);
-    writeTransfers(buffered, transfers);
+    List<Transfer> includedTransfers = new java.util.ArrayList<>();
+    for (Transfer transfer : transfers) {
+      if (startDate == null && endDate == null) {
+        includedTransfers.add(transfer);
+        continue;
+      }
+      List<Transaction> entries = transactionGateway.findByTransferId(transfer.getId());
+      if (entries.size() == 2 && entries.stream().allMatch(entry ->
+          (startDate == null || entry.getOccurredAt() >= startDate)
+              && (endDate == null || entry.getOccurredAt() < endDate))) {
+        includedTransfers.add(transfer);
+      }
+    }
+    writeTransfers(buffered, includedTransfers);
     writeLine(buffered, TRANSACTION_SECTION);
     writeLine(buffered, TRANSACTION_HEADER);
     try {
@@ -186,7 +199,7 @@ public class ExportService {
     if (value == null) {
       return "";
     }
-    if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+    if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
       return "\"" + value.replace("\"", "\"\"") + "\"";
     }
     return value;

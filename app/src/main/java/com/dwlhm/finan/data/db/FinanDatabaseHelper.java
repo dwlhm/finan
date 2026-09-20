@@ -18,12 +18,13 @@ import com.dwlhm.finan.data.migration.Migration010NoOp;
 import com.dwlhm.finan.data.migration.Migration011TransactionTemplate;
 import com.dwlhm.finan.data.migration.Migration012RecurringSchedule;
 import com.dwlhm.finan.data.migration.Migration013Indexes;
+import com.dwlhm.finan.data.migration.Migration014ScheduledOccurrences;
 import com.dwlhm.finan.data.migration.MigrationRunner;
 
 public final class FinanDatabaseHelper extends SQLiteOpenHelper {
 
   public static final String DATABASE_NAME = "finan.db";
-  public static final int DATABASE_VERSION = 13;
+  public static final int DATABASE_VERSION = 14;
 
   private static final Migration[] MIGRATIONS = {
     new Migration001Initial(),
@@ -38,7 +39,8 @@ public final class FinanDatabaseHelper extends SQLiteOpenHelper {
     new Migration010NoOp(),
     new Migration011TransactionTemplate(),
     new Migration012RecurringSchedule(),
-    new Migration013Indexes()
+    new Migration013Indexes(),
+    new Migration014ScheduledOccurrences()
   };
 
   public FinanDatabaseHelper(Context context) {

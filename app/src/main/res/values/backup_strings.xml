@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="backup_create">Buat backup terenkripsi</string>
+    <string name="backup_restore">Pulihkan backup terenkripsi</string>
+    <string name="backup_password">Kata sandi backup</string>
+    <string name="backup_password_confirm">Ulangi kata sandi</string>
+    <string name="backup_open">Buka backup</string>
+    <string name="backup_protect">Lindungi backup</string>
+    <string name="backup_password_inspect">Masukkan kata sandi untuk memeriksa isi backup. Data belum akan diganti.</string>
+    <string name="backup_password_guidance">Gunakan minimal 12 karakter. Simpan kata sandi dengan aman; backup tidak dapat dipulihkan tanpa kata sandinya. CSV tetap tidak terenkripsi.</string>
+    <string name="backup_cancel">Batal</string>
+    <string name="backup_continue">Lanjut</string>
+    <string name="backup_password_required">Masukkan kata sandi</string>
+    <string name="backup_password_short">Minimal 12 karakter</string>
+    <string name="backup_password_mismatch">Kata sandi belum sama</string>
+    <string name="backup_processing">Sedang memproses…</string>
+    <string name="backup_inspecting">Memeriksa backup</string>
+    <string name="backup_creating">Membuat backup</string>
+    <string name="backup_replace_title">Ganti data dengan backup?</string>
+    <string name="backup_replace_summary">%1$d dompet, %2$d transaksi, %3$d pintasan/jadwal. Semua data keuangan dan preferensi pencatatan saat ini akan diganti. Buat backup dahulu jika masih diperlukan.</string>
+    <string name="backup_replace">Pulihkan dan ganti</string>
+    <string name="backup_restoring">Memulihkan backup</string>
+    <string name="backup_retry">Coba pulihkan preferensi lagi</string>
+    <string name="backup_export_success">Backup terenkripsi berhasil dibuat</string>
+    <string name="backup_auth_error">Kata sandi salah atau isi backup rusak. Data belum diubah.</string>
+    <string name="backup_compatibility_error">Format atau versi backup tidak didukung, atau ukuran melebihi batas 32 MiB. Gunakan versi aplikasi yang sesuai.</string>
+    <string name="backup_file_error">File tidak dapat dibaca atau ditulis. Periksa izin file dan ruang penyimpanan.</string>
+    <string name="backup_restore_not_applied">Pemulihan tidak diterapkan. Data sebelumnya tetap tersimpan.</string>
+    <string name="backup_preferences_pending">Data telah dipulihkan, tetapi preferensi belum selesai. Coba lagi untuk menyelesaikan pemulihan sebelum melanjutkan.</string>
+</resources>

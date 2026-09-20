@@ -286,10 +286,82 @@ public class UpcomingCashFlowServiceTest {
     assertEquals(0L, summary.getScheduledOutflowMinor());
   }
 
+  @Test public void dailyAndWeekly_onlySelectedOccurrenceRemoved() {
+    TransactionTemplate daily = recurring(31, RecurringFrequency.DAILY, 1);
+    templateDao.addScheduledTemplate(daily);
+    templateDao.markOccurrence(31, "2026-08-02", "RECORDED", 100L);
+    assertEquals(6, service.calculateForwardSummary(startDate, startDate.plusDays(6), null)
+        .getUpcomingObligations().size());
+    templateDao.scheduled.clear();
+    templateDao.addScheduledTemplate(recurring(32, RecurringFrequency.WEEKLY, 1));
+    templateDao.markOccurrence(32, "2026-08-10", "SKIPPED", null);
+    assertEquals(4, service.calculateForwardSummary(startDate, endDate, null).getUpcomingObligations().size());
+  }
+
+  @Test public void yearly_usesConfiguredMonthAndLegacyUnknownIsAbsent() {
+    TransactionTemplate yearly = recurring(33, RecurringFrequency.YEARLY, 31);
+    templateDao.addScheduledTemplate(yearly);
+    assertTrue(service.calculateForwardSummary(startDate, endDate.plusMonths(6), null).getUpcomingObligations().isEmpty());
+    yearly.setDueMonth(9);
+    List<UpcomingObligation> dues = service.calculateForwardSummary(startDate, endDate.plusMonths(6), null).getUpcomingObligations();
+    assertEquals(1, dues.size());
+    assertEquals(LocalDate.of(2026, 9, 30).atStartOfDay(zoneId).toInstant().toEpochMilli(), dues.get(0).getDueEpochMillis());
+  }
+
+  @Test public void legacyDailyAndWeekly_suppressOnlyTheirRecurrenceInterval() {
+    TransactionTemplate daily = recurring(34, RecurringFrequency.DAILY, 1);
+    daily.setLastRecordedAt(startDate.plusDays(2).atStartOfDay(zoneId).toInstant().toEpochMilli());
+    templateDao.addScheduledTemplate(daily);
+    assertEquals(30, service.calculateForwardSummary(startDate, endDate, null).getUpcomingObligations().size());
+    daily.setFrequency(RecurringFrequency.WEEKLY);
+    assertEquals(4, service.calculateForwardSummary(startDate, endDate, null).getUpcomingObligations().size());
+    templateDao.markOccurrence(34, "2026-08-10", "SKIPPED", null);
+    // Modern history disables the old timestamp; Aug 3 becomes available again.
+    assertEquals(4, service.calculateForwardSummary(startDate, endDate, null).getUpcomingObligations().size());
+  }
+
+  @Test public void monthlySkip_doesNotHideNextMonth() {
+    templateDao.addScheduledTemplate(recurring(35, RecurringFrequency.MONTHLY, 15));
+    templateDao.markOccurrence(35, "2026-08-15", "SKIPPED", null);
+    assertEquals(1, service.calculateForwardSummary(startDate, endDate.plusMonths(1), null).getUpcomingObligations().size());
+  }
+
+  @Test(expected = IllegalArgumentException.class) public void reversedHorizon_rejected() {
+    service.calculateForwardSummary(endDate, startDate, null);
+  }
+
+  @Test(expected = IllegalArgumentException.class) public void excessiveHorizon_rejected() {
+    service.calculateForwardSummary(startDate, startDate.plusYears(11), null);
+  }
+
+  @Test public void internalTransfer_doesNotReduceAggregateBalance() {
+    TransactionTemplate transfer = recurring(36, RecurringFrequency.MONTHLY, 15);
+    transfer.setType(TransactionType.TRANSFER_OUT);
+    transfer.setDestinationWalletId(2L);
+    templateDao.addScheduledTemplate(transfer);
+    assertEquals(0, service.calculateForwardSummary(startDate, endDate, null).getScheduledOutflowMinor());
+    assertEquals(100, service.calculateForwardSummary(startDate, endDate, 1L).getScheduledOutflowMinor());
+    assertEquals(100, service.calculateForwardSummary(startDate, endDate, 2L).getScheduledInflowMinor());
+  }
+
+  private TransactionTemplate recurring(long id, RecurringFrequency frequency, int day) {
+    return new TransactionTemplate(id, "Plan", TransactionType.EXPENSE, 100, 2L, 1L,
+        null, null, "⚡", 1, frequency, day, true, 0);
+  }
+
   // --- Fake Dao Implementations ---
 
   private static class FakeTransactionTemplateDao extends TransactionTemplateDao {
     private final List<TransactionTemplate> scheduled = new ArrayList<>();
+    private final Map<String, String> occurrences = new HashMap<>();
+    @Override public boolean isOccurrenceHandled(long id, String date) { return occurrences.containsKey(id + ":" + date); }
+    @Override public boolean hasOccurrenceHistory(long id) {
+      for (String key : occurrences.keySet()) if (key.startsWith(id + ":")) return true;
+      return false;
+    }
+    @Override public boolean markOccurrence(long id, String date, String status, Long transactionId) {
+      return occurrences.putIfAbsent(id + ":" + date, status) == null;
+    }
 
     public void addScheduledTemplate(TransactionTemplate template) {
       scheduled.add(template);

@@ -58,4 +58,29 @@ public class ImportServiceTest {
     List<String> fields = ImportService.parseCsvLine("\"hello\",world");
     assertEquals(List.of("hello", "world"), fields);
   }
+  @Test
+  public void recordReader_preservesMultilineAndNextSection() throws Exception {
+    java.io.PushbackReader reader = new java.io.PushbackReader(new java.io.StringReader(
+        "1,\"first\r\nWALLETS, \"\"quote\"\"\"\r\nCATEGORIES\n"));
+    assertEquals(List.of("1", "first\r\nWALLETS, \"quote\""),
+        ImportService.parseCsvLine(ImportService.readCsvRecord(reader)));
+    assertEquals("CATEGORIES", ImportService.readCsvRecord(reader));
+    org.junit.Assert.assertNull(ImportService.readCsvRecord(reader));
+  }
+
+  @Test
+  public void malformedQuotesAreRejected() {
+    for (String line : List.of("a\"b", "\"a\"tail", "\"unfinished")) {
+      org.junit.Assert.assertThrows(IllegalArgumentException.class,
+          () -> ImportService.parseCsvLine(line));
+    }
+  }
+
+  @Test
+  public void recordReaderRejectsTruncationAndOversize() {
+    org.junit.Assert.assertThrows(java.io.IOException.class, () -> ImportService.readCsvRecord(
+        new java.io.PushbackReader(new java.io.StringReader("\"unfinished\n"))));
+    org.junit.Assert.assertThrows(java.io.IOException.class, () -> ImportService.readCsvRecord(
+        new java.io.PushbackReader(new java.io.StringReader("x".repeat(1024 * 1024 + 1)))));
+  }
 }

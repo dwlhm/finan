@@ -10,9 +10,10 @@ import com.dwlhm.finan.domain.model.CashFlowActivity;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.balance.BalanceService;
-import com.dwlhm.finan.ui.common.EmojiConstants;
+import com.dwlhm.finan.domain.model.Transfer;
 
 import java.io.BufferedReader;
+import java.io.PushbackReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -32,14 +33,6 @@ public class ImportService {
   private static final String CATEGORY_SECTION = "CATEGORIES";
   private static final String TRANSFER_SECTION = "TRANSFERS";
   private static final String TRANSACTION_SECTION = "TRANSACTIONS";
-  private static final Set<String> SECTION_NAMES =
-      new HashSet<>(
-          Arrays.asList(
-              WALLET_SECTION,
-              CATEGORY_SECTION,
-              TRANSFER_SECTION,
-              TRANSACTION_SECTION));
-
   private final SQLiteDatabase db;
   private final WalletDao walletDao;
   private final CategoryDao categoryDao;
@@ -119,371 +112,245 @@ public class ImportService {
     }
   }
 
-  public ImportResult importFrom(InputStream in) throws IOException {
-    try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-      String firstLine = reader.readLine();
-      if (firstLine == null || !firstLine.startsWith(VERSION_PREFIX)) {
-        return ImportResult.failure("Invalid file format: missing version header");
-      }
-      int version = parseVersion(firstLine);
-      if (version < 3) {
-        return ImportResult.failure(
-            "Unsupported CSV version " + version + ". Minimum supported version is 3.");
-      }
+  private static final int MAX_RECORD_CHARS = 1024 * 1024;
+  private static final int LEGACY_VERSION = 3;
+  private static final List<String> SECTIONS = Arrays.asList(
+      WALLET_SECTION, CATEGORY_SECTION, TRANSFER_SECTION, TRANSACTION_SECTION);
+  private static final String[] HEADERS = {
+    "id,name,currency_code,is_default,opening_balance_minor,icon",
+    "id,name,icon,type_filter,sort_order,cash_flow_activity",
+    "id,source_wallet_id,destination_wallet_id,amount_minor,occurred_at,note",
+    "id,amount_minor,type,wallet_id,category_id,occurred_at,note,transfer_id,cash_flow_activity,cash_flow_activity_overridden"
+  };
 
+  public ImportResult importFrom(InputStream in) throws IOException {
+    try (PushbackReader reader = new PushbackReader(
+        new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8.newDecoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT))), 1)) {
+      String version = readCsvRecord(reader);
+      if (!(VERSION_PREFIX + LEGACY_VERSION).equals(version)
+          && !(VERSION_PREFIX + ExportService.CSV_FORMAT_VERSION).equals(version)) {
+        return ImportResult.failure("Invalid or unsupported CSV version");
+      }
       db.beginTransaction();
       try {
-        Map<Long, Long> walletIdMap = new HashMap<>();
-        Map<Long, Long> categoryIdMap = new HashMap<>();
-
-        int wallets = 0;
-        int categories = 0;
-        int transfers = 0;
-        int transactions = 0;
-
-        String line;
-        while ((line = reader.readLine()) != null) {
-          line = line.trim();
-          if (line.isEmpty()) {
+        Map<Long, Long> wallets = new HashMap<>();
+        Map<Long, Long> categories = new HashMap<>();
+        Map<Long, Long> transfers = new HashMap<>();
+        Set<Long> transactionIds = new HashSet<>();
+        int[] counts = new int[SECTIONS.size()];
+        int section = -1;
+        List<String> headers = null;
+        String record;
+        while ((record = readCsvRecord(reader)) != null) {
+          if (record.isEmpty()) continue;
+          int next = SECTIONS.indexOf(record);
+          if (next >= 0) {
+            require(next == section + 1, "Missing, repeated or out-of-order section");
+            section = next;
+            String header = readCsvRecord(reader);
+            require(header != null, "Missing section header");
+            headers = parseCsvLine(header);
+            List<String> expected = parseCsvLine(HEADERS[section]);
+            require(headers.size() == expected.size()
+                && new HashSet<>(headers).equals(new HashSet<>(expected)), "Invalid section header");
             continue;
           }
-          String section = parseSectionHeader(line);
-          if (section == null) {
-            continue;
-          }
-          String headerLine = reader.readLine();
-          if (headerLine == null || headerLine.trim().isEmpty()) {
-            continue;
-          }
-          List<String> headers = parseCsvLine(headerLine.trim());
+          require(section >= 0 && headers != null, "Row outside a section");
+          List<String> fields = parseCsvLine(record);
+          require(fields.size() == headers.size(), "Invalid row field count");
+          Map<String, String> row = new HashMap<>();
+          for (int i = 0; i < headers.size(); i++) row.put(headers.get(i), fields.get(i));
+          long oldId = positive(row.get("id"));
           switch (section) {
-            case WALLET_SECTION:
-              wallets += parseWallets(reader, headers, walletIdMap);
+            case 0: {
+              require(!wallets.containsKey(oldId), "Duplicate wallet ID");
+              String name = nonempty(row.get("name"));
+              String currency = nonempty(row.get("currency_code"));
+              boolean isDefault = booleanValue(row.get("is_default"));
+              long opening = Long.parseLong(row.get("opening_balance_minor"));
+              com.dwlhm.finan.data.entity.Wallet existing = walletDao.findByName(name);
+              long id = existing == null
+                  ? walletDao.insert(name, currency, isDefault, opening,
+                      System.currentTimeMillis(), nullable(row.get("icon"))) : existing.getId();
+              require(id > 0, "Wallet insert failed");
+              wallets.put(oldId, id);
+              if (existing == null) counts[section]++;
               break;
-            case CATEGORY_SECTION:
-              categories += parseCategories(reader, headers, categoryIdMap);
+            }
+            case 1: {
+              require(!categories.containsKey(oldId), "Duplicate category ID");
+              String name = nonempty(row.get("name"));
+              String type = row.get("type_filter");
+              require(Arrays.asList("INCOME", "EXPENSE", "BOTH").contains(type), "Invalid category type");
+              int order = Integer.parseInt(row.get("sort_order"));
+              String activity = CashFlowActivity.valueOf(row.get("cash_flow_activity")).name();
+              com.dwlhm.finan.data.entity.Category existing = categoryDao.findByNameIgnoreCase(name);
+              long id = existing == null
+                  ? categoryDao.insert(name, nullable(row.get("icon")), type, order, 0, null, activity)
+                  : existing.getId();
+              require(id > 0, "Category insert failed");
+              categories.put(oldId, id);
+              if (existing == null) counts[section]++;
               break;
-            case TRANSFER_SECTION:
-              transfers +=
-                  parseTransfers(reader, headers, walletIdMap);
+            }
+            case 2: {
+              require(!transfers.containsKey(oldId), "Duplicate transfer ID");
+              long source = lookupId(wallets, row.get("source_wallet_id"));
+              long destination = lookupId(wallets, row.get("destination_wallet_id"));
+              require(source != destination, "Transfer wallets must differ");
+              long id = transferDao.insert(source, destination, positive(row.get("amount_minor")),
+                  Long.parseLong(row.get("occurred_at")), nullable(row.get("note")), System.currentTimeMillis());
+              require(id > 0, "Transfer insert failed");
+              transfers.put(oldId, id);
+              counts[section]++;
               break;
-            case TRANSACTION_SECTION:
-              transactions +=
-                  parseTransactions(reader, headers, walletIdMap, categoryIdMap);
+            }
+            case 3: {
+              require(transactionIds.add(oldId), "Duplicate transaction ID");
+              TransactionType type = TransactionType.valueOf(row.get("type"));
+              long category = Long.parseLong(row.get("category_id"));
+              require(category >= 0, "Invalid category ID");
+              Transaction transaction = new Transaction(0L, positive(row.get("amount_minor")), type,
+                  lookupId(wallets, row.get("wallet_id")),
+                  category == 0 ? 0 : lookupId(categories, row.get("category_id")),
+                  Long.parseLong(row.get("occurred_at")), nullable(row.get("note")));
+              String transfer = row.get("transfer_id");
+              require(type.isTransfer() == !transfer.isEmpty(), "Invalid transfer relationship");
+              if (!transfer.isEmpty()) transaction.setTransferId(lookupId(transfers, transfer));
+              transaction.setCashFlowActivity(CashFlowActivity.valueOf(row.get("cash_flow_activity")));
+              transaction.setCashFlowActivityOverridden(booleanValue(row.get("cash_flow_activity_overridden")));
+              require(transactionGateway.insert(transaction) > 0, "Transaction insert failed");
+              counts[section]++;
               break;
+            }
           }
         }
-
-        recalculateAllWalletBalances();
-
+        require(section == SECTIONS.size() - 1, "Incomplete CSV sections");
+        for (long id : transfers.values()) validateTransfer(id);
+        for (com.dwlhm.finan.data.entity.Wallet wallet : walletDao.findAll()) {
+          balanceService.recalculate(wallet.getId());
+        }
         db.setTransactionSuccessful();
-        return ImportResult.success(
-            wallets, categories, transfers, transactions);
+        return ImportResult.success(counts[0], counts[1], counts[2], counts[3]);
+      } catch (IllegalArgumentException | android.database.SQLException e) {
+        return ImportResult.failure("Invalid CSV: " + e.getMessage());
       } finally {
         db.endTransaction();
       }
     }
   }
 
-  private int parseVersion(String headerLine) {
-    try {
-      return Integer.parseInt(headerLine.substring(VERSION_PREFIX.length()).trim());
-    } catch (NumberFormatException | IndexOutOfBoundsException e) {
-      return -1;
+  private void validateTransfer(long id) {
+    Transfer transfer = transferDao.findById(id);
+    List<Transaction> entries = transactionGateway.findByTransferId(id);
+    require(entries.size() == 2, "Transfer must have two entries");
+    Set<TransactionType> types = new HashSet<>();
+    for (Transaction entry : entries) {
+      types.add(entry.getType());
+      require(entry.getAmountMinor() == transfer.getAmountMinor()
+          && entry.getOccurredAt() == transfer.getOccurredAt()
+          && entry.getWalletId() == (entry.getType() == TransactionType.TRANSFER_OUT
+              ? transfer.getSourceWalletId() : transfer.getDestinationWalletId()),
+          "Transfer entry does not match transfer");
     }
+    require(types.contains(TransactionType.TRANSFER_IN)
+        && types.contains(TransactionType.TRANSFER_OUT), "Invalid transfer pair");
   }
 
-  private String parseSectionHeader(String line) {
-    String trimmed = line.trim();
-    if (SECTION_NAMES.contains(trimmed)) {
-      return trimmed;
-    }
-    return null;
+  private static String nullable(String value) { return value.isEmpty() ? null : value; }
+
+  private static String nonempty(String value) {
+    require(!value.trim().isEmpty(), "Required value is empty");
+    return value;
   }
 
-  private int parseWallets(
-      BufferedReader reader, List<String> headers, Map<Long, Long> idMap) throws IOException {
-    int walletIconIndex = headers.indexOf("icon");
-    int count = 0;
-    String line;
-    while ((line = reader.readLine()) != null) {
-      line = line.trim();
-      if (line.isEmpty()) continue;
-      if (SECTION_NAMES.contains(line)) break;
-      List<String> fields = parseCsvLine(line);
-      if (fields.size() < 5) {
-        continue;
-      }
-      long oldId = Long.parseLong(fields.get(0));
-      String name = fields.get(1);
-      String currencyCode = fields.get(2);
-      boolean isDefault = "1".equals(fields.get(3));
-      long openingBalanceMinor = Long.parseLong(fields.get(4));
-      String icon = walletIconIndex >= 0 && walletIconIndex < fields.size()
-          ? fields.get(walletIconIndex) : null;
-      if (icon != null && icon.isEmpty()) {
-        icon = null;
-      }
-      if (name == null || name.trim().isEmpty()) continue;
-      if (currencyCode == null || currencyCode.trim().isEmpty()) currencyCode = "IDR";
-      if (icon == null || icon.trim().isEmpty()) {
-        icon = EmojiConstants.WALLET_EMOJIS[new java.security.SecureRandom().nextInt(EmojiConstants.WALLET_EMOJIS.length)];
-      }
-
-      com.dwlhm.finan.data.entity.Wallet existing = walletDao.findByName(name);
-      long newId;
-      if (existing != null) {
-        newId = existing.getId();
-      } else {
-        long now = System.currentTimeMillis();
-        newId =
-            walletDao.insert(name, currencyCode, isDefault, openingBalanceMinor, now, icon);
-        count++;
-      }
-      idMap.put(oldId, newId);
-    }
-    return count;
+  private static boolean booleanValue(String value) {
+    require("0".equals(value) || "1".equals(value), "Invalid boolean");
+    return "1".equals(value);
   }
 
-  private int parseCategories(
-      BufferedReader reader, List<String> headers, Map<Long, Long> idMap) throws IOException {
-    int iconIndex = headers.indexOf("icon");
-    int typeFilterIndex = headers.indexOf("type_filter");
-    int sortOrderIndex = headers.indexOf("sort_order");
-    int cashFlowIndex = headers.indexOf("cash_flow_activity");
-    int count = 0;
-    String line;
-    while ((line = reader.readLine()) != null) {
-      line = line.trim();
-      if (line.isEmpty()) continue;
-      if (SECTION_NAMES.contains(line)) break;
-      List<String> fields = parseCsvLine(line);
-      if (fields.size() < 2) continue;
-      long oldId = Long.parseLong(fields.get(0));
-      String name = fields.get(1);
-      String icon = iconIndex >= 0 && iconIndex < fields.size() ? fields.get(iconIndex) : null;
-      if (icon != null && icon.isEmpty()) {
-        icon = null;
-      }
-      String typeFilter =
-          typeFilterIndex >= 0 && typeFilterIndex < fields.size() ? fields.get(typeFilterIndex)
-              : "BOTH";
-      int sortOrder =
-          sortOrderIndex >= 0 && sortOrderIndex < fields.size()
-              ? Integer.parseInt(fields.get(sortOrderIndex))
-              : 0;
-      String cashFlowActivity =
-          cashFlowIndex >= 0 && cashFlowIndex < fields.size() ? fields.get(cashFlowIndex)
-              : CashFlowActivity.UNCLASSIFIED.name();
-
-      if (name == null || name.trim().isEmpty()) continue;
-      if (icon == null || icon.trim().isEmpty()) {
-        icon = EmojiConstants.CATEGORY_EMOJIS[new java.security.SecureRandom().nextInt(EmojiConstants.CATEGORY_EMOJIS.length)];
-      }
-      if (!"EXPENSE".equals(typeFilter) && !"INCOME".equals(typeFilter) && !"BOTH".equals(typeFilter)) {
-        typeFilter = "BOTH";
-      }
-      if (cashFlowActivity == null || cashFlowActivity.trim().isEmpty()) {
-        cashFlowActivity = CashFlowActivity.UNCLASSIFIED.name();
-      } else {
-        try {
-          CashFlowActivity.valueOf(cashFlowActivity);
-        } catch (IllegalArgumentException e) {
-          cashFlowActivity = CashFlowActivity.UNCLASSIFIED.name();
-        }
-      }
-      sortOrder = categoryDao.nextSortOrder();
-
-      com.dwlhm.finan.data.entity.Category existing = categoryDao.findByNameIgnoreCase(name);
-      long newId;
-      if (existing != null) {
-        newId = existing.getId();
-      } else {
-        newId =
-            categoryDao.insert(name, icon, typeFilter, sortOrder, 0, null, cashFlowActivity);
-        count++;
-      }
-      idMap.put(oldId, newId);
-    }
-    return count;
+  private static long positive(String value) {
+    long number = Long.parseLong(value);
+    require(number > 0, "Expected positive number");
+    return number;
   }
 
-  private int parseTransfers(
-      BufferedReader reader, List<String> headers, Map<Long, Long> walletIdMap)
-      throws IOException {
-    int sourceIndex = headers.indexOf("source_wallet_id");
-    int destIndex = headers.indexOf("destination_wallet_id");
-    int amountIndex = headers.indexOf("amount_minor");
-    int occurredAtIndex = headers.indexOf("occurred_at");
-    int noteIndex = headers.indexOf("note");
-    int count = 0;
-    long now = System.currentTimeMillis();
-    String line;
-    while ((line = reader.readLine()) != null) {
-      line = line.trim();
-      if (line.isEmpty()) continue;
-      if (SECTION_NAMES.contains(line)) break;
-      List<String> fields = parseCsvLine(line);
-      if (fields.size() < 5) continue;
-      long sourceWalletId = lookupId(walletIdMap, fields.get(sourceIndex >= 0 ? sourceIndex : 1));
-      long destWalletId = lookupId(walletIdMap, fields.get(destIndex >= 0 ? destIndex : 2));
-      long amountMinor = Long.parseLong(fields.get(amountIndex >= 0 ? amountIndex : 3));
-      long occurredAt = Long.parseLong(fields.get(occurredAtIndex >= 0 ? occurredAtIndex : 4));
-      String note = noteIndex >= 0 && noteIndex < fields.size() ? fields.get(noteIndex) : null;
-      if (note != null && note.isEmpty()) note = null;
-
-      if (amountMinor <= 0L) continue;
-      if (sourceWalletId == destWalletId) continue;
-
-      transferDao.insert(sourceWalletId, destWalletId, amountMinor, occurredAt, note, now);
-      count++;
-    }
-    return count;
+  private static void require(boolean condition, String message) {
+    if (!condition) throw new IllegalArgumentException(message);
   }
 
-  private int parseTransactions(
-      BufferedReader reader,
-      List<String> headers,
-      Map<Long, Long> walletIdMap,
-      Map<Long, Long> categoryIdMap)
-      throws IOException {
-    int amountIndex = headers.indexOf("amount_minor");
-    int typeIndex = headers.indexOf("type");
-    int walletIndex = headers.indexOf("wallet_id");
-    int categoryIndex = headers.indexOf("category_id");
-    int occurredAtIndex = headers.indexOf("occurred_at");
-    int noteIndex = headers.indexOf("note");
-    int transferIdIndex = headers.indexOf("transfer_id");
-    int cashFlowIndex = headers.indexOf("cash_flow_activity");
-    int cashFlowOverriddenIndex = headers.indexOf("cash_flow_activity_overridden");
-    int count = 0;
-    String line;
-    while ((line = reader.readLine()) != null) {
-      line = line.trim();
-      if (line.isEmpty()) continue;
-      if (SECTION_NAMES.contains(line)) break;
-      List<String> fields = parseCsvLine(line);
-      if (fields.size() < 7) continue;
+  private static long lookupId(Map<Long, Long> ids, String value) {
+    Long mapped = ids.get(positive(value));
+    require(mapped != null, "Unknown referenced ID");
+    return mapped;
+  }
 
-      long amountMinor = Long.parseLong(fields.get(amountIndex >= 0 ? amountIndex : 1));
-      if (amountMinor <= 0L) continue;
-      TransactionType type;
-      try {
-        type = TransactionType.valueOf(fields.get(typeIndex >= 0 ? typeIndex : 2));
-      } catch (IllegalArgumentException e) {
-        continue;
-      }
-      long walletId = lookupId(walletIdMap, fields.get(walletIndex >= 0 ? walletIndex : 3));
-      long categoryId = safeParseLong(
-          fields.get(categoryIndex >= 0 && categoryIndex < fields.size() ? categoryIndex : 4), 0L);
-      if (categoryId > 0L) {
-        categoryId = lookupId(categoryIdMap, String.valueOf(categoryId));
-      }
-      long occurredAt = Long.parseLong(
-          fields.get(occurredAtIndex >= 0 ? occurredAtIndex : 5));
-      String note = noteIndex >= 0 && noteIndex < fields.size() ? fields.get(noteIndex) : null;
-      if (note != null && note.isEmpty()) {
-        note = null;
-      }
-
-      CashFlowActivity cashFlowActivity = CashFlowActivity.UNCLASSIFIED;
-      if (cashFlowIndex >= 0 && cashFlowIndex < fields.size()) {
-        String val = fields.get(cashFlowIndex);
-        if (!val.isEmpty()) {
-          try {
-            cashFlowActivity = CashFlowActivity.valueOf(val);
-          } catch (IllegalArgumentException ignored) {
+  static String readCsvRecord(PushbackReader reader) throws IOException {
+    StringBuilder record = new StringBuilder();
+    boolean quoted = false;
+    int value;
+    while ((value = reader.read()) != -1) {
+      char c = (char) value;
+      if (c == '"') {
+        if (quoted) {
+          int next = reader.read();
+          if (next == '"') {
+            record.append("\"\"");
+            if (record.length() > MAX_RECORD_CHARS) throw new IOException("CSV record too large");
+            continue;
           }
+          quoted = false;
+          if (next != -1) reader.unread(next);
+        } else {
+          quoted = true;
         }
       }
-      boolean cashFlowOverridden = false;
-      if (cashFlowOverriddenIndex >= 0 && cashFlowOverriddenIndex < fields.size()) {
-        cashFlowOverridden = "1".equals(fields.get(cashFlowOverriddenIndex));
-      }
-      Transaction transaction =
-          new Transaction(0L, amountMinor, type, walletId, categoryId, occurredAt, note);
-      transaction.setCashFlowActivity(cashFlowActivity);
-      transaction.setCashFlowActivityOverridden(cashFlowOverridden);
-
-      long newTrxId = transactionGateway.insert(transaction);
-      if (newTrxId > 0L) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  private void recalculateAllWalletBalances() {
-    List<com.dwlhm.finan.data.entity.Wallet> allWallets = walletDao.findAll();
-    for (com.dwlhm.finan.data.entity.Wallet w : allWallets) {
-      balanceService.recalculate(w.getId());
-    }
-  }
-
-  private static long lookupId(Map<Long, Long> idMap, String strId) {
-    try {
-      long oldId = Long.parseLong(strId.trim());
-      Long mapped = idMap.get(oldId);
-      return mapped != null ? mapped : oldId;
-    } catch (NumberFormatException e) {
-      return 0L;
-    }
-  }
-
-  private static long safeParseLong(String value, long defaultValue) {
-    if (value == null || value.trim().isEmpty()) {
-      return defaultValue;
-    }
-    try {
-      return Long.parseLong(value.trim());
-    } catch (NumberFormatException e) {
-      return defaultValue;
-    }
-  }
-
-  private static long nowOrDefault(int index, List<String> fields, long defaultVal) {
-    if (index >= 0 && index < fields.size()) {
-      String val = fields.get(index);
-      if (!val.isEmpty()) {
-        try {
-          return Long.parseLong(val);
-        } catch (NumberFormatException e) {
-          return defaultVal;
+      if (!quoted && (c == '\n' || c == '\r')) {
+        if (c == '\r') {
+          int next = reader.read();
+          if (next != -1 && next != '\n') reader.unread(next);
         }
+        return record.toString();
       }
+      record.append(c);
+      if (record.length() > MAX_RECORD_CHARS) throw new IOException("CSV record too large");
     }
-    return defaultVal;
+    if (quoted) throw new IOException("Unterminated quoted CSV field");
+    return record.length() == 0 ? null : record.toString();
   }
 
   static List<String> parseCsvLine(String line) {
     List<String> fields = new ArrayList<>();
     StringBuilder current = new StringBuilder();
-    boolean inQuotes = false;
+    boolean quoted = false;
+    boolean closed = false;
     for (int i = 0; i < line.length(); i++) {
       char c = line.charAt(i);
-      if (inQuotes) {
+      if (quoted) {
         if (c == '"') {
           if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
             current.append('"');
             i++;
           } else {
-            inQuotes = false;
+            quoted = false;
+            closed = true;
           }
-        } else {
-          current.append(c);
-        }
+        } else current.append(c);
+      } else if (c == ',') {
+        fields.add(current.toString());
+        current.setLength(0);
+        closed = false;
+      } else if (c == '"') {
+        require(current.length() == 0 && !closed, "Malformed CSV quote");
+        quoted = true;
       } else {
-        if (c == '"') {
-          inQuotes = true;
-        } else if (c == ',') {
-          fields.add(current.toString());
-          current = new StringBuilder();
-        } else {
-          current.append(c);
-        }
+        require(!closed && c != '\r' && c != '\n', "Malformed CSV field");
+        current.append(c);
       }
     }
+    require(!quoted, "Unterminated CSV quote");
     fields.add(current.toString());
     return fields;
   }

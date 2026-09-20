@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reminder_title">Pengingat jatuh tempo</string>
+    <string name="reminder_notification_body">Ada jadwal yang perlu ditinjau hari ini. Buka Finan untuk melihatnya.</string>
+    <string name="reminder_enabled">Aktif. Diperiksa berkala oleh Android; waktu pemberitahuan dapat tertunda. Tidak ada transaksi yang dicatat otomatis.</string>
+    <string name="reminder_disabled">Nonaktif. Aktifkan untuk pengingat umum saat ada jadwal jatuh tempo hari ini.</string>
+    <string name="reminder_permission_denied">Nonaktif. Izinkan notifikasi Finan dan kanal pengingat di pengaturan sistem, lalu aktifkan kembali.</string>
+    <string name="reminder_schedule_failed">Pengingat tidak dapat dijadwalkan. Coba aktifkan kembali.</string>
+    <string name="reminder_system_settings">Pengaturan notifikasi sistem</string>
+    <string name="reminder_query_failed">Jadwal belum dapat dimuat. Buka kembali pengingat untuk mencoba lagi.</string>
+</resources>
