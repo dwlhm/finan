@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 3D Pencil for Catat Transaksi Screen -->
+    <!-- Soft Drop Shadow -->
+    <path
+        android:fillColor="#260F172A"
+        android:pathData="M5.5,20.5 L19.5,6.5 C20,6 20.8,6 21.3,6.5 L21.3,6.5 C21.8,7 21.8,7.8 21.3,8.3 L7.3,22.3 L4,23 L4.7,19.7 Z" />
+    <!-- Eraser top cap (Coral Pink) -->
+    <path
+        android:fillColor="#E11D48"
+        android:pathData="M17.5,3.2 L20.8,6.5 L19.4,7.9 L16.1,4.6 Z" />
+    <!-- Eraser top highlight -->
+    <path
+        android:fillColor="#FB7185"
+        android:pathData="M17.5,3.2 C18.3,2.4 19.6,2.4 20.4,3.2 L20.8,3.6 C21.6,4.4 21.6,5.7 20.8,6.5 L19.8,5.5 L18.5,4.2 Z" />
+    <!-- Metallic collar band (Silver/Chrome) -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M16.1,4.6 L19.4,7.9 L18.2,9.1 L14.9,5.8 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M16.1,4.6 L17.5,6 L16.3,7.2 L14.9,5.8 Z" />
+    <!-- Pencil Body: 3D Facets (Golden Amber) -->
+    <!-- 1. Bottom shade facet -->
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M14.9,5.8 L18.2,9.1 L9.7,17.6 L7.5,15.4 Z" />
+    <!-- 2. Mid vibrant facet -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M13.8,4.7 L17.1,8 L8.6,16.5 L6.4,14.3 Z" />
+    <!-- 3. Top highlight facet -->
+    <path
+        android:fillColor="#FDE047"
+        android:pathData="M12.7,3.6 L16,6.9 L7.5,15.4 L5.3,13.2 Z" />
+    <!-- Pencil Sharpened Wood Cone -->
+    <!-- Wood shade side -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M7.5,15.4 L9.7,17.6 L5.2,19.2 L4.8,17.2 Z" />
+    <!-- Wood light side -->
+    <path
+        android:fillColor="#FEF08A"
+        android:pathData="M5.3,13.2 L7.5,15.4 L4.8,17.2 L3.6,15.4 Z" />
+    <!-- Sharp Graphite / Lead Tip -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M3,21 L4.8,17.2 L5.2,19.2 Z" />
+    <!-- Glossy Specular Ridge along pencil body -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.75"
+        android:strokeLineCap="round"
+        android:strokeAlpha="0.8"
+        android:pathData="M13,5.5 L6.5,14" />
+</vector>

@@ -38,7 +38,7 @@ public final class TransactionItemViewHolder extends RecyclerView.ViewHolder {
 
     iconBackground = new android.graphics.drawable.GradientDrawable();
     iconBackground.setCornerRadius(
-        22f * itemView.getContext().getResources().getDisplayMetrics().density);
+        13f * itemView.getContext().getResources().getDisplayMetrics().density);
 
     itemView.setOnClickListener(v -> {
       int pos = getBindingAdapterPosition();

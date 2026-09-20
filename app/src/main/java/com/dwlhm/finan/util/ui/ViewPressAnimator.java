@@ -26,4 +26,37 @@ public final class ViewPressAnimator {
           return false;
         });
   }
+
+  @SuppressLint("ClickableViewAccessibility")
+  public static void bindSpringScale(View view) {
+    view.setOnTouchListener(
+        (pressedView, event) -> {
+          switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+              pressedView
+                  .animate()
+                  .scaleX(0.88f)
+                  .scaleY(0.88f)
+                  .setDuration(120)
+                  .setInterpolator(new android.view.animation.DecelerateInterpolator())
+                  .start();
+              break;
+            case MotionEvent.ACTION_UP:
+              pressedView.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP);
+              // fallthrough
+            case MotionEvent.ACTION_CANCEL:
+              pressedView
+                  .animate()
+                  .scaleX(1.0f)
+                  .scaleY(1.0f)
+                  .setDuration(300)
+                  .setInterpolator(new android.view.animation.OvershootInterpolator(3.0f))
+                  .start();
+              break;
+            default:
+              break;
+          }
+          return false;
+        });
+  }
 }

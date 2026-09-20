@@ -27,6 +27,8 @@
         app:drawableStartCompat="@drawable/ic_search"
         android:drawablePadding="8dp"
         android:hint="@string/hc_dialog_search_bottom_sheet_search"
+        android:textColor="@color/finan_text_primary"
+        android:textColorHint="@color/finan_text_hint"
         android:imeOptions="actionDone"
         android:inputType="textNoSuggestions"
         android:maxLines="1"

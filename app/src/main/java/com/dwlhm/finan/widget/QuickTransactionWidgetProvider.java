@@ -13,6 +13,7 @@ import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.service.privacy.AppLock;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
@@ -46,6 +47,10 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
+        if (AppLock.privateWidgets(context)) {
+            updateAllWidgets(context);
+            return;
+        }
         if (intent == null || intent.getAction() == null) {
             return;
         }
@@ -127,6 +132,10 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
     }
 
     public static void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        if (AppLock.privateWidgets(context)) {
+            appWidgetManager.updateAppWidget(appWidgetId, AppLock.privateWidgetViews(context, appWidgetId));
+            return;
+        }
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_quick_transaction);
         AppServices services = AppServices.create(context);
 
@@ -221,7 +230,11 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
         } catch (NumberFormatException ignored) {
         }
         String formattedAmount = MoneyFormatter.format(amountLong);
-        views.setTextViewText(R.id.tv_amount_display, formattedAmount);
+        if (AppLock.privateWidgets(context) && amountLong > 0) {
+            views.setTextViewText(R.id.tv_amount_display, "Rp ••••••");
+        } else {
+            views.setTextViewText(R.id.tv_amount_display, formattedAmount);
+        }
         // 2. Display type toggle state via RemoteViews setViewVisibility
         String typeStr = WidgetStateStore.getType(context, appWidgetId);
         boolean isIncome = "INCOME".equalsIgnoreCase(typeStr);
@@ -408,7 +421,11 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
 
         String catName = category.getName();
         String formattedAmount = MoneyFormatter.format(amount);
-        Toast.makeText(context, "Tersimpan: " + formattedAmount + " (" + catName + ")", Toast.LENGTH_SHORT).show();
+        if (AppLock.privateWidgets(context)) {
+            Toast.makeText(context, "Tersimpan (" + catName + ")", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Tersimpan: " + formattedAmount + " (" + catName + ")", Toast.LENGTH_SHORT).show();
+        }
         WidgetStateStore.saveDraftSnapshot(context, appWidgetId, amountStr, typeStr, walletId, categoryId);
         WidgetStateStore.setPendingUndo(context, appWidgetId, txId, System.currentTimeMillis() + 5000L);
         WidgetStateStore.resetAmount(context, appWidgetId);

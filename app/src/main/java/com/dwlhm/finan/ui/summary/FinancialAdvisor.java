@@ -86,10 +86,8 @@ public final class FinancialAdvisor {
       return new AdviceDetails(AdviceType.OVERSPENDING, 0);
     }
 
-    double effectiveProgress = Math.max(dayProgress, 0.05);
     double expensePercent = (expense * 100.0) / income;
-    double normalizedPercent = Math.min(100.0, expensePercent / effectiveProgress);
-    int percentage = (int) Math.round(normalizedPercent);
+    int percentage = (int) Math.round(expensePercent);
 
     int savings = Math.max(0, 100 - percentage);
     if (percentage > 80) {

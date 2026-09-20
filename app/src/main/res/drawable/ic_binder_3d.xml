@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 3D Modern Buku Kas / Ledger -->
+    <!-- Soft Base Shadow -->
+    <path
+        android:fillColor="#260F172A"
+        android:pathData="M4,19.5 L12,22.5 L20,18.5 L12,16 Z" />
+    <!-- 3D Pages Block (White paper stack with thickness) -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M5.5,16.5 L12,19.5 L18.5,16 L12,13.5 Z" />
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M6,15.5 L12,18.5 L18.5,15.2 L12,12.5 Z" />
+    <!-- Front/side pages edge layer -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M12,18.5 L18.5,15.2 L18.5,16 L12,19.5 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M5.5,16.5 L12,19.5 L12,18.5 L6,15.5 Z" />
+    <!-- 3D Spine (Deep Marine Blue) -->
+    <path
+        android:fillColor="#0369A1"
+        android:pathData="M4,7 C4,6.2 4.5,5.5 5.2,5.2 L11,3 L11,14.5 L4.5,16.8 C4.2,16.9 4,16.7 4,16.4 Z" />
+    <!-- Front Cover (Vibrant Cyan / Sky Blue) -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M11,3 L18.8,6.2 C19.5,6.5 20,7.2 20,8 L20,15.8 C20,16.5 19.4,17 18.7,16.7 L11,14.5 Z" />
+    <!-- Cover Bevel / Top Highlight (Light Cyan) -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M11,3 L18.8,6.2 L18,7 L11,4.2 Z" />
+    <!-- Golden Ribbon Bookmark hanging from pages -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M13.5,13.5 L15.5,14.2 L15.5,18.5 L14.5,17.8 L13.5,18.5 Z" />
+    <path
+        android:fillColor="#FCD34D"
+        android:pathData="M13.5,13.5 L14.5,13.8 L14.5,17.8 L13.5,18.5 Z" />
+    <!-- Embossed Financial Lines on Cover -->
+    <path
+        android:strokeColor="#BAE6FD"
+        android:strokeWidth="1.1"
+        android:strokeLineCap="round"
+        android:pathData="M13.5,8 L17.5,9.6 M13.5,10.2 L16.8,11.5" />
+    <!-- Spine Ring / Stitching Accents -->
+    <path
+        android:fillColor="#7DD3FC"
+        android:pathData="M10.6,5.2 L11.4,5.5 L11.4,6.3 L10.6,6 Z M10.6,8.2 L11.4,8.5 L11.4,9.3 L10.6,9 Z M10.6,11.2 L11.4,11.5 L11.4,12.3 L10.6,12 Z" />
+</vector>

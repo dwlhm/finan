@@ -83,6 +83,19 @@ public class SearchTransactionActivity extends AppCompatActivity {
     private Map<Long, Wallet> walletsById = Map.of();
 
     @Override
+    protected void onSaveInstanceState(@NonNull Bundle state) {
+        state.putLong("filter_category_id", selectedCategoryId == null ? -1 : selectedCategoryId);
+        state.putLong("filter_wallet_id", selectedWalletId == null ? -1 : selectedWalletId);
+        state.putString("filter_type", selectedTypeId == null ? null : selectedTypeId == TYPE_EXPENSE_ID ? "EXPENSE" : "INCOME");
+        if (selectedStartDate != null && selectedEndDate != null) {
+            state.putLong("filter_start", selectedStartMillis());
+            state.putLong("filter_end", selectedEndDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli());
+        }
+        state.putString(EXTRA_QUERY, searchQuery);
+        super.onSaveInstanceState(state);
+    }
+
+    @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         services = ServicesProvider.get(this);
@@ -90,6 +103,21 @@ public class SearchTransactionActivity extends AppCompatActivity {
 
         if (getIntent() != null && getIntent().hasExtra(EXTRA_QUERY)) {
             searchQuery = getIntent().getStringExtra(EXTRA_QUERY);
+        }
+
+        android.os.Bundle filters = savedInstanceState != null ? savedInstanceState : getIntent().getExtras();
+        if (filters != null) {
+            long category = filters.getLong("filter_category_id", -1);
+            long wallet = filters.getLong("filter_wallet_id", -1);
+            selectedCategoryId = category > 0 ? category : null;
+            selectedWalletId = wallet > 0 ? wallet : null;
+            String type = filters.getString("filter_type");
+            selectedTypeId = "EXPENSE".equals(type) ? TYPE_EXPENSE_ID : "INCOME".equals(type) ? TYPE_INCOME_ID : null;
+            if (filters.containsKey("filter_start") && filters.containsKey("filter_end")) {
+                selectedStartDate = java.time.Instant.ofEpochMilli(filters.getLong("filter_start")).atZone(ZoneId.systemDefault()).toLocalDate();
+                selectedEndDate = java.time.Instant.ofEpochMilli(filters.getLong("filter_end")).atZone(ZoneId.systemDefault()).toLocalDate();
+            }
+            if (savedInstanceState != null) searchQuery = filters.getString(EXTRA_QUERY, "");
         }
 
         searchList = findViewById(R.id.search_list);

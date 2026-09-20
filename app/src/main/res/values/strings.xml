@@ -42,6 +42,10 @@
     <string name="capture_error_destination">Pilih dompet tujuan</string>
     <string name="capture_validation_hint">Periksa field yang ditandai merah</string>
     <string name="capture_error_save">Gagal menyimpan transaksi</string>
+    <string name="capture_btn_reset">Reset</string>
+    <string name="capture_btn_cancel">Batalkan</string>
+    <string name="capture_btn_cancel_countdown">Batalkan (%ds)</string>
+    <string name="capture_saved">Tersimpan</string>
 
     <string name="nav_capture">Catat</string>
     <string name="nav_dashboard">Buku Kas</string>
@@ -256,10 +260,17 @@
     <string name="settings_section_master_data">Keuangan &amp; Master Data</string>
     <string name="settings_section_data_backup">Data &amp; Cadangan</string>
     <string name="settings_section_about">Tentang Aplikasi</string>
+
+    <!-- Security & Privacy -->
+    <string name="settings_section_security">Keamanan &amp; Privasi</string>
+    <string name="settings_app_lock_title">Kunci Aplikasi</string>
+    <string name="settings_app_lock_subtitle">Minta biometrik atau PIN perangkat saat membuka aplikasi</string>
+    <string name="settings_private_widgets_title">Privasi Widget</string>
+    <string name="settings_private_widgets_subtitle">Sembunyikan saldo dan nominal pada widget layar depan</string>
     <string name="settings_amount_shortcuts_title">Pintasan Nominal Quick Input</string>
     <string name="settings_amount_shortcuts_subtitle">Kelola daftar nominal cepat yang tampil pada keyboard layar Pencatatan.</string>
-    <string name="settings_export_subtitle">Simpan riwayat transaksi, dompet, dan kategori ke dalam file CSV.</string>
-    <string name="settings_import_subtitle">Tambah data transaksi dari file CSV cadangan.</string>
+    <string name="settings_export_subtitle">CSV terbuka untuk spreadsheet; tidak terenkripsi</string>
+    <string name="settings_import_subtitle">Tambah data dari CSV Finan lengkap; impor ulang dapat menggandakan transaksi</string>
     <string name="settings_reset_data_title">Reset Semua Data</string>
     <string name="settings_reset_data_subtitle">Hapus seluruh transaksi, dompet, dan kategori. Data tidak dapat dikembalikan!</string>
     <string name="settings_reset_data_confirm_title">Hapus Semua Data Aplikasi?</string>
@@ -292,16 +303,16 @@
     <string name="advice_halfway_msg">Sudah setengah periode berlalu. Evaluasi pengeluaranmu sejauh ini agar di sisa periode bisa lebih optimal. Jangan lupa catat transaksi yang belum tercatat di tab &amp;lt;b&amp;gt;Catat&amp;lt;/b&amp;gt;!&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Tips Keuangan:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;Buka menu &amp;lt;b&amp;gt;Dompet&amp;lt;/b&amp;gt; di tab &amp;lt;b&amp;gt;Pengaturan&amp;lt;/b&amp;gt; untuk memantau sisa saldo di setiap rekening dan menjaga disiplin anggaran.</string>
     <string name="advice_no_data_title">Mulai Perjalanan Finansialmu</string>
     <string name="advice_no_data_msg">Catat pemasukan dan pengeluaran pertamamu untuk mendapatkan analisis finansial pribadi.&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Tips Aplikasi:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;Mulai catat transaksi harianmu di tab &amp;lt;b&amp;gt;Catat&amp;lt;/b&amp;gt; agar data keuanganmu mulai terbentuk!</string>
-    <string name="advice_overspending_title">Bulan yang Menantang</string>
-    <string name="advice_overspending_msg">Bulan ini pengeluaranmu sedikit lebih besar dari pemasukan. Yuk, kita evaluasi bersama pos-pos pengeluaran yang bisa disesuaikan agar bulan depan kembali seimbang!&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Tips Keuangan:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;Gunakan tab &amp;lt;b&amp;gt;Riwayat&amp;lt;/b&amp;gt; untuk melihat detail transaksi dan menemukan pos pengeluaran non-esensial yang bisa dikurangi.</string>
-    <string name="advice_overspending_consecutive_title">Evaluasi Defisit Beruntun</string>
-    <string name="advice_overspending_consecutive_msg">Keuanganmu mengalami defisit selama 3 bulan berturut-turut. Ini saat yang tepat untuk meninjau prioritas pengeluaran atau mencari alternatif pemasukan tambahan. Kami siap membantumu menyusun langkah perbaikan!&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Tips Keuangan:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;Buka menu &amp;lt;b&amp;gt;Dompet&amp;lt;/b&amp;gt; di tab &amp;lt;b&amp;gt;Pengaturan&amp;lt;/b&amp;gt; untuk memantau sisa saldo di setiap rekening dan menjaga disiplin anggaran.</string>
-    <string name="advice_high_spending_title">Yuk, Tingkatkan Tabunganmu</string>
-    <string name="advice_high_spending_msg">Bulan ini kamu menggunakan %1$d%% pemasukan untuk pengeluaran. Dengan menyisihkan sedikit lebih banyak, kamu akan lebih cepat membangun dana darurat yang aman.&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Tips Keuangan:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;Langsung catat transaksi di tab &amp;lt;b&amp;gt;Catat&amp;lt;/b&amp;gt; sesaat setelah belanja agar kamu tetap sadar akan sisa anggaran bulananmu.</string>
-    <string name="advice_healthy_title">Kerja Bagus!</string>
-    <string name="advice_healthy_msg">Kamu berhasil mengalokasikan %1$d%% dari pemasukan untuk ditabung. Kebiasaan ini sangat baik untuk masa depanmu. Pertahankan konsistensi ini, ya!&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Tips Keuangan:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;Pantau terus tren keuangan bulananmu di tab &amp;lt;b&amp;gt;Ringkasan&amp;lt;/b&amp;gt; agar alokasi tabunganmu tetap terjaga secara konsisten.</string>
-    <string name="advice_excellent_title">Luar Biasa!</string>
-    <string name="advice_excellent_msg">Pengeluaranmu sangat hemat dan kamu bisa menabung %1$d%% dari pemasukan. Kamu punya ruang gerak keuangan yang sangat luas bulan ini. Pertimbangkan untuk mulai menginvestasikan sebagian tabunganmu.&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Tips Keuangan:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;Buat dompet terpisah (misalnya \&amp;apos;Tabungan Investasi\&amp;apos;) di menu &amp;lt;b&amp;gt;Dompet&amp;lt;/b&amp;gt; (tab &amp;lt;b&amp;gt;Pengaturan&amp;lt;/b&amp;gt;) untuk memisahkan dana investasi dari dana operasional harian.</string>
+    <string name="advice_overspending_title">Pengeluaran Melebihi Pemasukan Tercatat</string>
+    <string name="advice_overspending_msg">Pengeluaran tercatat lebih besar daripada pemasukan periode ini. Ini dapat mencakup penggunaan saldo dari periode sebelumnya atau pemasukan yang belum dicatat.</string>
+    <string name="advice_overspending_consecutive_title">Selisih Negatif dalam Tiga Periode</string>
+    <string name="advice_overspending_consecutive_msg">Pengeluaran tercatat melebihi pemasukan dalam tiga periode yang dibandingkan. Periksa kelengkapan catatan sebelum menarik kesimpulan.</string>
+    <string name="advice_high_spending_title">Pengeluaran Tercatat</string>
+    <string name="advice_high_spending_msg">Pengeluaran tercatat sebesar %1$d%% dari pemasukan periode ini. Angka ini berdasarkan transaksi yang sudah dicatat, bukan perkiraan akhir periode.</string>
+    <string name="advice_healthy_title">Selisih Pemasukan dan Pengeluaran</string>
+    <string name="advice_healthy_msg">Selisih pemasukan dan pengeluaran tercatat sebesar %1$d%% dari pemasukan periode ini. Selisih ini belum tentu sudah disisihkan sebagai tabungan.</string>
+    <string name="advice_excellent_title">Selisih Pemasukan dan Pengeluaran</string>
+    <string name="advice_excellent_msg">Selisih pemasukan dan pengeluaran tercatat sebesar %1$d%% dari pemasukan periode ini. Periksa juga transaksi yang belum dicatat dan kewajiban mendatang.</string>
     <string name="advice_category_rise_template">&amp;lt;br/&amp;gt;&amp;lt;br/&amp;gt;&amp;lt;b&amp;gt;Sorotan Pengeluaran:&amp;lt;/b&amp;gt;&amp;lt;br/&amp;gt;• Pengeluaran kategori &amp;lt;b&amp;gt;%1$s&amp;lt;/b&amp;gt; naik %2$d%% (+%3$s) dibanding bulan lalu.</string>
     <string name="desc_btn_summary_filter">button to filter the summary data</string>
     <string name="hc_activity_capture_keluar">Keluar </string>
@@ -355,6 +366,21 @@
     <string name="hc_dialog_financial_advice_pengeluaran">Pengeluaran</string>
     <string name="hc_dialog_financial_advice_rasio_pengeluaran">Rasio Pengeluaran</string>
     <string name="hc_dialog_financial_advice_tutup">Tutup</string>
+    <string name="advice_dialog_pace_card_title">Laju Belanja vs Waktu</string>
+    <string name="advice_dialog_pace_time_spent">Waktu Berlalu</string>
+    <string name="advice_dialog_pace_expense_spent">Pengeluaran Terpakai</string>
+    <string name="advice_dialog_pace_status_controlled">Laju belanja terkendali di bawah laju hari</string>
+    <string name="advice_dialog_pace_status_overpace">Kecepatan pengeluaran melebihi laju hari</string>
+    <string name="advice_dialog_pace_status_nodata">Belum ada transaksi pada periode ini</string>
+    <string name="advice_dialog_pace_badge_controlled">Terkendali</string>
+    <string name="advice_dialog_pace_badge_overpace">Perhatian</string>
+    <string name="advice_dialog_pace_badge_nodata">Netral</string>
+    <string name="advice_dialog_pace_time_format">Progres Periode: Hari ke-%1$d dari %2$d hari (%3$.0f%%)</string>
+    <string name="advice_dialog_pace_time_label_format">Hari %1$d/%2$d (%3$.0f%%)</string>
+    <string name="advice_dialog_subtitle_format">Evaluasi Finansial • %1$s</string>
+    <string name="advice_dialog_subtitle_default">Evaluasi Finansial Periode Ini</string>
+    <string name="advice_dialog_tips_header_default">Tips Keuangan</string>
+    <string name="advice_dialog_evaluation_label">Evaluasi &amp; Catatan</string>
     <string name="hc_dialog_month_year_picker_pilih_waktu">Pilih Waktu</string>
     <string name="hc_dialog_month_year_picker_batal">Batal</string>
     <string name="hc_dialog_month_year_picker_terapkan">Terapkan</string>
@@ -383,6 +409,15 @@
     <string name="hc_fragment_monthly_dashboard_ringkasan">Ringkasan</string>
     <string name="hc_fragment_monthly_dashboard_aktivitas_harian">Aktivitas Harian</string>
     <string name="hc_fragment_monthly_dashboard_total_per_kategori">Total per Kategori</string>
+    <string name="monthly_period_previous">Periode sebelumnya</string>
+    <string name="monthly_period_next">Periode berikutnya</string>
+    <string name="monthly_period_range_format">%1$s – %2$s</string>
+    <string name="monthly_summary_empty_title">Belum ada ringkasan</string>
+    <string name="monthly_summary_empty_hint">Catat transaksi untuk melihat ringkasan keuanganmu.</string>
+    <string name="monthly_summary_empty_action">Catat transaksi</string>
+    <string name="monthly_summary_filtered_title">Tidak ada transaksi yang cocok</string>
+    <string name="monthly_summary_filtered_hint">Coba ubah atau hapus filter yang aktif.</string>
+    <string name="monthly_transactions_section_title">Transaksi</string>
     <string name="hc_item_wallet_hapus_dompet">Hapus dompet</string>
     <string name="hc_layout_bottom_nav_buku_kas">Buku Kas</string>
     <string name="java_CaptureFragment_tahan_untuk_pertahankan">Tahan untuk Pertahankan...</string>
@@ -425,6 +460,23 @@
     <string name="java_WalletOverviewBottomSheet_hapus_dompet">Hapus dompet</string>
     <string name="java_WeeklyDetailBottomSheetDialog_tahun">Tahun </string>
     <string name="java_WeeklyDetailBottomSheetDialog_rp">Rp ***</string>
+    <string name="weekly_detail_income_week">Pemasukan mingguan</string>
+    <string name="weekly_detail_expense_week">Pengeluaran mingguan</string>
+    <string name="weekly_detail_activity">Detail Aktivitas</string>
+    <string name="weekly_detail_income_month">Pemasukan bulanan</string>
+    <string name="weekly_detail_expense_month">Pengeluaran bulanan</string>
+    <string name="weekly_detail_year">Tahun %1$d</string>
+    <string name="weekly_detail_total">Total</string>
+    <string name="weekly_detail_comparison_label">vs minggu lalu</string>
+    <string name="weekly_detail_no_comparison">-</string>
+    <string name="weekly_detail_new_value">Baru</string>
+    <string name="weekly_detail_masked_amount">Rp ***</string>
+    <string name="weekly_detail_empty">Tidak ada data harian</string>
+    <string name="weekly_detail_error">Detail kategori tidak tersedia</string>
+    <string name="weekly_detail_close">Tutup detail mingguan</string>
+    <string name="weekly_detail_expand">Tampilkan kategori</string>
+    <string name="weekly_detail_change_up">↑ %1$.1f%%</string>
+    <string name="weekly_detail_change_down">↓ %1$.1f%%</string>
     <string name="auto_now">Now</string>
     <string name="auto_str_fbe930c2">*</string>
     <string name="auto_str_698031c4">*</string>
@@ -448,10 +500,17 @@
     <string name="widget_quick_transaction_name">Catat Transaksi Cepat</string>
     <string name="widget_quick_transaction_description">Widget catat transaksi cepat dengan keypad kustom tanpa masuk aplikasi</string>
     <string name="widget_shortcut_name">Shortcut Transaksi</string>
-    <string name="widget_shortcut_description">Widget pintasan transaksi cepat untuk mencatat transaksi dengan satu ketukan</string>
+    <string name="widget_shortcut_description">Buka formulir transaksi yang sudah terisi. Periksa lalu tekan Simpan untuk mencatat.</string>
     <string name="widget_shortcut_action_capture">Catat</string>
     <string name="widget_shortcut_action_search">Cari</string>
     <string name="widget_shortcut_action_wallets">Dompet</string>
     <string name="widget_shortcut_action_categories">Kategori</string>
-</resources>
 
+    <string name="monthly_hero_analytics_action">Analisis Kas \u203a</string>
+    <string name="monthly_hero_runway_label">Sisa aman setelah tagihan:</string>
+
+    <string name="settings_theme_title">Tema Tampilan</string>
+    <string name="settings_theme_system">Ikuti Sistem</string>
+    <string name="settings_theme_light">Mode Terang</string>
+    <string name="settings_theme_dark">Mode Gelap</string>
+</resources>

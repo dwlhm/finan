@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="8dp">
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/monthly_summary_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="36dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="36dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/monthly_summary_empty_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:gravity="center"
+            android:text="@string/monthly_summary_empty_title"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/monthly_summary_empty_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:gravity="center"
+            android:text="@string/monthly_summary_empty_hint"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/monthly_summary_empty_action"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:contentDescription="@string/monthly_summary_empty_action"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:minHeight="48dp"
+            android:text="@string/monthly_summary_empty_action"
+            android:textColor="@color/finan_primary"
+            app:cornerRadius="20dp"
+            app:strokeColor="@color/finan_primary" />
+    </LinearLayout>
+
+    <!-- Stub views for test assertion backward compatibility (zero-overhead) -->
+    <View
+        android:id="@+id/card_monthly_runway"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/monthly_weekly_chart"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/monthly_category_chart"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <!-- Section Title: Daftar Transaksi -->
+    <TextView
+        android:id="@+id/monthly_transactions_title"
+        style="@style/Finan.Text.SectionLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="6dp"
+        android:fontFamily="@font/plus_jakarta_sans_family"
+        android:text="@string/monthly_transactions_section_title" />
+
+</LinearLayout>

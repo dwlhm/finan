@@ -35,6 +35,7 @@ import java.util.Locale;
 @SuppressLint("SetTextI18n")
 public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
 
+  private boolean actionPending;
   private final AppServices services;
   private final ForwardCashFlowSummary summary;
   private final DashboardViewModel.DisplayMode displayMode;
@@ -126,6 +127,10 @@ public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
   }
 
   private void recordObligation(UpcomingObligation obligation) {
+    handleObligation(obligation, false);
+  }
+
+  private long saveObligation(UpcomingObligation obligation) {
     long walletId = obligation.getWalletId() != null && obligation.getWalletId() > 0 ? obligation.getWalletId() : 0L;
     if (walletId == 0L) {
       Wallet defaultWallet = services.walletDao.findDefault();
@@ -168,32 +173,77 @@ public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
             System.currentTimeMillis(),
             obligation.getName());
 
-    services.transactionService.save(tx);
-    services.transactionTemplateDao.markRecorded(obligation.getTemplateId(), System.currentTimeMillis());
-
-    Toast.makeText(getContext(), obligation.getName() + " berhasil dicatat", Toast.LENGTH_SHORT).show();
-
-    Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
-    broadcastIntent.setPackage(getContext().getPackageName());
-    getContext().sendBroadcast(broadcastIntent);
-
-    if (onDataChangedCallback != null) {
-      onDataChangedCallback.run();
+    if (walletId <= 0 || services.walletDao.findById(walletId) == null) {
+      throw new IllegalArgumentException("Wallet required");
     }
-    dismiss();
+    if (obligation.getType() == TransactionType.TRANSFER_OUT) {
+      com.dwlhm.finan.domain.model.TransactionTemplate template =
+          services.transactionTemplateDao.findById(obligation.getTemplateId());
+      if (template == null || template.getDestinationWalletId() == null) {
+        throw new IllegalArgumentException("Destination wallet required");
+      }
+      long transferId = services.transferService.create(walletId, template.getDestinationWalletId(),
+          obligation.getAmountMinor(), System.currentTimeMillis(), obligation.getName());
+      for (Transaction entry : services.transactionGateway.findByTransferId(transferId)) {
+        if (entry.getType() == TransactionType.TRANSFER_OUT) return entry.getId();
+      }
+      throw new IllegalStateException("Transfer entry missing");
+    }
+    if (categoryId <= 0 || services.categoryDao.findById(categoryId) == null) {
+      throw new IllegalArgumentException("Category required");
+    }
+    return services.transactionService.save(tx);
   }
 
   private void skipObligation(UpcomingObligation obligation) {
-    services.transactionTemplateDao.markSkipped(obligation.getTemplateId(), System.currentTimeMillis());
+    handleObligation(obligation, true);
+  }
 
-    Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
-    broadcastIntent.setPackage(getContext().getPackageName());
-    getContext().sendBroadcast(broadcastIntent);
-
-    if (onDataChangedCallback != null) {
-      onDataChangedCallback.run();
-    }
-    dismiss();
+  private void handleObligation(UpcomingObligation obligation, boolean skip) {
+    if (actionPending) return;
+    actionPending = true;
+    String dueDate = java.time.Instant.ofEpochMilli(obligation.getDueEpochMillis())
+        .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString();
+    Context appContext = getContext().getApplicationContext();
+    services.dbWorker.compute(() -> {
+      try {
+        android.database.sqlite.SQLiteDatabase db = services.databaseHelper.getWritableDatabase();
+        db.beginTransaction();
+        try {
+          if (services.transactionTemplateDao.isOccurrenceHandled(obligation.getTemplateId(), dueDate)) {
+            return 1;
+          }
+          Long transactionId = skip ? null : saveObligation(obligation);
+          if (!services.transactionTemplateDao.markOccurrence(obligation.getTemplateId(), dueDate,
+              skip ? "SKIPPED" : "RECORDED", transactionId)) {
+            throw new IllegalStateException("Occurrence was not saved");
+          }
+          db.setTransactionSuccessful();
+        } finally {
+          db.endTransaction();
+        }
+        Intent intent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
+        intent.setPackage(appContext.getPackageName());
+        appContext.sendBroadcast(intent);
+        return 0;
+      } catch (Exception error) {
+        return 2;
+      }
+    }, result -> {
+      actionPending = false;
+      if (!isShowing()) return;
+      if (result == 2) {
+        Toast.makeText(getContext(), R.string.schedule_action_failed, Toast.LENGTH_LONG).show();
+        return;
+      }
+      if (result == 1) {
+        Toast.makeText(getContext(), R.string.schedule_already_handled, Toast.LENGTH_SHORT).show();
+      } else if (!skip) {
+        Toast.makeText(getContext(), obligation.getName() + " berhasil dicatat", Toast.LENGTH_SHORT).show();
+      }
+      if (onDataChangedCallback != null) onDataChangedCallback.run();
+      dismiss();
+    });
   }
 
   private final class UpcomingObligationsAdapter extends RecyclerView.Adapter<UpcomingObligationsAdapter.ViewHolder> {
@@ -249,7 +299,7 @@ public final class UpcomingDetailBottomSheet extends BottomSheetDialog {
         holder.tvAmount.setText("••••••");
       } else {
         boolean isIncome = item.getType() == TransactionType.INCOME;
-        String prefix = isIncome ? "+" : "-";
+        String prefix = item.getType() == TransactionType.TRANSFER_OUT ? "↔ " : (isIncome ? "+" : "-");
         holder.tvAmount.setText(prefix + MoneyFormatter.format(item.getAmountMinor()));
         holder.tvAmount.setTextColor(
             ContextCompat.getColor(getContext(), isIncome ? R.color.finan_income : R.color.finan_expense));

@@ -8,6 +8,7 @@ import android.widget.RemoteViewsService;
 
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.domain.model.TransactionTemplate;
+import com.dwlhm.finan.service.privacy.AppLock;
 import com.dwlhm.finan.ui.common.AppServices;
 
 import java.util.List;
@@ -30,12 +31,20 @@ public class ShortcutWidgetService extends RemoteViewsService {
 
         @Override
         public void onCreate() {
+            if (AppLock.privateWidgets(context)) {
+                templates = java.util.Collections.emptyList();
+                return;
+            }
             AppServices services = AppServices.create(context);
             templates = services.transactionTemplateDao.findAll();
         }
 
         @Override
         public void onDataSetChanged() {
+            if (AppLock.privateWidgets(context)) {
+                templates = java.util.Collections.emptyList();
+                return;
+            }
             AppServices services = AppServices.create(context);
             templates = services.transactionTemplateDao.findAll();
         }
@@ -43,18 +52,18 @@ public class ShortcutWidgetService extends RemoteViewsService {
         @Override
         public void onDestroy() {
             if (templates != null) {
-                templates.clear();
+                templates = null;
             }
         }
 
         @Override
         public int getCount() {
-            return templates != null ? templates.size() : 0;
+            return !AppLock.privateWidgets(context) && templates != null ? templates.size() : 0;
         }
 
         @Override
         public RemoteViews getViewAt(int position) {
-            if (templates == null || position < 0 || position >= templates.size()) {
+            if (AppLock.privateWidgets(context) || templates == null || position < 0 || position >= templates.size()) {
                 return null;
             }
 
@@ -84,7 +93,11 @@ public class ShortcutWidgetService extends RemoteViewsService {
                 views.setViewVisibility(R.id.layout_item_cancelled, View.GONE);
                 views.setTextViewText(R.id.tv_item_icon, template.getIcon() != null && !template.getIcon().isEmpty() ? template.getIcon() : "⚡");
                 views.setTextViewText(R.id.tv_item_name, template.getName());
-                views.setTextViewText(R.id.tv_item_amount, ShortcutWidgetProvider.formatCompactAmount(template.getAmountMinor()));
+                if (AppLock.privateWidgets(context)) {
+                    views.setTextViewText(R.id.tv_item_amount, "••••••");
+                } else {
+                    views.setTextViewText(R.id.tv_item_amount, ShortcutWidgetProvider.formatCompactAmount(template.getAmountMinor()));
+                }
                 Intent fillInIntent = new Intent();
                 fillInIntent.putExtra(ShortcutWidgetProvider.EXTRA_SHORTCUT_ACTION, ShortcutWidgetProvider.ACTION_TYPE_EXECUTE);
                 fillInIntent.putExtra(ShortcutWidgetProvider.EXTRA_SHORTCUT_ID, template.getId());

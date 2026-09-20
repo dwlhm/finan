@@ -97,6 +97,12 @@ public final class AppServices {
     this.upcomingCashFlowService = upcomingCashFlowService;
   }
 
+  /** Creates a forecast reader using the caller's freshly captured local time zone. */
+  public UpcomingCashFlowService createUpcomingCashFlowService(ZoneId zone) {
+    return new UpcomingCashFlowService(transactionTemplateDao, walletDao, categoryDao,
+        summaryDao, new SystemTimeProvider(), zone);
+  }
+
   public static AppServices create(Context context) {
     FinanDatabaseHelper databaseHelper = new FinanDatabaseHelper(context);
     SQLiteDatabase db = databaseHelper.getWritableDatabase();

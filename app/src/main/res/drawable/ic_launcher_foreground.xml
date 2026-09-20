@@ -1,75 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 1. Central Frosted Glass Diffusion Lens -->
-    <path android:pathData="M54,54m-38,0a38,38 0 1,0 76,0a38,38 0 1,0 -76,0">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:centerX="54"
-                android:centerY="54"
-                android:gradientRadius="38"
-                android:type="radial"
-                android:startColor="#66FFFFFF"
-                android:centerColor="#26FFFFFF"
-                android:endColor="#00FFFFFF" />
-        </aapt:attr>
-    </path>
-
-    <!-- 2. Luminous Diagonal Light Sheen -->
+    <!-- Bar 1: top-left pill, medium teal (#2D6A6A) -->
+    <!-- x=24, y=32.53, w=31.18, h=10, r=5 -->
     <path
-        android:fillColor="#33FFFFFF"
-        android:pathData="M16,16 L92,16 L16,92 Z" />
+        android:fillColor="#2D6A6A"
+        android:pathData="M29,32.53 h21.18 a5,5 0 0,1 5,5 v0 a5,5 0 0,1 -5,5 h-21.18 a5,5 0 0,1 -5,-5 v0 a5,5 0 0,1 5,-5 z" />
 
-    <!-- 3. Upper-Left Pure White Specular Rim Highlight -->
+    <!-- Bar 3: top-right pill, dark teal (#154242) -->
+    <!-- x=58.85, y=32.53, w=23.53, h=10, r=5 -->
     <path
-        android:strokeWidth="1.8"
-        android:pathData="M26,38 C32,24 48,18 68,22 C78,24 84,30 88,38">
-        <aapt:attr name="android:strokeColor">
-            <gradient
-                android:startX="26"
-                android:startY="38"
-                android:endX="88"
-                android:endY="38"
-                android:type="linear"
-                android:startColor="#00FFFFFF"
-                android:centerColor="#CCFFFFFF"
-                android:endColor="#00FFFFFF" />
-        </aapt:attr>
-    </path>
+        android:fillColor="#154242"
+        android:pathData="M63.85,32.53 h13.53 a5,5 0 0,1 5,5 v0 a5,5 0 0,1 5,-5 h-13.53 a5,5 0 0,1 -5,-5 v0 a5,5 0 0,1 5,-5 z" />
 
-    <!-- 4. Lower-Right Warm Sheen Refraction Arc -->
+    <!-- Bar 2: full-width pill, dark teal (#154242) -->
+    <!-- x=24, y=49, w=60, h=10, r=5 -->
     <path
-        android:strokeWidth="1.8"
-        android:pathData="M82,70 C76,84 60,90 40,86 C30,84 24,78 20,70">
-        <aapt:attr name="android:strokeColor">
-            <gradient
-                android:startX="82"
-                android:startY="70"
-                android:endX="20"
-                android:endY="70"
-                android:type="linear"
-                android:startColor="#00FFFFFF"
-                android:centerColor="#80FFFFFF"
-                android:endColor="#00FFFFFF" />
-        </aapt:attr>
-    </path>
+        android:fillColor="#154242"
+        android:pathData="M29,49 h50 a5,5 0 0,1 5,5 v0 a5,5 0 0,1 -5,5 h-50 a5,5 0 0,1 -5,-5 v0 a5,5 0 0,1 5,-5 z" />
 
-    <!-- 5. Center Optical Prism Glow -->
-    <path android:pathData="M54,54m-14,0a14,14 0 1,0 28,0a14,14 0 1,0 -28,0">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:centerX="54"
-                android:centerY="54"
-                android:gradientRadius="14"
-                android:type="radial"
-                android:startColor="#80FFFFFF"
-                android:endColor="#00FFFFFF" />
-        </aapt:attr>
-    </path>
+    <!-- Bar 4: bottom-left pill, dark teal (#154242) -->
+    <!-- x=24, y=65.47, w=16.62, h=10, r=5 -->
+    <path
+        android:fillColor="#154242"
+        android:pathData="M29,65.47 h6.62 a5,5 0 0,1 5,5 v0 a5,5 0 0,1 -5,5 h-6.62 a5,5 0 0,1 -5,-5 v0 a5,5 0 0,1 5,-5 z" />
+
+    <!-- Bar 5: bottom-right pill, medium teal (#2D6A6A) -->
+    <!-- x=44, y=65.47, w=38.38, h=10, r=5 -->
+    <path
+        android:fillColor="#2D6A6A"
+        android:pathData="M49,65.47 h28.38 a5,5 0 0,1 5,5 v0 a5,5 0 0,1 -5,5 h-28.38 a5,5 0 0,1 -5,-5 v0 a5,5 0 0,1 5,-5 z" />
 
 </vector>

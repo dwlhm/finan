@@ -1,6 +1,7 @@
 package com.dwlhm.finan.ui.common;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
 
 import com.dwlhm.finan.R;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -38,14 +40,15 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
   private final OnDateTimeSelectedListener listener;
   private TextView previewDate;
   private TextView previewTime;
-  private TextView tabDate;
-  private TextView tabTime;
   private View datePresetsContainer;
   private View timePresetsContainer;
   private View datePickerContainer;
   private View timePickerContainer;
   private CustomDatePickerView datePicker;
-  private CustomTimePickerView timePicker;
+  private Circular24HourClockView clockPickerView;
+  private TextView timeModeHour;
+  private TextView timeModeMinute;
+  private TextView[] timeChips;
   private DialogActionsView actions;
 
   private long currentMillis;
@@ -78,25 +81,19 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
 
     previewDate = findViewById(R.id.preview_date);
     previewTime = findViewById(R.id.preview_time);
-    tabDate = findViewById(R.id.tab_date);
-    tabTime = findViewById(R.id.tab_time);
     datePresetsContainer = findViewById(R.id.date_presets_container);
     timePresetsContainer = findViewById(R.id.time_presets_container);
     datePickerContainer = findViewById(R.id.date_picker_container);
     timePickerContainer = findViewById(R.id.time_picker_container);
     datePicker = findViewById(R.id.date_picker_custom);
-    timePicker = findViewById(R.id.time_picker_custom);
+    clockPickerView = findViewById(R.id.clock_picker_view);
+    timeModeHour = findViewById(R.id.time_mode_hour);
+    timeModeMinute = findViewById(R.id.time_mode_minute);
     actions = findViewById(R.id.date_time_actions);
 
     updatePreview();
 
-    // Setup Tab Switching & Preview Clicks
-    if (tabDate != null) {
-      tabDate.setOnClickListener(v -> switchTab(true));
-    }
-    if (tabTime != null) {
-      tabTime.setOnClickListener(v -> switchTab(false));
-    }
+    // Setup Preview Clicks
     if (previewDate != null) {
       previewDate.setOnClickListener(v -> switchTab(true));
     }
@@ -116,10 +113,11 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
     TextView chipEvening = findViewById(R.id.chip_evening);
 
     TextView[] dateChips = new TextView[] { chipToday, chipYesterday, chipTomorrow };
-    TextView[] timeChips = new TextView[] { chipNow, chipMorning, chipNoon, chipEvening };
+    timeChips = new TextView[] { chipNow, chipMorning, chipNoon, chipEvening };
 
     // Setup Date Picker
     if (datePicker != null) {
+      datePicker.setTodayButtonVisible(false);
       datePicker.setDate(currentMillis);
       datePicker.setOnDateSelectedListener(millis -> {
         LocalDate selectedDate = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate();
@@ -128,12 +126,36 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
       });
     }
 
-    // Setup Time Picker
-    if (timePicker != null) {
+    // Setup Clock Picker View
+    if (clockPickerView != null) {
       LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(currentMillis), ZoneId.systemDefault());
-      timePicker.setTime(ldt.getHour(), ldt.getMinute());
-      timePicker.setOnTimeSelectedListener((h, m) -> updateTimeInCurrentMillis(h, m));
+      clockPickerView.setTime(ldt.getHour(), ldt.getMinute());
+      clockPickerView.setOnTimeChangedListener((h, m) -> {
+        updateTimeInCurrentMillis(h, m);
+        highlightPresetChip(null, timeChips);
+      });
+      clockPickerView.setOnModeChangedListener(mode -> updateTimeModeUi(mode));
     }
+
+    if (timeModeHour != null) {
+      timeModeHour.setOnClickListener(v -> {
+        if (clockPickerView != null) {
+          clockPickerView.setMode(Circular24HourClockView.Mode.HOUR);
+        }
+        updateTimeModeUi(Circular24HourClockView.Mode.HOUR);
+      });
+    }
+
+    if (timeModeMinute != null) {
+      timeModeMinute.setOnClickListener(v -> {
+        if (clockPickerView != null) {
+          clockPickerView.setMode(Circular24HourClockView.Mode.MINUTE);
+        }
+        updateTimeModeUi(Circular24HourClockView.Mode.MINUTE);
+      });
+    }
+
+    updateTimeModeUi(Circular24HourClockView.Mode.HOUR);
 
     // Setup Date Preset Chips
     if (chipToday != null) {
@@ -177,87 +199,52 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
       chipNow.setOnClickListener(v -> {
         LocalTime now = LocalTime.now();
         highlightPresetChip(chipNow, timeChips);
-        if (timePicker != null) {
-          timePicker.setTime(now.getHour(), now.getMinute());
-        } else {
-          updateTimeInCurrentMillis(now.getHour(), now.getMinute());
-        }
+        setPickerTime(now.getHour(), now.getMinute());
       });
     }
 
     if (chipMorning != null) {
       chipMorning.setOnClickListener(v -> {
         highlightPresetChip(chipMorning, timeChips);
-        if (timePicker != null) {
-          timePicker.setTime(8, 0);
-        } else {
-          updateTimeInCurrentMillis(8, 0);
-        }
+        setPickerTime(8, 0);
       });
     }
 
     if (chipNoon != null) {
       chipNoon.setOnClickListener(v -> {
         highlightPresetChip(chipNoon, timeChips);
-        if (timePicker != null) {
-          timePicker.setTime(12, 0);
-        } else {
-          updateTimeInCurrentMillis(12, 0);
-        }
+        setPickerTime(12, 0);
       });
     }
 
     if (chipEvening != null) {
       chipEvening.setOnClickListener(v -> {
         highlightPresetChip(chipEvening, timeChips);
-        if (timePicker != null) {
-          timePicker.setTime(19, 0);
-        } else {
-          updateTimeInCurrentMillis(19, 0);
-        }
+        setPickerTime(19, 0);
       });
     }
 
     // Setup Minute Adjust Chips
     View chipMinus15 = findViewById(R.id.chip_minus_15);
     if (chipMinus15 != null) {
-      chipMinus15.setOnClickListener(v -> {
-        highlightPresetChip(null, timeChips);
-        if (timePicker != null) {
-          timePicker.addMinutes(-15);
-        }
-      });
+      chipMinus15.setOnClickListener(v -> addMinutes(-15));
     }
 
     View chipMinus5 = findViewById(R.id.chip_minus_5);
     if (chipMinus5 != null) {
-      chipMinus5.setOnClickListener(v -> {
-        highlightPresetChip(null, timeChips);
-        if (timePicker != null) {
-          timePicker.addMinutes(-5);
-        }
-      });
+      chipMinus5.setOnClickListener(v -> addMinutes(-5));
     }
 
     View chipPlus5 = findViewById(R.id.chip_plus_5);
     if (chipPlus5 != null) {
-      chipPlus5.setOnClickListener(v -> {
-        highlightPresetChip(null, timeChips);
-        if (timePicker != null) {
-          timePicker.addMinutes(5);
-        }
-      });
+      chipPlus5.setOnClickListener(v -> addMinutes(5));
     }
 
     View chipPlus15 = findViewById(R.id.chip_plus_15);
     if (chipPlus15 != null) {
-      chipPlus15.setOnClickListener(v -> {
-        highlightPresetChip(null, timeChips);
-        if (timePicker != null) {
-          timePicker.addMinutes(15);
-        }
-      });
+      chipPlus15.setOnClickListener(v -> addMinutes(15));
     }
+
     // Setup Dialog Actions
     if (actions != null) {
       actions.setOnPrimaryClickListener(v -> {
@@ -270,49 +257,92 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
     switchTab(true);
     BottomSheetHelper.makeDraggable(this);
   }
+
+  private void setPickerTime(int hour, int minute) {
+    if (clockPickerView != null) {
+      clockPickerView.setTime(hour, minute);
+    }
+    updateTimeInCurrentMillis(hour, minute);
+  }
+
+  private void addMinutes(int delta) {
+    if (clockPickerView == null) return;
+    clockPickerView.addMinutes(delta);
+    updateTimeInCurrentMillis(clockPickerView.getHour(), clockPickerView.getMinute());
+    highlightPresetChip(null, timeChips);
+  }
+
+  private void applySubtleElevation(View view, boolean active) {
+    if (view == null) return;
+    ViewCompat.setElevation(view, active ? dp(2f) : 0f);
+  }
+
+  private void updateTimeModeUi(Circular24HourClockView.Mode mode) {
+    int primaryColor = ContextCompat.getColor(getContext(), R.color.finan_text_primary);
+    int secondaryColor = ContextCompat.getColor(getContext(), R.color.finan_text_secondary);
+    if (mode == Circular24HourClockView.Mode.HOUR) {
+      if (timeModeHour != null) {
+        timeModeHour.setBackgroundResource(R.drawable.bg_tab_active_pill);
+        timeModeHour.setTextColor(primaryColor);
+      }
+      if (timeModeMinute != null) {
+        timeModeMinute.setBackground(null);
+        timeModeMinute.setTextColor(secondaryColor);
+      }
+    } else {
+      if (timeModeMinute != null) {
+        timeModeMinute.setBackgroundResource(R.drawable.bg_tab_active_pill);
+        timeModeMinute.setTextColor(primaryColor);
+      }
+      if (timeModeHour != null) {
+        timeModeHour.setBackground(null);
+        timeModeHour.setTextColor(secondaryColor);
+      }
+    }
+    applySubtleElevation(timeModeHour, mode == Circular24HourClockView.Mode.HOUR);
+    applySubtleElevation(timeModeMinute, mode == Circular24HourClockView.Mode.MINUTE);
+  }
+
   private void switchTab(boolean showDateTab) {
     isDateTabActive = showDateTab;
-    int primaryColor = ContextCompat.getColor(getContext(), R.color.finan_primary);
+    int primaryColor = ContextCompat.getColor(getContext(), R.color.finan_text_primary);
     int secondaryColor = ContextCompat.getColor(getContext(), R.color.finan_text_secondary);
+    ColorStateList activeTint = ColorStateList.valueOf(primaryColor);
+    ColorStateList inactiveTint = ColorStateList.valueOf(secondaryColor);
+
     if (showDateTab) {
-      if (tabDate != null) {
-        tabDate.setBackgroundResource(R.drawable.bg_chip_selected);
-        tabDate.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_chip_text_selected));
-      }
-      if (tabTime != null) {
-        tabTime.setBackground(null);
-        tabTime.setTextColor(secondaryColor);
-      }
       if (previewDate != null) {
+        previewDate.setBackgroundResource(R.drawable.bg_tab_active_pill);
         previewDate.setTextColor(primaryColor);
+        previewDate.setCompoundDrawableTintList(activeTint);
       }
       if (previewTime != null) {
+        previewTime.setBackground(null);
         previewTime.setTextColor(secondaryColor);
+        previewTime.setCompoundDrawableTintList(inactiveTint);
       }
       if (datePickerContainer != null) datePickerContainer.setVisibility(View.VISIBLE);
       if (timePickerContainer != null) timePickerContainer.setVisibility(View.GONE);
       if (datePresetsContainer != null) datePresetsContainer.setVisibility(View.VISIBLE);
       if (timePresetsContainer != null) timePresetsContainer.setVisibility(View.GONE);
     } else {
-      if (tabTime != null) {
-        tabTime.setBackgroundResource(R.drawable.bg_chip_selected);
-        tabTime.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_chip_text_selected));
-      }
-      if (tabDate != null) {
-        tabDate.setBackground(null);
-        tabDate.setTextColor(secondaryColor);
-      }
       if (previewTime != null) {
+        previewTime.setBackgroundResource(R.drawable.bg_tab_active_pill);
         previewTime.setTextColor(primaryColor);
+        previewTime.setCompoundDrawableTintList(activeTint);
       }
       if (previewDate != null) {
+        previewDate.setBackground(null);
         previewDate.setTextColor(secondaryColor);
+        previewDate.setCompoundDrawableTintList(inactiveTint);
       }
       if (timePickerContainer != null) timePickerContainer.setVisibility(View.VISIBLE);
       if (datePickerContainer != null) datePickerContainer.setVisibility(View.GONE);
       if (timePresetsContainer != null) timePresetsContainer.setVisibility(View.VISIBLE);
       if (datePresetsContainer != null) datePresetsContainer.setVisibility(View.GONE);
     }
+    applySubtleElevation(previewDate, showDateTab);
+    applySubtleElevation(previewTime, !showDateTab);
   }
 
   private void updateDateInCurrentMillis(LocalDate newDate) {
@@ -336,6 +366,7 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
       previewTime.setText(ldt.format(TIME_FMT));
     }
   }
+
   private void highlightPresetChip(TextView active, TextView[] group) {
     if (group == null) return;
     for (TextView tv : group) {
@@ -348,5 +379,9 @@ public final class DateTimeBottomSheet extends BottomSheetDialog {
         tv.setTextColor(ContextCompat.getColor(getContext(), R.color.finan_text_primary));
       }
     }
+  }
+
+  private float dp(float val) {
+    return val * getContext().getResources().getDisplayMetrics().density;
   }
 }

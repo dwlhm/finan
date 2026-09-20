@@ -50,6 +50,7 @@ public final class CustomDatePickerView extends LinearLayout {
   private final TextView headerText;
   private final LinearLayout grid, yearGrid;
   private final ImageView navLeft, navRight;
+  private Button todayBtn;
   private final int colorPrimary, colorSecondary, colorDim, colorWeekend, colorSelected, colorRangeBg;
   private final int selBgRes;
   private int year, month, selectedDay = 1, selectedMonth, selectedYear, yearRangeStart;
@@ -104,7 +105,7 @@ public final class CustomDatePickerView extends LinearLayout {
     headerText.setFocusable(true);
     headerText.setForeground(ContextCompat.getDrawable(context, selBgRes));
     headerText.setCompoundDrawablePadding(dp(6));
-    headerText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_expand_more, 0);
+    headerText.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_calendar_month, 0);
     headerText.setOnClickListener(v -> {
       showingYears = !showingYears;
       if (showingYears) yearRangeStart = (year / 20) * 20;
@@ -157,7 +158,7 @@ public final class CustomDatePickerView extends LinearLayout {
     addView(grid);
 
     // ── "Hari Ini" button (right-aligned) ────────────────────────
-    Button todayBtn = new Button(context, null, 0, R.style.Finan_Button_Nav);
+    todayBtn = new Button(context, null, 0, R.style.Finan_Button_Nav);
     todayBtn.setText(R.string.date_picker_today);
     todayBtn.setOnClickListener(v -> {
       LocalDate today = LocalDate.now();
@@ -525,6 +526,12 @@ public final class CustomDatePickerView extends LinearLayout {
   }
 
   // ── Public API ────────────────────────────────────────────────────────────────
+
+  public void setTodayButtonVisible(boolean visible) {
+    if (todayBtn != null) {
+      todayBtn.setVisibility(visible ? VISIBLE : GONE);
+    }
+  }
 
   public void setRangeMode(boolean rangeMode) {
     this.rangeMode = rangeMode;

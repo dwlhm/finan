@@ -1,24 +1,160 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/finan_background"
-    android:fitsSystemWindows="true">
+    android:background="@drawable/bg_screen_gradient_green">
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/main_content"
+    <!-- LAYER 1: Base Layer (CaptureFragment & Exposed Green Bottom Bar) -->
+    <FrameLayout
+        android:id="@+id/base_layer_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
 
-    <com.dwlhm.finan.ui.components.FloatingBottomNavView
-        android:id="@+id/bottom_nav"
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/capture_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Bottom Bar Hijau Buku Kas -->
+        <LinearLayout
+            android:id="@+id/bottom_bar_buku_kas"
+            android:layout_width="match_parent"
+            android:layout_height="88dp"
+            android:layout_gravity="bottom"
+            android:background="@color/finan_green_grad_end"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="14dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- Row 1: Label + Pill Tren sejajar -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:letterSpacing="0.06"
+                        android:text="SISA SALDO"
+                        android:textColor="#D2E8DC"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/bottom_bar_trend_pill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_bottom_bar_trend_pill"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="7dp"
+                        android:paddingTop="2dp"
+                        android:paddingEnd="7dp"
+                        android:paddingBottom="2dp">
+
+                        <ImageView
+                            android:id="@+id/bottom_bar_trend_icon"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:layout_marginEnd="4dp"
+                            android:contentDescription="Trend"
+                            android:src="@drawable/ic_trend_neutral" />
+
+                        <TextView
+                            android:id="@+id/bottom_bar_trend"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0%"
+                            android:textColor="#D7E8E6"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Row 2: Nominal Saldo -->
+                <TextView
+                    android:id="@+id/bottom_bar_balance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:text="Rp 0"
+                    android:textColor="#FFFFFF"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/bottom_bar_btn_plus"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/bg_nav_item_circle"
+                android:clickable="true"
+                android:contentDescription="@string/nav_capture"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_nav_catat_3d" />
+
+            <ImageView
+                android:id="@+id/bottom_bar_btn_settings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_nav_item_circle"
+                android:clickable="true"
+                android:contentDescription="@string/nav_settings"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@drawable/ic_nav_settings_3d" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- LAYER 2: White Sliding Sheet with Curved Bottom-Right Corner (48dp) -->
+    <LinearLayout
+        android:id="@+id/white_sliding_sheet"
         android:layout_width="match_parent"
-        android:layout_height="68dp"
-        android:layout_gravity="bottom"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
-        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior" />
+        android:layout_height="match_parent"
+        android:layout_marginBottom="88dp"
+        android:background="@drawable/bg_sheet_white_curved"
+        android:elevation="6dp"
+        android:orientation="vertical">
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/dashboard_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+    <!-- Fullscreen Settings Container (Overlay when Settings opened) -->
+    <FrameLayout
+        android:id="@+id/settings_overlay_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="88dp"
+        android:background="@drawable/bg_sheet_white_curved"
+        android:clipToOutline="true"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/settings_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+</FrameLayout>

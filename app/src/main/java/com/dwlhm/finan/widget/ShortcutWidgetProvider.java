@@ -12,15 +12,10 @@ import android.os.Looper;
 import android.widget.RemoteViews;
 
 import com.dwlhm.finan.R;
-import com.dwlhm.finan.data.entity.Category;
-import com.dwlhm.finan.data.entity.Wallet;
-import com.dwlhm.finan.domain.model.Transaction;
-import com.dwlhm.finan.domain.model.TransactionTemplate;
-import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.service.privacy.AppLock;
 import com.dwlhm.finan.ui.MainActivity;
 import com.dwlhm.finan.ui.common.AppServices;
 
-import java.util.List;
 import java.util.Locale;
 
 public class ShortcutWidgetProvider extends AppWidgetProvider {
@@ -45,6 +40,10 @@ public class ShortcutWidgetProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
+        if (AppLock.privateWidgets(context)) {
+            updateAllWidgets(context);
+            return;
+        }
         if (intent == null || intent.getAction() == null) {
             return;
         }
@@ -81,6 +80,10 @@ public class ShortcutWidgetProvider extends AppWidgetProvider {
     }
 
     public static void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        if (AppLock.privateWidgets(context)) {
+            appWidgetManager.updateAppWidget(appWidgetId, AppLock.privateWidgetViews(context, appWidgetId));
+            return;
+        }
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_shortcut);
 
         Intent intent = new Intent(context, ShortcutWidgetService.class);
@@ -138,81 +141,16 @@ public class ShortcutWidgetProvider extends AppWidgetProvider {
     }
 
     private void handleExecuteShortcut(Context context, long shortcutId) {
-        AppServices services = AppServices.create(context);
-        TransactionTemplate template = services.transactionTemplateDao.findById(shortcutId);
-        if (template == null) {
+        if (shortcutId <= 0) {
             return;
         }
-
-        if (template.getAmountMinor() <= 0) {
-            Intent captureIntent = new Intent(context, MainActivity.class);
-            captureIntent.setAction(Intent.ACTION_MAIN);
-            captureIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-            captureIntent.putExtra(MainActivity.EXTRA_NAV_TARGET, "capture");
-            captureIntent.putExtra(MainActivity.EXTRA_TEMPLATE_ID, template.getId());
-            captureIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            context.startActivity(captureIntent);
-            return;
-        }
-
-        long walletId = 0L;
-        if (template.getWalletId() != null && template.getWalletId() > 0) {
-            walletId = template.getWalletId();
-        } else {
-            Wallet defaultWallet = services.walletDao.findDefault();
-            if (defaultWallet != null) {
-                walletId = defaultWallet.getId();
-            } else {
-                List<Wallet> wallets = services.walletDao.findAll();
-                if (wallets != null && !wallets.isEmpty()) {
-                    walletId = wallets.get(0).getId();
-                }
-            }
-        }
-
-        long categoryId = 0L;
-        if (template.getCategoryId() != null && template.getCategoryId() > 0) {
-            categoryId = template.getCategoryId();
-        } else {
-            String typeFilter = template.getType() != null ? template.getType().name() : "EXPENSE";
-            List<Category> categories = services.categoryDao.findByTypeFilterOrderByUsage(typeFilter);
-            if (categories != null && !categories.isEmpty()) {
-                categoryId = categories.get(0).getId();
-            } else {
-                Category defaultCat = services.categoryDao.findDefault();
-                if (defaultCat != null) {
-                    categoryId = defaultCat.getId();
-                } else {
-                    List<Category> allCats = services.categoryDao.findAllOrdered();
-                    if (allCats != null && !allCats.isEmpty()) {
-                        categoryId = allCats.get(0).getId();
-                    }
-                }
-            }
-        }
-
-        String note = (template.getNote() != null && !template.getNote().trim().isEmpty())
-                ? template.getNote()
-                : template.getName();
-
-        Transaction tx = new Transaction(
-                0L,
-                template.getAmountMinor(),
-                template.getType() != null ? template.getType() : TransactionType.EXPENSE,
-                walletId,
-                categoryId,
-                System.currentTimeMillis(),
-                note
-        );
-
-        long txId = services.transactionService.save(tx);
-        WidgetStateStore.setPendingShortcutUndo(context, template.getId(), txId, System.currentTimeMillis() + 5000L);
-        startUndoCountdownHandler(context);
-
-        Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
-        broadcastIntent.setPackage(context.getPackageName());
-        context.sendBroadcast(broadcastIntent);
-
+        Intent captureIntent = new Intent(context, MainActivity.class);
+        captureIntent.setAction(Intent.ACTION_MAIN);
+        captureIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        captureIntent.putExtra(MainActivity.EXTRA_NAV_TARGET, MainActivity.NAV_TARGET_CAPTURE);
+        captureIntent.putExtra(MainActivity.EXTRA_TEMPLATE_ID, shortcutId);
+        captureIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        context.startActivity(captureIntent);
     }
 
     private void handleUndoShortcut(Context context) {
@@ -236,22 +174,4 @@ public class ShortcutWidgetProvider extends AppWidgetProvider {
         }, 1500L);
     }
 
-    private void startUndoCountdownHandler(Context context) {
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (WidgetStateStore.isPendingShortcutUndoActive(context)) {
-                    updateAllWidgets(context);
-                    long remaining = WidgetStateStore.getPendingShortcutUndoDeadline(context) - System.currentTimeMillis();
-                    if (remaining > 0) {
-                        handler.postDelayed(this, 1000L);
-                    } else {
-                        WidgetStateStore.clearPendingShortcutUndo(context);
-                        updateAllWidgets(context);
-                    }
-                }
-            }
-        });
-    }
 }

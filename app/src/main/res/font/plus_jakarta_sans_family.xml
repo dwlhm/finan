@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="400"
+        android:font="@font/plus_jakarta_sans"
+        android:fontVariationSettings="'wght' 400"
+        app:fontStyle="normal"
+        app:fontWeight="400"
+        app:font="@font/plus_jakarta_sans"
+        app:fontVariationSettings="'wght' 400" />
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="600"
+        android:font="@font/plus_jakarta_sans"
+        android:fontVariationSettings="'wght' 600"
+        app:fontStyle="normal"
+        app:fontWeight="600"
+        app:font="@font/plus_jakarta_sans"
+        app:fontVariationSettings="'wght' 600" />
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="800"
+        android:font="@font/plus_jakarta_sans"
+        android:fontVariationSettings="'wght' 800"
+        app:fontStyle="normal"
+        app:fontWeight="800"
+        app:font="@font/plus_jakarta_sans"
+        app:fontVariationSettings="'wght' 800" />
+    <font
+        android:fontStyle="italic"
+        android:fontWeight="400"
+        android:font="@font/plus_jakarta_sans_italic"
+        app:fontStyle="italic"
+        app:fontWeight="400"
+        app:font="@font/plus_jakarta_sans_italic" />
+</font-family>

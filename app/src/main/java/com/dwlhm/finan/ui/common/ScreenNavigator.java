@@ -1,6 +1,9 @@
 package com.dwlhm.finan.ui.common;
 
 public interface ScreenNavigator {
+  /** Opens the transaction capture screen. */
+  void openCapture();
+
   void openCategories();
 
   void openCategoriesFiltered(String classificationFilter);

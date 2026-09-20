@@ -20,6 +20,7 @@ import com.dwlhm.finan.ui.common.DebouncedTextWatcher;
 import com.dwlhm.finan.ui.common.ScreenFragment;
 import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.util.date.PayrollCycleResolver;
+import com.dwlhm.finan.util.ui.StatusBarInsetsHelper;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -66,6 +67,10 @@ public class DashboardFragment extends ScreenFragment {
 
     @Override
     protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        View header = view.findViewById(R.id.header_container);
+        if (header != null) {
+            StatusBarInsetsHelper.applyTopPadding(header, 12);
+        }
         viewPager = view.findViewById(R.id.dashboard_view_pager);
         modeToggleGroup = view.findViewById(R.id.dashboard_mode_toggle_group);
         modeNominal = view.findViewById(R.id.dashboard_mode_nominal);

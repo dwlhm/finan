@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="36dp"
+    android:height="36dp"
+    android:viewportWidth="36"
+    android:viewportHeight="36">
+    <!-- 3D Depth / Extrusion (Bottom-Right shadow) -->
+    <path
+        android:fillColor="#1B786B"
+        android:pathData="M15,6 L21,6 C22.66,6 24,7.34 24,9 L24,15 L30,15 C31.66,15 33,16.34 33,18 L33,19 C33,20.66 31.66,22 30,22 L24,22 L24,28 C24,29.66 22.66,31 21,31 L20,31 C18.34,31 17,29.66 17,28 L17,22 L11,22 C9.34,22 8,20.66 8,19 L8,18 C8,16.34 9.34,15 11,15 L17,15 L17,9 C17,7.34 18.34,6 20,6 Z" />
+    <!-- 3D Cyan Front Face -->
+    <path
+        android:fillColor="#4ED4D5"
+        android:pathData="M14,5 L20,5 C21.66,5 23,6.34 23,8 L23,14 L29,14 C30.66,14 32,15.34 32,17 C32,18.66 30.66,20 29,20 L23,20 L23,26 C23,27.66 21.66,29 20,29 C18.34,29 17,27.66 17,26 L17,20 L11,20 C9.34,20 8,18.66 8,17 C8,15.34 9.34,14 11,14 L17,14 L17,8 C17,6.34 18.34,5 20,5 Z" />
+</vector>

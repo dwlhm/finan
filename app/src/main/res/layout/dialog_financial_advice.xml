@@ -1,114 +1,420 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_bottom_sheet"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:paddingStart="20dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="24dp">
 
+    <!-- Bottom Sheet Drag Handle -->
     <View
+        android:id="@+id/advice_drag_handle"
         android:layout_width="40dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="14dp"
         android:background="@drawable/bg_bottom_sheet_handle" />
 
-    <TextView
-        android:id="@+id/advice_dialog_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/hc_dialog_financial_advice_nasihat_keuangan"
-        android:textColor="@color/finan_text_primary"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:id="@+id/advice_dialog_message"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/finan_text_secondary"
-        android:textSize="15sp"
-        android:lineSpacingExtra="4dp"
-        android:layout_marginBottom="24dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/hc_dialog_financial_advice_data_pendukung"
-        android:textColor="@color/finan_text_primary"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="12dp" />
-
+    <!-- Header Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="@string/hc_dialog_financial_advice_pemasukan"
-            android:textColor="@color/finan_text_secondary"
-            android:textSize="14sp" />
-        <TextView
-            android:id="@+id/advice_dialog_income"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/finan_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="@string/hc_dialog_financial_advice_pengeluaran"
-            android:textColor="@color/finan_text_secondary"
-            android:textSize="14sp" />
-        <TextView
-            android:id="@+id/advice_dialog_expense"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/finan_expense"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
-        <TextView
+
+        <LinearLayout
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="@string/hc_dialog_financial_advice_rasio_pengeluaran"
-            android:textColor="@color/finan_text_secondary"
-            android:textSize="14sp" />
-        <TextView
-            android:id="@+id/advice_dialog_ratio"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/finan_text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/advice_dialog_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:text="@string/hc_dialog_financial_advice_nasihat_keuangan"
+                android:textAppearance="@style/Finan.Text.Title"
+                android:textColor="@color/finan_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/advice_dialog_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:textColor="@color/finan_text_secondary"
+                android:textSize="12sp"
+                tools:text="Evaluasi Finansial • Juli 2026" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/advice_dialog_btn_close"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/dialog_cancel"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/finan_text_secondary" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/advice_dialog_close"
-        style="@style/Widget.AppCompat.Button.Borderless"
+    <!-- Scrollable Content -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/hc_dialog_financial_advice_tutup"
-        android:textColor="@color/finan_primary" />
+        android:layout_marginTop="16dp"
+        android:fillViewport="true"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Section 1: Insight / Evaluasi Card -->
+            <LinearLayout
+                android:id="@+id/advice_dialog_insight_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    style="@style/Finan.Text.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:text="@string/advice_dialog_evaluation_label" />
+
+                <TextView
+                    android:id="@+id/advice_dialog_message"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:lineSpacingExtra="5dp"
+                    android:textColor="@color/finan_text_secondary"
+                    android:textSize="14sp"
+                    tools:text="Masih awal periode, yuk pantau terus pengeluaranmu agar tetap sesuai rencana. Catat setiap transaksi di tab Catat untuk memudahkan evaluasi di akhir bulan nanti!" />
+
+                <!-- Kotak Callout Tips Keuangan terpisah -->
+                <LinearLayout
+                    android:id="@+id/advice_dialog_tips_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_panel_emphasis"
+                    android:gravity="top"
+                    android:orientation="horizontal"
+                    android:padding="12dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <ImageView
+                        android:id="@+id/advice_dialog_tips_icon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginTop="1dp"
+                        android:layout_marginEnd="10dp"
+                        android:contentDescription="Tips"
+                        android:src="@drawable/ic_info"
+                        app:tint="@color/finan_warm_accent" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/advice_dialog_tips_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans_family"
+                            android:textColor="@color/finan_text_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            tools:text="Tips Keuangan" />
+
+                        <TextView
+                            android:id="@+id/advice_dialog_tips_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="@font/plus_jakarta_sans_family"
+                            android:lineSpacingExtra="3dp"
+                            android:textColor="@color/finan_text_secondary"
+                            android:textSize="13sp"
+                            tools:text="Gunakan fitur Ringkasan secara berkala untuk melihat pola pengeluaranmu seiring bertambahnya data transaksi." />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Section 2: Pace Meter (Waktu vs Pengeluaran) -->
+            <LinearLayout
+                android:id="@+id/advice_dialog_pace_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/Finan.Text.SectionLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:text="@string/advice_dialog_pace_card_title" />
+
+                    <TextView
+                        android:id="@+id/advice_dialog_pace_status_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:textColor="@color/finan_income"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="Terkendali" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/advice_dialog_pace_status_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:textColor="@color/finan_text_secondary"
+                    android:textSize="13sp"
+                    tools:text="Laju belanja terkendali di bawah laju hari." />
+
+                <!-- Visual Dual-Track Progress / Pace Bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <!-- Track 1: Waktu Berlalu -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="@font/plus_jakarta_sans_family"
+                            android:text="@string/advice_dialog_pace_time_spent"
+                            android:textColor="@color/finan_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/advice_dialog_pace_time_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans_family"
+                            android:textColor="@color/finan_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="Hari 15/30 (50%)" />
+                    </LinearLayout>
+
+                    <ProgressBar
+                        android:id="@+id/advice_dialog_pace_time_progress"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:layout_marginTop="4dp"
+                        android:max="100"
+                        android:progress="50"
+                        android:progressTint="@color/finan_primary" />
+
+                    <!-- Track 2: Belanja / Pengeluaran -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:fontFamily="@font/plus_jakarta_sans_family"
+                            android:text="@string/advice_dialog_pace_expense_spent"
+                            android:textColor="@color/finan_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/advice_dialog_pace_expense_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/plus_jakarta_sans_family"
+                            android:textColor="@color/finan_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="38.0%" />
+                    </LinearLayout>
+
+                    <ProgressBar
+                        android:id="@+id/advice_dialog_pace_expense_progress"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:layout_marginTop="4dp"
+                        android:max="100"
+                        android:progress="38"
+                        android:progressTint="@color/finan_income" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/advice_dialog_pace_time_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:textColor="@color/finan_text_secondary"
+                    android:textSize="12sp"
+                    tools:text="Progres Periode: Hari ke-15 dari 30 hari (50%)" />
+            </LinearLayout>
+
+            <!-- Section 3: Data Pendukung Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    style="@style/Finan.Text.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:text="@string/hc_dialog_financial_advice_data_pendukung" />
+
+                <!-- Baris Pemasukan -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:text="@string/hc_dialog_financial_advice_pemasukan"
+                        android:textColor="@color/finan_text_secondary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/advice_dialog_income"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:textColor="@color/finan_income"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="Rp 5.000.000" />
+                </LinearLayout>
+
+                <!-- Baris Pengeluaran -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:text="@string/hc_dialog_financial_advice_pengeluaran"
+                        android:textColor="@color/finan_text_secondary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/advice_dialog_expense"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:textColor="@color/finan_expense"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="Rp 2.500.000" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@color/finan_divider" />
+
+                <!-- Baris Rasio -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:text="@string/hc_dialog_financial_advice_rasio_pengeluaran"
+                        android:textColor="@color/finan_text_secondary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/advice_dialog_ratio"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:textColor="@color/finan_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="50.0%" />
+                </LinearLayout>
+
+                <!-- Micro-progress bar rasio pengeluaran -->
+                <ProgressBar
+                    android:id="@+id/advice_dialog_ratio_progress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:layout_marginTop="8dp"
+                    android:max="100"
+                    android:progress="50"
+                    android:progressTint="@color/finan_expense" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

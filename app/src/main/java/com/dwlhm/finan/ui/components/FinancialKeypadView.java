@@ -3,6 +3,7 @@ package com.dwlhm.finan.ui.components;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -22,6 +23,16 @@ import com.dwlhm.finan.R;
 
 public class FinancialKeypadView extends ViewGroup {
 
+    private static final int ALPHA_NOMINAL_KEY = 102; // 40% alpha (~102/255)
+    private static final int ALPHA_OPERATOR_KEY = 64; // 25% alpha
+    private static final int ALPHA_BACKSPACE_KEY = 64; // 25% alpha
+    private static final int ALPHA_PRESSED_DELTA = 45; // +17.6% alpha tactile feedback
+    private static final int STROKE_WIDTH_DP = 1;
+    private static final int CORNER_RADIUS_DP = 18;
+    private static final int STROKE_ALPHA_NORMAL = 65;
+    private static final int STROKE_ALPHA_OPERATOR = 110;
+    private static final int STROKE_ALPHA_PRESSED = 120;
+
     private OnKeypadActionListener listener;
 
     private static final int ROWS = 4;
@@ -30,8 +41,8 @@ public class FinancialKeypadView extends ViewGroup {
     private final String[] keyLabels = {
             "1", "2", "3", "+",
             "4", "5", "6", "-",
-            "7", "8", "9", "×",
-            "000", "0", "⌫", "÷"
+            "7", "8", "9", "÷",
+            "000", "0", "⌫", "×"
     };
 
     private final boolean[] isOperator = {
@@ -60,13 +71,15 @@ public class FinancialKeypadView extends ViewGroup {
 
     @SuppressLint("ClickableViewAccessibility")
     private void init(Context context) {
-        setBackgroundColor(ContextCompat.getColor(context, R.color.finan_keypad_bg));
+        setBackgroundColor(android.graphics.Color.TRANSPARENT);
         setFocusable(false);
         setFocusableInTouchMode(false);
 
         int horizontalPadding = 0;
-        int verticalPadding = dpToPx(16);
+        int verticalPadding = dpToPx(8);
         setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding);
+
+        int keyTextColor = ContextCompat.getColor(context, R.color.finan_text_dark_primary);
 
         for (int i = 0; i < keyLabels.length; i++) {
             final String label = keyLabels[i];
@@ -76,7 +89,7 @@ public class FinancialKeypadView extends ViewGroup {
                 ImageView img = new ImageView(context);
                 img.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
                 img.setImageResource(R.drawable.ic_keypad_backspace);
-                img.setColorFilter(ContextCompat.getColor(context, R.color.finan_key_text));
+                img.setColorFilter(keyTextColor);
 
                 int iconPadding = dpToPx(16);
                 img.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
@@ -87,15 +100,14 @@ public class FinancialKeypadView extends ViewGroup {
                 TextView txt = new TextView(context);
                 txt.setText(label);
                 txt.setGravity(Gravity.CENTER);
-                txt.setTextSize(TypedValue.COMPLEX_UNIT_SP, isOperator[i] ? 20 : 22);
+                txt.setTextSize(TypedValue.COMPLEX_UNIT_SP, isOperator[i] ? 24 : 22);
                 txt.setTypeface(Typeface.DEFAULT_BOLD);
-                txt.setTextColor(ContextCompat.getColor(context,
-                        isOperator[i] ? R.color.finan_primary : R.color.finan_key_text));
+                txt.setTextColor(keyTextColor);
                 key = txt;
             }
 
             if (!"".equals(label)) {
-                setupKeyBackground(key, isOperator[i]);
+                setupKeyBackground(key, isOperator[i], label);
                 key.setOnClickListener(v -> {
                     v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                     handleKeyClick(label);
@@ -118,32 +130,46 @@ public class FinancialKeypadView extends ViewGroup {
     }
 
     private void setupKeyBackground(View view, boolean isOperator) {
-        Context context = getContext();
-        StateListDrawable states = new StateListDrawable();
+        setupKeyBackground(view, isOperator, "");
+    }
 
-        // 10% opacity primary for operator background
-        int operatorBgColor = ContextCompat.getColor(context, R.color.finan_primary);
-        operatorBgColor = (operatorBgColor & 0x00FFFFFF) | 0x1A000000;
-        
-        // 5% opacity black/surface for number background
-        int numberBgColor = ContextCompat.getColor(context, R.color.finan_text_primary);
-        numberBgColor = (numberBgColor & 0x00FFFFFF) | 0x0A000000;
+    private void setupKeyBackground(View view, boolean isOperator, String label) {
+        int normalAlpha;
+        int r = 255, g = 255, b = 255;
+        if ("⌫".equals(label)) {
+            normalAlpha = ALPHA_BACKSPACE_KEY;
+        } else if (isOperator) {
+            normalAlpha = ALPHA_OPERATOR_KEY;
+            r = 230;
+            g = 248;
+            b = 238;
+        } else {
+            normalAlpha = ALPHA_NOMINAL_KEY;
+        }
+        int pressedAlpha = Math.min(255, normalAlpha + ALPHA_PRESSED_DELTA);
 
-        int normalColor = isOperator ? operatorBgColor : numberBgColor;
-        int pressedColor = ContextCompat.getColor(context, R.color.finan_key_bg_pressed);
+        int normalColor = Color.argb(normalAlpha, r, g, b);
+        int pressedColor = Color.argb(pressedAlpha, r, g, b);
+        int normalStrokeAlpha = isOperator ? STROKE_ALPHA_OPERATOR : STROKE_ALPHA_NORMAL;
+        int normalStrokeColor = Color.argb(normalStrokeAlpha, 255, 255, 255);
+        int pressedStrokeColor = Color.argb(STROKE_ALPHA_PRESSED, 255, 255, 255);
 
-        int cornerRadius = dpToPx(12);
+        int strokeWidth = dpToPx(STROKE_WIDTH_DP);
+        int cornerRadius = dpToPx(CORNER_RADIUS_DP);
 
         GradientDrawable normalShape = new GradientDrawable();
         normalShape.setShape(GradientDrawable.RECTANGLE);
         normalShape.setCornerRadius(cornerRadius);
         normalShape.setColor(normalColor);
+        normalShape.setStroke(strokeWidth, normalStrokeColor);
 
         GradientDrawable pressedShape = new GradientDrawable();
         pressedShape.setShape(GradientDrawable.RECTANGLE);
         pressedShape.setCornerRadius(cornerRadius);
         pressedShape.setColor(pressedColor);
+        pressedShape.setStroke(strokeWidth, pressedStrokeColor);
 
+        StateListDrawable states = new StateListDrawable();
         states.addState(new int[]{android.R.attr.state_pressed}, pressedShape);
         states.addState(new int[]{}, normalShape);
 

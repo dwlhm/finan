@@ -1,13 +1,105 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/finan_background"
-    android:clipToPadding="false"
-    android:fillViewport="true"
-    android:overScrollMode="never">
+    android:background="@drawable/bg_screen_gradient_green"
+    android:orientation="vertical">
 
+    <!-- Top Bar: White with bottom-right curved corner -->
+    <LinearLayout
+        android:id="@+id/capture_top_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:background="@drawable/bg_header_white_curve"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="10dp">
+
+        <!-- Title row with 3D Catat Pencil Icon -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/capture_header_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 800"
+                android:text="@string/app_name"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="800"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Buku Kas link pill button -->
+        <LinearLayout
+            android:id="@+id/capture_header_buku_kas_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_header_pill_buku_kas"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="14dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginEnd="6dp"
+                android:contentDescription="@string/nav_dashboard"
+                android:src="@drawable/ic_binder_3d" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 700"
+                android:text="@string/nav_dashboard"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="700"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Settings circular button -->
+        <ImageView
+            android:id="@+id/capture_header_settings_btn"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_header_circle_btn"
+            android:clickable="true"
+            android:contentDescription="@string/nav_settings"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="7dp"
+            android:src="@drawable/ic_settings_gear_3d" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Main content remains usable with large fonts and short viewports. -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:scrollbars="none">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -15,146 +107,198 @@
         android:paddingStart="16dp"
         android:paddingTop="16dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="96dp">
+        android:paddingBottom="8dp">
 
-    <!-- Top Toggle -->
-    <!-- Main Card -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_card"
-        android:orientation="vertical"
-        android:padding="24dp">
-
-        <!-- Capture Flow Sentence -->
-        <com.dwlhm.finan.ui.components.FlowLayout
-            android:layout_width="match_parent"
+        <!-- Transaction Type Badge Pill -->
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:layout_marginEnd="4dp">
-
-                <TextView
-                    android:id="@+id/capture_sentence_prefix"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="4dp"
-                    android:background="@drawable/bg_madlibs_field"
-                    android:paddingVertical="2dp"
-                    android:paddingHorizontal="6dp"
-                    android:text="@string/hc_activity_capture_keluar"
-                    android:textColor="@color/finan_primary"
-                    android:textSize="32sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="4dp"
-                    android:text="@string/hc_activity_capture_rp"
-                    android:textColor="@color/finan_primary"
-                    android:textSize="32sp"
-                    android:textStyle="bold" />
-
-                <EditText android:importantForAutofill="no"
-                    android:id="@+id/capture_amount"
-                    android:inputType="numberDecimal"
-                    style="@style/Finan.EditText.Transparent"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="48dp"
-                    android:maxWidth="200dp"
-                    android:hint="@string/hc_activity_capture_0"
-                    android:focusable="false"
-                    android:cursorVisible="false"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:autoSizeTextType="uniform"
-                    android:autoSizeMinTextSize="12sp"
-                    android:autoSizeMaxTextSize="32sp"
-                    android:padding="0dp"
-                    android:textColor="@color/finan_text_primary"
-                    android:textSize="32sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/capture_sentence_for"
+                android:id="@+id/capture_type_prefix_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:layout_marginEnd="4dp"
-                android:text="@string/hc_activity_capture_untuk"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="32sp" />
+                android:layout_marginEnd="8dp"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 600"
+                android:text="Uang"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="600"
+                android:textSize="30sp" />
+
+            <TextView
+                android:id="@+id/capture_sentence_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_field_pill"
+                android:clickable="true"
+                android:drawableEnd="@drawable/ic_chevron_down_modern"
+                android:drawablePadding="8dp"
+                android:focusable="true"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 600"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="💸 Keluar"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="600"
+                android:textSize="30sp" />
+        </LinearLayout>
+
+        <!-- Amount: Large bold text -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/capture_amount_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 800"
+                android:text="Rp "
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="800"
+                android:textSize="36sp" />
+
+            <EditText
+                android:id="@+id/capture_amount"
+                style="@style/Finan.EditText.Transparent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:autoSizeMaxTextSize="36sp"
+                android:autoSizeMinTextSize="18sp"
+                android:autoSizeTextType="uniform"
+                android:cursorVisible="false"
+                android:ellipsize="end"
+                android:focusable="false"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 800"
+                android:hint="20.000"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal"
+                android:minWidth="48dp"
+                android:padding="0dp"
+                android:singleLine="true"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textColorHint="?android:attr/textColorHint"
+                android:textFontWeight="800"
+                android:textSize="36sp" />
+        </LinearLayout>
+
+        <!-- Natural Language Row 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/capture_sentence_line1_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 600"
+                android:text="untuk"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="600"
+                android:textSize="30sp" />
 
             <TextView
                 android:id="@+id/capture_category_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/bg_madlibs_field"
-                android:paddingVertical="2dp"
-                android:paddingHorizontal="6dp"
-                android:text="@string/hc_activity_capture_category"
-                android:textColor="@color/finan_primary"
-                android:textSize="32sp"
-                android:textStyle="bold" />
+                android:background="@drawable/bg_field_pill"
+                android:clickable="true"
+                android:drawableEnd="@drawable/ic_chevron_down_modern"
+                android:drawablePadding="8dp"
+                android:focusable="true"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 600"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:singleLine="true"
+                android:text="🥣 Makan"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="600"
+                android:textSize="30sp" />
+        </LinearLayout>
+
+        <!-- Natural Language Row 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/capture_sentence_from"
+                android:id="@+id/capture_sentence_line2_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:layout_marginEnd="4dp"
-                android:text="@string/hc_activity_capture_dari"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="32sp" />
+                android:layout_marginEnd="6dp"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 600"
+                android:text="dari"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="600"
+                android:textSize="30sp" />
 
             <TextView
                 android:id="@+id/capture_wallet_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/bg_madlibs_field"
-                android:paddingVertical="2dp"
-                android:paddingHorizontal="6dp"
-                app:drawableStartCompat="@drawable/ic_wallet"
-                android:drawablePadding="4dp"
-                app:drawableTint="@color/finan_primary"
-                android:text="@string/hc_activity_capture_wallet"
-                android:textColor="@color/finan_primary"
-                android:textSize="32sp"
-                android:textStyle="bold" />
-        </com.dwlhm.finan.ui.components.FlowLayout>
+                android:background="@drawable/bg_field_pill"
+                android:clickable="true"
+                android:drawableEnd="@drawable/ic_chevron_down_modern"
+                android:drawablePadding="8dp"
+                android:focusable="true"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:fontVariationSettings="'wght' 600"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:singleLine="true"
+                android:text="👛 Dompet"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="600"
+                android:textSize="30sp" />
+        </LinearLayout>
 
-        <!-- Date & Note Chips -->
+        <!-- Date & Note Row: Two translucent pills side by side -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/capture_date_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_chip"
-                android:paddingHorizontal="12dp"
+                android:background="@drawable/bg_translucent_pill"
+                android:clickable="true"
+                android:focusable="true"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:paddingHorizontal="14dp"
                 android:paddingVertical="6dp"
-                android:text="@string/auto_now"
-                android:textColor="@color/finan_text_secondary"
+                android:text="🕒 hari ini, 20:05"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textFontWeight="400"
                 android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textStyle="normal" />
 
             <EditText
                 android:id="@+id/capture_note"
@@ -163,169 +307,255 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_chip"
-                android:hint="@string/hc_activity_capture_add_note"
+                android:background="@drawable/bg_translucent_pill"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:hint="note..."
                 android:importantForAutofill="no"
                 android:inputType="textCapSentences"
-                android:paddingHorizontal="12dp"
+                android:paddingHorizontal="14dp"
                 android:paddingVertical="6dp"
-                android:textColorHint="@color/finan_text_hint"
+                android:singleLine="true"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textColorHint="?android:attr/textColorHint"
+                android:textFontWeight="400"
                 android:textSize="14sp"
                 android:textStyle="italic" />
         </LinearLayout>
 
-        <!-- Template Suggestions Horizontal Bar -->
-        <LinearLayout
-            android:id="@+id/capture_template_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="10dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:text="Pintasan Cepat"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="none"
-                android:overScrollMode="never">
-
-                <LinearLayout
-                    android:id="@+id/capture_template_chips_layout"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <!-- Dynamic template chips -->
-
-                </LinearLayout>
-            </HorizontalScrollView>
-        </LinearLayout>
-
+        <!-- Validation Banner (Error state) -->
         <TextView
             android:id="@+id/capture_validation_banner"
             style="@style/Finan.Text.FieldError"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:background="@drawable/bg_panel_emphasis_error"
-            app:drawableStartCompat="@drawable/ic_error"
             android:drawablePadding="8dp"
+            android:gravity="center_vertical"
             android:padding="8dp"
-            android:gravity="center_vertical"
             android:text="@string/capture_validation_hint"
-            android:visibility="gone" />
-    </LinearLayout>
+            android:visibility="gone"
+            app:drawableStartCompat="@drawable/ic_error" />
 
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <com.dwlhm.finan.ui.components.CalculatorStripView
-        android:id="@+id/capture_calculator_strip"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <com.dwlhm.finan.ui.components.FinancialKeypadView
-        android:id="@+id/capture_financial_keypad"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp" />
-
-    <FrameLayout
-        android:id="@+id/capture_save_container"
-        android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:layout_marginHorizontal="8dp"
-        android:layout_marginBottom="16dp"
-        android:clickable="true"
-        android:focusable="true">
-
-        <!-- State normal: area tombol kustom -->
-        <FrameLayout
-            android:id="@+id/capture_save_button_area"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/bg_button_pill_ripple"
-            android:clickable="true"
-            android:focusable="true">
-
-            <TextView
-                android:id="@+id/capture_save_label"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="@string/hc_activity_capture_simpan_pengeluaran"
-                android:textColor="@color/btn_text_pill"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.04" />
-
-            <View
-                android:id="@+id/capture_hold_progress"
-                android:layout_width="match_parent"
-                android:layout_height="4dp"
-                android:layout_gravity="bottom"
-                android:background="#4DFFFFFF"
-                android:scaleX="0"
-                android:transformPivotX="0dp" />
-        </FrameLayout>
-
-        <!-- State undo -->
         <LinearLayout
-            android:id="@+id/capture_undo_row"
+            android:id="@+id/capture_template_container"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@drawable/bg_button_pill"
-            android:backgroundTint="@color/finan_income_bg"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/capture_shortcut_section_gap"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:text="@string/capture_shortcut_title"
+                    android:textColor="@color/finan_text_dark_primary"
+                    android:textSize="@dimen/capture_shortcut_name_size"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/capture_template_add"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="@dimen/capture_shortcut_touch_target"
+                    android:minWidth="@dimen/capture_shortcut_touch_target"
+                    android:paddingHorizontal="@dimen/capture_shortcut_padding"
+                    android:gravity="center"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:text="@string/capture_shortcut_add"
+                    android:contentDescription="@string/capture_shortcut_add_description"
+                    android:textColor="@color/finan_text_dark_primary"
+                    android:textSize="@dimen/capture_shortcut_detail_size" />
+            </LinearLayout>
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+                <LinearLayout
+                    android:id="@+id/capture_template_chips_layout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+            <TextView
+                android:id="@+id/capture_template_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="@dimen/capture_shortcut_small_gap"
+                android:fontFamily="@font/plus_jakarta_sans_family"
+                android:text="@string/capture_shortcut_loading"
+                android:textColor="@color/finan_text_dark_primary"
+                android:textSize="@dimen/capture_shortcut_detail_size" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Calculator Strip Row -->
+        <com.dwlhm.finan.ui.components.CalculatorStripView
+            android:id="@+id/capture_calculator_strip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="2dp" />
+
+        <!-- 4x4 Mint Financial Keypad -->
+        <com.dwlhm.finan.ui.components.FinancialKeypadView
+            android:id="@+id/capture_financial_keypad"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Bottom Action Row: Batalkan & Simpan -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:visibility="gone">
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/capture_undo_title"
+                android:id="@+id/capture_btn_batalkan"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:text="@string/hc_activity_capture_tersimpan"
-                android:textColor="@color/finan_text_primary"
+                android:background="@drawable/bg_button_batalkan"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="@string/capture_btn_reset"
+                android:textColor="@color/finan_coral_cancel"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <!-- Batalkan ditaruh di dalam chip dengan warna merah hangat sebagai aksi pembatalan -->
             <FrameLayout
-                android:id="@+id/capture_undo_action"
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_undo_action_chip"
+                android:id="@+id/capture_save_button_area"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_button_simpan_mint"
                 android:clickable="true"
-                android:focusable="true"
-                android:paddingHorizontal="12dp">
+                android:focusable="true">
 
                 <TextView
-                    android:id="@+id/capture_undo_action_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="@string/hc_activity_capture_batalkan"
-                    android:textColor="@android:color/white"
-                    android:textSize="13sp"
+                    android:id="@+id/capture_save_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="@string/capture_save"
+                    android:textColor="@color/finan_text_dark_primary"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
+
+                <View
+                    android:id="@+id/capture_hold_progress"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:layout_gravity="bottom"
+                    android:background="#4DFFFFFF"
+                    android:scaleX="0"
+                    android:transformPivotX="0dp" />
             </FrameLayout>
         </LinearLayout>
 
-    </FrameLayout>
+        <!-- Hidden elements for backward compatibility -->
+        <LinearLayout
+            android:id="@+id/capture_sentence_for_legacy_container"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/capture_sentence_for"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/capture_sentence_from"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <LinearLayout
+                android:id="@+id/capture_undo_row"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/capture_undo_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <FrameLayout
+                    android:id="@+id/capture_undo_action"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/capture_undo_action_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
 
     </LinearLayout>
 
-</androidx.core.widget.NestedScrollView>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/capture_floating_toast"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_floating_toast"
+        android:elevation="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="✓"
+            android:textColor="#A3F5CF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/capture_floating_toast_message"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:text="↑ Geser"
+            android:textColor="#80FFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
+</FrameLayout>
+
+</LinearLayout>

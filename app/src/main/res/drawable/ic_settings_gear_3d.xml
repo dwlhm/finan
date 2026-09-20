@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 3D Electric Indigo Gear -->
+    <!-- 3D Extrusion Shadow Layer (Deep Indigo) -->
+    <path
+        android:fillColor="#312E81"
+        android:pathData="M10.8,3.5 L13.2,3.5 L13.7,5.4 C14.3,5.6 14.8,5.9 15.3,6.3 L17.1,5.4 L18.8,7.1 L17.9,8.9 C18.3,9.4 18.6,9.9 18.8,10.5 L20.7,11 L20.7,13.4 L18.8,13.9 C18.6,14.5 18.3,15 17.9,15.5 L18.8,17.3 L17.1,19 L15.3,18.1 C14.8,18.5 14.3,18.8 13.7,19 L13.2,20.9 L10.8,20.9 L10.3,19 C9.7,18.8 9.2,18.5 8.7,18.1 L6.9,19 L5.2,17.3 L6.1,15.5 C5.7,15 5.4,14.5 5.2,13.9 L3.3,13.4 L3.3,11 L5.2,10.5 C5.4,9.9 5.7,9.4 6.1,8.9 L5.2,7.1 L6.9,5.4 L8.7,6.3 C9.2,5.9 9.7,5.6 10.3,5.4 Z" />
+    <!-- 3D Front Face (Vibrant Indigo) -->
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M10.8,2.5 L13.2,2.5 L13.7,4.4 C14.3,4.6 14.8,4.9 15.3,5.3 L17.1,4.4 L18.8,6.1 L17.9,7.9 C18.3,8.4 18.6,8.9 18.8,9.5 L20.7,10 L20.7,12.4 L18.8,12.9 C18.6,13.5 18.3,14 17.9,14.5 L18.8,16.3 L17.1,18 L15.3,17.1 C14.8,17.5 14.3,17.8 13.7,18 L13.2,19.9 L10.8,19.9 L10.3,18 C9.7,17.8 9.2,17.5 8.7,17.1 L6.9,18 L5.2,16.3 L6.1,14.5 C5.7,14 5.4,13.5 5.2,12.9 L3.3,12.4 L3.3,10 L5.2,9.5 C5.4,8.9 5.7,8.4 6.1,7.9 L5.2,6.1 L6.9,4.4 L8.7,5.3 C9.2,4.9 9.7,4.6 10.3,4.4 Z" />
+    <!-- Top Teeth Bevel Gloss Highlight (Light Lavender) -->
+    <path
+        android:fillColor="#818CF8"
+        android:pathData="M10.8,2.5 L13.2,2.5 L13.7,4.4 C14.3,4.6 14.8,4.9 15.3,5.3 L17.1,4.4 L18.8,6.1 L17.9,7.9 L17.1,7.2 L15,4.8 L13.2,3.5 L10.8,3.5 L9,4.8 L6.9,7.2 L6.1,7.9 L5.2,6.1 L6.9,4.4 L8.7,5.3 C9.2,4.9 9.7,4.6 10.3,4.4 Z" />
+    <path
+        android:fillColor="#C7D2FE"
+        android:pathData="M10.8,2.5 L13.2,2.5 L12.8,3.2 L11.2,3.2 Z M17.1,4.4 L18.8,6.1 L18.2,6.7 L16.8,5.3 Z M6.9,4.4 L5.2,6.1 L5.8,6.7 L7.2,5.3 Z" />
+    <!-- Center Hole 3D Depth Shadow -->
+    <path
+        android:fillColor="#1E1B4B"
+        android:pathData="M12,7.5 A3.7,3.7 0 1,0 12,14.9 A3.7,3.7 0 1,0 12,7.5 Z" />
+    <!-- Center Hole Core Accent (Warm Amber Bearing) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M12,9.2 A2,2 0 1,0 12,13.2 A2,2 0 1,0 12,9.2 Z" />
+    <path
+        android:fillColor="#FCD34D"
+        android:pathData="M12,9.2 A2,2 0 0,1 13.8,10.5 A2,2 0 0,0 12,9.6 A2,2 0 0,0 10.2,10.5 A2,2 0 0,1 12,9.2 Z" />
+</vector>

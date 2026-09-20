@@ -2,45 +2,58 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="6dp"
-    android:background="@drawable/bg_chip"
+    android:minHeight="@dimen/capture_shortcut_touch_target"
+    android:layout_marginEnd="@dimen/capture_shortcut_gap"
+    android:background="@drawable/bg_capture_shortcut_normal"
+    android:foreground="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="8dp"
-    android:paddingVertical="4dp">
-
+    android:paddingHorizontal="@dimen/capture_shortcut_padding"
+    android:paddingVertical="@dimen/capture_shortcut_gap">
     <TextView
         android:id="@+id/chip_template_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="4dp"
-        android:text="⚡"
+        android:layout_marginEnd="@dimen/capture_shortcut_gap"
+        android:importantForAccessibility="no"
         android:textColor="@color/finan_text_primary"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/chip_template_name"
+        android:textSize="@dimen/capture_shortcut_name_size" />
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:singleLine="true"
-        android:text="Kopi Pagi"
-        android:textColor="@color/finan_text_primary"
-        android:textSize="11sp"
-        android:textStyle="bold" />
-
+        android:orientation="vertical"
+        android:importantForAccessibility="noHideDescendants">
+        <TextView
+            android:id="@+id/chip_template_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="@dimen/capture_shortcut_name_max_width"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/finan_text_primary"
+            android:textSize="@dimen/capture_shortcut_name_size"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/chip_template_details"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:textColor="@color/finan_text_secondary"
+            android:textSize="@dimen/capture_shortcut_detail_size" />
+    </LinearLayout>
     <TextView
-        android:id="@+id/chip_template_details"
+        android:id="@+id/chip_template_routine"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="3dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:singleLine="true"
-        android:text="• Rp 18.000"
-        android:textColor="@color/finan_text_secondary"
-        android:textSize="10sp" />
+        android:layout_marginStart="@dimen/capture_shortcut_gap"
+        android:fontFamily="@font/plus_jakarta_sans_family"
+        android:importantForAccessibility="no"
+        android:text="@string/capture_shortcut_routine"
+        android:textStyle="bold"
+        android:textColor="@color/finan_text_primary"
+        android:textSize="@dimen/capture_shortcut_detail_size"
+        android:visibility="gone" />
 </LinearLayout>

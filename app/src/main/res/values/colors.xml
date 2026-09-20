@@ -49,9 +49,34 @@
     <color name="finan_date_range_bg">#2D6A6A</color>
 
     <!-- Custom colors for Summary Hero Card -->
-    <color name="finan_summary_hero_bg_start">#2F7575</color>
-    <color name="finan_summary_hero_bg_end">#173F3F</color>
+    <color name="finan_summary_hero_bg_start">#2D6049</color>
+    <color name="finan_summary_hero_bg_end">#1C4332</color>
     <color name="finan_summary_net_income">#A3F5CF</color>
     <color name="finan_summary_net_expense">#FFC2C2</color>
     <color name="finan_summary_period_text">#1F4E4E</color>
+
+    <!-- Theme Redesign Colors -->
+    <color name="finan_mint_key">#7FD3A6</color>
+    <color name="finan_mint_key_pressed">#6BBF94</color>
+    <color name="finan_badge_income">#403590F3</color>
+    <color name="finan_badge_expense">#40FF4365</color>
+    <color name="finan_badge_transfer">#8A98A8</color>
+    <color name="finan_coral_cancel">#A64848</color>
+    <color name="finan_green_grad_start">#88C9A1</color>
+    <color name="finan_green_grad_end">#4E8D70</color>
+    <color name="finan_field_pill_bg">#38FFFFFF</color>
+    <color name="finan_translucent_pill_bg">#2BFFFFFF</color>
+    <color name="finan_sheet_bg">#F9F8F8</color>
+    <color name="finan_cyan_plus">#4FD5D6</color>
+    <color name="finan_gear_orange">#E06A55</color>
+    <color name="finan_text_dark_primary">#050517</color>
+    <color name="finan_transfer_stroke">#D0DCE5</color>
+    <color name="finan_pill_stroke">#66FFFFFF</color>
+    <color name="finan_mint_button_stroke">#40FFFFFF</color>
+    <color name="finan_cancel_stroke">#33A64848</color>
+    <color name="finan_cancel_pressed">#26A64848</color>
+    <color name="finan_header_btn_bg">#F0F4F2</color>
+    <color name="finan_header_btn_stroke">#E2EAE5</color>
+    <color name="finan_tab_active_bg">#FFFFFF</color>
+    <color name="finan_tab_active_stroke">#DDE3E8</color>
 </resources>

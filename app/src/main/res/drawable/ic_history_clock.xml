@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Circular counter-clockwise history clock arrow -->
+    <path
+        android:strokeColor="#11181C"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,4 A8,8 0 1,0 20,12 M12,8 L12,12 L15,14" />
+    <path
+        android:fillColor="#11181C"
+        android:pathData="M12,1 L12,7 L8,4 Z" />
+</vector>

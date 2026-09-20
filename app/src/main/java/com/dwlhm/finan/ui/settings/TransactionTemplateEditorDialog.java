@@ -56,7 +56,7 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.dialog_edit_template);
+    setContentView(R.layout.dialog_transaction_template_editor);
 
     TextView titleView = findViewById(R.id.dialog_edit_template_title);
     FrameLayout iconContainer = findViewById(R.id.template_icon_container);
@@ -76,6 +76,8 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
     LinearLayout layoutScheduleOptions = findViewById(R.id.layout_schedule_options);
     Spinner spinnerFrequency = findViewById(R.id.spinner_frequency);
     LabeledEditTextView etDueDay = findViewById(R.id.et_due_day);
+    Spinner spinnerDueMonth = findViewById(R.id.spinner_due_month);
+    TextView monthPrompt = findViewById(R.id.schedule_month_prompt);
     Button deleteButton = findViewById(R.id.template_delete);
     DialogActionsView actionsView = findViewById(R.id.template_editor_actions);
 
@@ -88,6 +90,21 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
       ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, frequencies);
       adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
       spinnerFrequency.setAdapter(adapter);
+      ArrayAdapter<CharSequence> months = ArrayAdapter.createFromResource(getContext(),
+          R.array.schedule_months, android.R.layout.simple_spinner_item);
+      months.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+      spinnerDueMonth.setAdapter(months);
+      spinnerDueMonth.setSelection(existingTemplate == null ? 0 : existingTemplate.getDueMonth());
+      spinnerFrequency.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+        @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+          spinnerDueMonth.setVisibility(position == 3 ? View.VISIBLE : View.GONE);
+          monthPrompt.setVisibility(position == 3 ? View.VISIBLE : View.GONE);
+          etDueDay.setVisibility(position == 2 ? View.GONE : View.VISIBLE);
+          if (etDueDay.getEditText() != null) etDueDay.getEditText().setHint(
+              position == 1 ? "1–7 (Senin–Minggu)" : "1–31");
+        }
+        @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+      });
     }
 
     if (switchScheduled != null) {
@@ -106,7 +123,7 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
     if (actionsView != null) {
       actionsView.setPrimaryText(editing ? "Simpan Perubahan" : "Simpan");
       actionsView.setOnPrimaryClickListener(
-          v -> saveShortcut(nameField, amountField, noteField, switchScheduled, spinnerFrequency, etDueDay));
+          v -> saveShortcut(nameField, amountField, noteField, switchScheduled, spinnerFrequency, etDueDay, spinnerDueMonth));
       actionsView.setOnCancelClickListener(v -> dismiss());
     }
     if (existingTemplate != null) {
@@ -266,7 +283,8 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
       @Nullable LabeledEditTextView noteField,
       @Nullable SwitchCompat switchScheduled,
       @Nullable Spinner spinnerFrequency,
-      @Nullable LabeledEditTextView etDueDay) {
+      @Nullable LabeledEditTextView etDueDay,
+      @Nullable Spinner spinnerDueMonth) {
 
     String name = "";
     if (nameField != null && nameField.getEditText() != null) {
@@ -346,6 +364,15 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
       if (dueDay > 31) dueDay = 31;
     }
 
+    int dueMonth = spinnerDueMonth == null ? 0 : spinnerDueMonth.getSelectedItemPosition();
+    if (isScheduled && frequency == RecurringFrequency.YEARLY && (dueMonth < 1 || dueMonth > 12)) {
+      Toast.makeText(getContext(), R.string.schedule_month_required, Toast.LENGTH_LONG).show();
+      return;
+    }
+    if (frequency == RecurringFrequency.WEEKLY && dueDay > 7) {
+      etDueDay.getEditText().setError("Pilih 1–7 (Senin–Minggu)");
+      return;
+    }
     if (existingTemplate != null && existingTemplate.getId() > 0) {
       existingTemplate.setName(name);
       existingTemplate.setIcon(selectedIcon);
@@ -355,6 +382,7 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
       existingTemplate.setScheduled(isScheduled);
       existingTemplate.setFrequency(frequency);
       existingTemplate.setDueDay(dueDay);
+      existingTemplate.setDueMonth(dueMonth);
       services.transactionTemplateDao.update(existingTemplate);
       Toast.makeText(getContext(), "Shortcut diperbarui", Toast.LENGTH_SHORT).show();
     } else {
@@ -364,6 +392,7 @@ public final class TransactionTemplateEditorDialog extends BottomSheetDialog {
       newTemplate.setScheduled(isScheduled);
       newTemplate.setFrequency(frequency);
       newTemplate.setDueDay(dueDay);
+      newTemplate.setDueMonth(dueMonth);
       services.transactionTemplateDao.insert(newTemplate);
       Toast.makeText(getContext(), "Shortcut baru disimpan", Toast.LENGTH_SHORT).show();
     }

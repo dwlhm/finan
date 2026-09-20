@@ -9,8 +9,9 @@
         android:id="@+id/item_transaction_date_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginBottom="6dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:visibility="gone">
 
@@ -19,14 +20,16 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="@color/finan_text_primary"
-            android:textSize="14sp"
+            android:fontFamily="@font/plus_jakarta_sans_family"
+            android:textColor="@color/finan_text_secondary"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/item_transaction_daily_total"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/plus_jakarta_sans_family"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -35,25 +38,28 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_card"
+        android:baselineAligned="false"
         android:foreground="?android:attr/selectableItemBackground"
         android:gravity="center_vertical"
-        android:minHeight="76dp"
-        android:baselineAligned="false"
+        android:minHeight="68dp"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp">
 
         <FrameLayout
             android:id="@+id/item_transaction_icon_container"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="16dp">
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="14dp">
 
             <ImageView
                 android:id="@+id/item_transaction_icon"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:contentDescription="@string/desc_btn_summary_filter"
-                android:padding="12dp"
+                android:padding="11dp"
                 android:src="@drawable/ic_summary_filter"
                 app:tint="@android:color/white" />
 
@@ -62,7 +68,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:textSize="24sp"
+                android:textSize="22sp"
                 android:visibility="gone" />
         </FrameLayout>
 
@@ -77,10 +83,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
+                android:fontFamily="@font/plus_jakarta_sans_family"
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:textColor="@color/finan_text_primary"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -89,16 +96,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
+                android:fontFamily="@font/plus_jakarta_sans_family"
                 android:maxLines="1"
                 android:textColor="@color/finan_text_secondary"
-                android:textSize="13sp" />
-                
+                android:textSize="12sp" />
+
             <TextView
                 android:id="@+id/item_transaction_note"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="3dp"
                 android:ellipsize="end"
+                android:fontFamily="@font/plus_jakarta_sans_family"
                 android:maxLines="1"
                 android:textColor="@color/finan_text_hint"
                 android:textSize="12sp"
@@ -117,9 +126,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
+                android:fontFamily="@font/plus_jakarta_sans_family"
                 android:includeFontPadding="false"
                 android:maxLines="1"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -128,9 +138,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
+                android:fontFamily="@font/plus_jakarta_sans_family"
                 android:maxLines="1"
-                android:textColor="@color/finan_text_secondary"
-                android:textSize="12sp" />
+                android:textColor="@color/finan_text_hint"
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

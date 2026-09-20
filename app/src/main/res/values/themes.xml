@@ -26,6 +26,8 @@
         <item name="android:statusBarColor">@color/finan_background</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="bottomSheetDialogTheme">@style/Finan.BottomSheetDialog</item>
+        <item name="android:fontFamily">@font/plus_jakarta_sans_family</item>
+        <item name="fontFamily">@font/plus_jakarta_sans_family</item>
     </style>
 
     <style name="Finan.ShapeAppearance.BottomSheet" parent="ShapeAppearance.Material3.Corner.ExtraLarge">

@@ -292,6 +292,18 @@
                     android:layout_height="44dp"
                     android:layout_marginTop="4dp" />
 
+                <TextView
+                    android:id="@+id/schedule_month_prompt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/schedule_month_required"
+                    android:textColor="@color/finan_text_secondary"
+                    android:visibility="gone" />
+                <Spinner
+                    android:id="@+id/spinner_due_month"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:visibility="gone" />
                 <com.dwlhm.finan.ui.common.LabeledEditTextView
                     android:id="@+id/et_due_day"
                     android:layout_width="match_parent"

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:colorBackground">
+    android:background="@android:color/transparent">
 
     <!-- Global Header Container -->
     <LinearLayout
@@ -12,15 +12,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="?android:colorBackground">
+        android:background="@android:color/transparent">
 
         <LinearLayout android:baselineAligned="false"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingTop="16dp"
+            android:paddingStart="20dp"
+            android:paddingTop="28dp"
             android:paddingEnd="16dp"
             android:paddingBottom="12dp">
 
@@ -28,20 +28,34 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_binder_3d"
+                    android:contentDescription="@string/nav_dashboard" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="@font/plus_jakarta_sans_family"
+                    android:fontVariationSettings="'wght' 800"
                     android:text="@string/hc_fragment_dashboard_buku_kas"
-                    android:textAppearance="@style/Finan.Text.Title" />
+                    android:textColor="@color/finan_text_dark_primary"
+                    android:textFontWeight="800"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <FrameLayout
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:background="@drawable/bg_toggle_track"
-                android:padding="2dp">
+                android:padding="2dp"
+                android:visibility="gone">
 
                 <com.google.android.material.button.MaterialButtonToggleGroup
                     android:id="@+id/dashboard_mode_toggle_group"
@@ -107,6 +121,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="12dp"
+            android:visibility="gone"
             app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
             app:cardCornerRadius="22dp"
             app:cardElevation="0dp"

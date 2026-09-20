@@ -1,15 +1,13 @@
 package com.dwlhm.finan.ui.summary;
 
-import org.junit.Test;
-import com.dwlhm.finan.domain.model.MonthlySummary;
-import java.util.Collections;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import com.dwlhm.finan.domain.model.MonthlySummary;
+import java.time.YearMonth;
+import java.util.Collections;
+import org.junit.Test;
 
 public final class FinancialAdvisorTest {
-
-  @Test
+@Test
   public void testNullSummary() {
     FinancialAdvisor.AdviceDetails details = FinancialAdvisor.calculateAdviceDetails(null);
     assertEquals(FinancialAdvisor.AdviceType.NO_DATA, details.type);
@@ -88,5 +86,33 @@ public final class FinancialAdvisorTest {
   @Test
   public void testCategoryComparisonNulls() {
     assertEquals("", FinancialAdvisor.getHighestRiseCategoryMessage(null, null, null));
+  }
+
+  @Test public void halfwayHighSpendingUsesActualIncomeRatio() {
+    assertAdvice(2700, 3000, 0.5, FinancialAdvisor.AdviceType.HIGH_SPENDING, 90);
+  }
+
+  @Test public void earlyHighSpendingUsesTheSameActualRatio() {
+    assertAdvice(2700, 3000, 0.1, FinancialAdvisor.AdviceType.HIGH_SPENDING, 90);
+  }
+
+  @Test public void zeroIncomeDistinguishesEmptyFromDeficit() {
+    assertAdvice(0, 0, 0.5, FinancialAdvisor.AdviceType.NO_DATA, 0);
+    assertAdvice(1, 0, 0.5, FinancialAdvisor.AdviceType.OVERSPENDING, 0);
+  }
+
+  @Test public void endOfPeriodSavingsUseUnscaledActualRatio() {
+    assertAdvice(1200, 3000, 1.0, FinancialAdvisor.AdviceType.HEALTHY_SAVINGS, 60);
+  }
+
+  private void assertAdvice(long expense, long income, double dayProgress,
+      FinancialAdvisor.AdviceType type, int percentage) {
+    YearMonth period = YearMonth.now();
+    MonthlySummary summary = new MonthlySummary(period.getYear(), period.getMonthValue(), expense,
+        income, Collections.emptyList(), Collections.emptyList());
+    FinancialAdvisor.AdviceDetails advice =
+        FinancialAdvisor.calculateAdviceDetails(summary, null, null, dayProgress);
+    assertEquals(type, advice.type);
+    assertEquals(percentage, advice.percentage);
   }
 }

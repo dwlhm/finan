@@ -5,7 +5,9 @@ import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.SwitchCompat;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.dwlhm.finan.data.prefs.DefaultsStore;
 import android.content.Intent;
 import android.net.Uri;
@@ -40,6 +42,7 @@ import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.ui.wallet.WalletInputDialog;
 import com.dwlhm.finan.ui.wallet.WalletOverviewBottomSheet;
 import com.dwlhm.finan.util.money.MoneyFormatter;
+import com.dwlhm.finan.util.ui.StatusBarInsetsHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class SettingsFragment extends ScreenFragment {
+  private BackupControls backupControls;
   private ActivityResultLauncher<Intent> exportLauncher;
   private ActivityResultLauncher<Intent> importLauncher;
   private View exportButton;
@@ -61,12 +65,20 @@ public final class SettingsFragment extends ScreenFragment {
   @Nullable private Long exportStartDate;
   @Nullable private Long exportEndDate;
   private TextView payrollCycleValue;
+  private TextView themeSubtitle;
+  private boolean updatingPrivacyControls;
+  private ReminderControls reminderControls;
+  private boolean privacyAuthenticationPending;
+  private MaterialSwitch appLockSwitch;
+  private MaterialSwitch privateWidgetsSwitch;
   private long cachedTotalBalanceMinor;
   private String cachedCurrencyCode;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    backupControls = new BackupControls(this);
+    reminderControls = new ReminderControls(this);
     exportLauncher =
         registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -97,7 +109,11 @@ public final class SettingsFragment extends ScreenFragment {
                     .show();
                 return;
               }
-              readCsvImportAsync(uri);
+              new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                  .setTitle("Tambahkan data CSV?")
+                  .setMessage("CSV tidak terenkripsi. Impor menambah transaksi; mengimpor file yang sama kembali dapat menggandakan data. Untuk mengganti seluruh data, gunakan Pulihkan backup terenkripsi.")
+                  .setNegativeButton("Batal", null)
+                  .setPositiveButton("Tambahkan", (dialog, which) -> readCsvImportAsync(uri)).show();
             });
   }
 
@@ -108,6 +124,12 @@ public final class SettingsFragment extends ScreenFragment {
 
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    View header = view.findViewById(R.id.settings_header_container);
+    if (header != null) {
+      StatusBarInsetsHelper.applyTopPadding(header, 12);
+    }
+    backupControls.attach(view.findViewById(R.id.settings_section_data_backup));
+    reminderControls.attach(view.findViewById(R.id.settings_reminder_controls));
     exportButton = view.findViewById(R.id.settings_export);
     importButton = view.findViewById(R.id.settings_import);
     exportProgress = view.findViewById(R.id.settings_export_progress);
@@ -139,10 +161,68 @@ public final class SettingsFragment extends ScreenFragment {
     if (templatesButton != null) {
       templatesButton.setOnClickListener(v -> openTransactionTemplatesDialog());
     }
+    View themeButton = view.findViewById(R.id.settings_theme);
+    themeSubtitle = view.findViewById(R.id.settings_theme_subtitle);
+    if (themeButton != null) {
+      themeButton.setOnClickListener(v -> showThemePickerDialog());
+    }
+    updateThemeSubtitle();
     View resetButton = view.findViewById(R.id.settings_reset_data);
     if (resetButton != null) {
       resetButton.setOnClickListener(v -> showResetDataConfirmationDialog());
     }
+
+    appLockSwitch = view.findViewById(R.id.settings_app_lock_switch);
+    privateWidgetsSwitch = view.findViewById(R.id.settings_private_widgets_switch);
+    if (appLockSwitch != null) {
+      appLockSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
+        if (updatingPrivacyControls || privacyAuthenticationPending) return;
+        privacyAuthenticationPending = true;
+        refreshPrivacyControls();
+        Runnable finished = () -> {
+          privacyAuthenticationPending = false;
+          if (isAdded() && getView() == view) refreshPrivacyControls();
+        };
+        com.dwlhm.finan.service.privacy.AppLock.setEnabled(requireActivity(), isChecked, finished, finished);
+      });
+    }
+    if (privateWidgetsSwitch != null) {
+      privateWidgetsSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
+        if (updatingPrivacyControls) return;
+        com.dwlhm.finan.service.privacy.AppLock.setPrivateWidgets(requireContext(), isChecked);
+        refreshPrivacyControls();
+      });
+    }
+    refreshPrivacyControls();
+  }
+
+  private void refreshPrivacyControls() {
+    if (!isAdded()) return;
+    updatingPrivacyControls = true;
+    try {
+      boolean locked = com.dwlhm.finan.service.privacy.AppLock.enabled(requireContext());
+      if (appLockSwitch != null) {
+        appLockSwitch.setChecked(locked);
+        appLockSwitch.setEnabled(!privacyAuthenticationPending);
+      }
+      if (privateWidgetsSwitch != null) {
+        privateWidgetsSwitch.setChecked(com.dwlhm.finan.service.privacy.AppLock.privateWidgets(requireContext()));
+        privateWidgetsSwitch.setEnabled(!locked && !privacyAuthenticationPending);
+      }
+    } finally {
+      updatingPrivacyControls = false;
+    }
+  }
+
+  @Override
+  public void onDestroyView() {
+    if (reminderControls != null) reminderControls.detach();
+    appLockSwitch = null;
+    privateWidgetsSwitch = null;
+    themeSubtitle = null;
+    privacyAuthenticationPending = false;
+    if (backupControls != null) backupControls.close();
+    super.onDestroyView();
   }
 
   private void openTransactionTemplatesDialog() {
@@ -153,6 +233,56 @@ public final class SettingsFragment extends ScreenFragment {
   @Override
   public void onResume() {
     super.onResume();
+    refreshPrivacyControls();
+    if (reminderControls != null) reminderControls.refresh();
+    updateThemeSubtitle();
+  }
+
+  private void updateThemeSubtitle() {
+    if (themeSubtitle == null || !isAdded()) return;
+    AppServices services = ServicesProvider.get(requireContext());
+    int mode = services.defaultsStore.getThemeMode();
+    if (mode == AppCompatDelegate.MODE_NIGHT_NO) {
+      themeSubtitle.setText(R.string.settings_theme_light);
+    } else if (mode == AppCompatDelegate.MODE_NIGHT_YES) {
+      themeSubtitle.setText(R.string.settings_theme_dark);
+    } else {
+      themeSubtitle.setText(R.string.settings_theme_system);
+    }
+  }
+
+  private void showThemePickerDialog() {
+    AppServices services = ServicesProvider.get(requireContext());
+    int currentMode = services.defaultsStore.getThemeMode();
+    int checkedItem = 0;
+    if (currentMode == AppCompatDelegate.MODE_NIGHT_NO) {
+      checkedItem = 1;
+    } else if (currentMode == AppCompatDelegate.MODE_NIGHT_YES) {
+      checkedItem = 2;
+    }
+
+    CharSequence[] options = new CharSequence[] {
+        getString(R.string.settings_theme_system),
+        getString(R.string.settings_theme_light),
+        getString(R.string.settings_theme_dark)
+    };
+    int[] modes = new int[] {
+        AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
+        AppCompatDelegate.MODE_NIGHT_NO,
+        AppCompatDelegate.MODE_NIGHT_YES
+    };
+
+    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.settings_theme_title)
+        .setSingleChoiceItems(options, checkedItem, (dialog, which) -> {
+          int selectedMode = modes[which];
+          services.defaultsStore.setThemeMode(selectedMode);
+          AppCompatDelegate.setDefaultNightMode(selectedMode);
+          updateThemeSubtitle();
+          dialog.dismiss();
+        })
+        .setNegativeButton(R.string.dialog_cancel, null)
+        .show();
   }
 
   private void openCategoryOverview(Category category) {
