@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.dwlhm.finan.R;
-import com.dwlhm.finan.ui.MainActivity;
 import com.dwlhm.finan.data.entity.Category;
 import com.dwlhm.finan.data.entity.Wallet;
 import com.dwlhm.finan.domain.model.HistoryPageCursor;
@@ -28,6 +27,7 @@ import com.dwlhm.finan.domain.model.PageResult;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.transaction.TransactionSearchResolver;
+import com.dwlhm.finan.service.balance.MonthlyBalanceCalculator;
 import com.dwlhm.finan.ui.common.AppServices;
 import com.dwlhm.finan.ui.common.BottomSheetHelper;
 import com.dwlhm.finan.ui.common.EntityLookup;
@@ -114,6 +114,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private MonthlySummary cachedPrevSummary;
     private MonthlySummary cachedPrevPrevSummary;
     private ForwardCashFlowSummary cachedForwardSummary;
+    private MonthlyBalanceCalculator.Result cachedBalance;
     
     private HistoryQuery activeQuery = new HistoryQuery(null, null, null, null, null, false, HistorySearch.empty());
     
@@ -494,9 +495,10 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 DateRange prevPrevRange = PayrollCycleResolver.shiftMonths(startDate, cutoffDay, -2);
                 MonthlySummary prevSummary = services.summaryService.loadRange(prevRange.getStart(), prevRange.getEnd(), walletId, categoryId);
                 MonthlySummary prevPrevSummary = services.summaryService.loadRange(prevPrevRange.getStart(), prevPrevRange.getEnd(), walletId, categoryId);
+                MonthlyBalanceCalculator.Result balance = services.monthlyBalanceCalculator.from(summary, prevSummary);
                 ForwardCashFlowSummary forwardSummary = services.upcomingCashFlowService.calculateForwardSummary(LocalDate.now(), LocalDate.now().plusDays(29), walletId);
-                
-                return new Object[]{wMap, cMap, query, totals, reportResult, summary, prevSummary, prevPrevSummary, forwardSummary};
+
+                return new Object[]{wMap, cMap, query, totals, reportResult, summary, prevSummary, prevPrevSummary, forwardSummary, balance};
             },
             data -> {
                 if (!isAdded() || generation != reloadGeneration || data == null) return;
@@ -515,6 +517,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 if (data[6] != null) cachedPrevSummary = (MonthlySummary) data[6];
                 if (data[7] != null) cachedPrevPrevSummary = (MonthlySummary) data[7];
                 if (data[8] != null) cachedForwardSummary = (ForwardCashFlowSummary) data[8];
+                cachedBalance = (MonthlyBalanceCalculator.Result) data[9];
                 
                 transactionAdapter.setEntityLookups(categoriesById, walletsById);
                 updateDisplayModeUi();
@@ -538,8 +541,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     
     private void updateSummaryUi() {
         if (cachedTotals == null) return;
-        syncBottomBarSummary(cachedTotals, cachedSummary, cachedPrevSummary);
-        
+
         DashboardViewModel.DisplayMode mode = sharedViewModel.getDisplayMode().getValue();
         if (mode == DashboardViewModel.DisplayMode.MASKED) {
             collapsedBalanceText.setText(R.string.java_MonthlyDashboardFragment_rp);
@@ -551,13 +553,15 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         } else if (mode == DashboardViewModel.DisplayMode.PERCENTAGE) {
             collapsedBalanceText.setText(R.string.java_MonthlyDashboardFragment_100);
         } else {
-            long netBalance = cachedTotals.getIncomeMinor() - cachedTotals.getExpenseMinor();
+            long netBalance = cachedBalance != null
+                    ? cachedBalance.getNetMinor()
+                    : cachedTotals.getIncomeMinor() - cachedTotals.getExpenseMinor();
             collapsedBalanceText.setText(MoneyFormatter.format(netBalance));
         }
 
         long incomeMinor = cachedTotals.getIncomeMinor();
         long expenseMinor = cachedTotals.getExpenseMinor();
-        long netBalance = incomeMinor - expenseMinor;
+        long netBalance = cachedBalance != null ? cachedBalance.getNetMinor() : incomeMinor - expenseMinor;
 
         // Update Hero Net Balance
         if (heroNetBalance != null) {
@@ -670,37 +674,6 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         bindSummaryHeader();
     }
 
-    private void syncBottomBarSummary(HistoryTotals totals, MonthlySummary current, MonthlySummary prev) {
-        if (!(getActivity() instanceof MainActivity) || totals == null) {
-            return;
-        }
-        if (sharedViewModel != null) {
-            DashboardViewModel.TimeRangeState state = sharedViewModel.getTimeRangeState().getValue();
-            if (state != null && (state.year != year || state.month != month)) {
-                return;
-            }
-        }
-        long currentNet = totals.getIncomeMinor() - totals.getExpenseMinor();
-        long prevNet = prev != null ? (prev.getMonthIncomeMinor() - prev.getMonthExpenseMinor()) : 0L;
-        int percentageTrend = 0;
-        if (prev != null && prevNet != 0L) {
-            percentageTrend = (int) Math.round(((double) (currentNet - prevNet) / Math.abs(prevNet)) * 100);
-        } else if (prev != null && prevNet == 0L) {
-            if (currentNet > 0) {
-                percentageTrend = 100;
-            } else if (currentNet < 0) {
-                percentageTrend = -100;
-            } else {
-                percentageTrend = 0;
-            }
-        } else if (currentNet > 0) {
-            percentageTrend = 100;
-        } else if (currentNet < 0) {
-            percentageTrend = -100;
-        }
-        ((MainActivity) getActivity()).updateBottomBarSummary(currentNet, percentageTrend);
-    }
-    
     private void bindSummaryHeader() {
         if (summaryHeaderView == null || cachedTotals == null) return;
 

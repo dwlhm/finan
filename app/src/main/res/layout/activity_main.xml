@@ -49,7 +49,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/plus_jakarta_sans_family"
                         android:letterSpacing="0.06"
-                        android:text="SISA SALDO"
+                        android:text="SISA SALDO BULAN INI"
                         android:textColor="#D2E8DC"
                         android:textSize="11sp"
                         android:textStyle="bold" />
@@ -87,16 +87,29 @@
                 </LinearLayout>
 
                 <!-- Row 2: Nominal Saldo -->
-                <TextView
-                    android:id="@+id/bottom_bar_balance"
+                <FrameLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:fontFamily="@font/plus_jakarta_sans_family"
-                    android:text="Rp 0"
-                    android:textColor="#FFFFFF"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="2dp">
+
+                    <TextView
+                        android:id="@+id/bottom_bar_balance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/plus_jakarta_sans_family"
+                        android:text="Rp 0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <ProgressBar
+                        android:id="@+id/bottom_bar_balance_spinner"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="start|center_vertical"
+                        android:indeterminateTint="#FFFFFF"
+                        android:visibility="gone" />
+                </FrameLayout>
             </LinearLayout>
 
             <ImageView

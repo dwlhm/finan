@@ -19,6 +19,7 @@ import com.dwlhm.finan.data.db.FinanDatabaseHelper;
 import com.dwlhm.finan.data.prefs.DefaultsStore;
 import com.dwlhm.finan.service.balance.BalanceService;
 import com.dwlhm.finan.service.balance.AdjustmentService;
+import com.dwlhm.finan.service.balance.MonthlyBalanceCalculator;
 import com.dwlhm.finan.service.category.CategoryUsageService;
 import com.dwlhm.finan.service.category.CategoryClassificationService;
 import com.dwlhm.finan.service.export.ExportService;
@@ -41,6 +42,7 @@ public final class AppServices {
   public final AdjustmentService adjustmentService;
   public final TransferService transferService;
   public final SummaryService summaryService;
+  public final MonthlyBalanceCalculator monthlyBalanceCalculator;
   public final ExportService exportService;
   public final ImportService importService;
   public final TransactionGateway transactionGateway;
@@ -62,6 +64,7 @@ public final class AppServices {
       AdjustmentService adjustmentService,
       TransferService transferService,
       SummaryService summaryService,
+      MonthlyBalanceCalculator monthlyBalanceCalculator,
       ExportService exportService,
       ImportService importService,
       TransactionGateway transactionGateway,
@@ -82,6 +85,7 @@ public final class AppServices {
     this.adjustmentService = adjustmentService;
     this.transferService = transferService;
     this.summaryService = summaryService;
+    this.monthlyBalanceCalculator = monthlyBalanceCalculator;
     this.exportService = exportService;
     this.importService = importService;
     this.transactionGateway = transactionGateway;
@@ -147,6 +151,8 @@ public final class AppServices {
             walletTable,
             timeProvider,
             ZoneId.systemDefault());
+    MonthlyBalanceCalculator monthlyBalanceCalculator =
+        new MonthlyBalanceCalculator(summaryService);
     CategoryClassificationService categoryClassificationService =
         new CategoryClassificationService(db, categoryTable, transactionTable);
 
@@ -174,6 +180,7 @@ public final class AppServices {
         adjustmentService,
         transferService,
         summaryService,
+        monthlyBalanceCalculator,
         new ExportService(),
         importService,
         transactionGateway,

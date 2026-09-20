@@ -1,11 +1,13 @@
 package com.dwlhm.finan.ui;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.dwlhm.finan.service.privacy.AppLock;
@@ -19,7 +21,7 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.Lifecycle;
 
 import com.dwlhm.finan.R;
-import com.dwlhm.finan.domain.model.MonthlySummary;
+import com.dwlhm.finan.service.balance.MonthlyBalanceCalculator;
 import com.dwlhm.finan.ui.capture.CaptureFragment;
 import com.dwlhm.finan.ui.category.CategoryListFragment;
 import com.dwlhm.finan.ui.common.AppServices;
@@ -67,6 +69,8 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
   private ImageView bottomBarBtnSettings;
   private View settingsOverlayContainer;
   private View captureContainer;
+  private ProgressBar bottomBarBalanceSpinner;
+  private AppServices services;
   // Navigation back stack — bottom = root, top = current screen
   private final java.util.ArrayDeque<Screen> navStack = new java.util.ArrayDeque<>();
 
@@ -81,6 +85,7 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     bottomBarTrendText = findViewById(R.id.bottom_bar_trend);
     bottomBarTrendIcon = findViewById(R.id.bottom_bar_trend_icon);
     bottomBarTrendPill = findViewById(R.id.bottom_bar_trend_pill);
+    bottomBarBalanceSpinner = findViewById(R.id.bottom_bar_balance_spinner);
     bottomBarBtnPlus = findViewById(R.id.bottom_bar_btn_plus);
     bottomBarBtnSettings = findViewById(R.id.bottom_bar_btn_settings);
     settingsOverlayContainer = findViewById(R.id.settings_overlay_container);
@@ -96,38 +101,7 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
       bottomBarBtnSettings.setOnClickListener(v -> navigateTo(Screen.SETTINGS));
     }
 
-    AppServices services = ServicesProvider.get(this);
-    services.dbWorker.compute(() -> {
-      try {
-        LocalDate today = LocalDate.now();
-        LocalDate startCurrent = today.withDayOfMonth(1);
-        LocalDate endCurrent = today.withDayOfMonth(today.lengthOfMonth());
-        LocalDate startPrev = startCurrent.minusMonths(1);
-        LocalDate endPrev = startPrev.withDayOfMonth(startPrev.lengthOfMonth());
-
-        MonthlySummary currentSummary = services.summaryService.loadRange(startCurrent, endCurrent, null, null);
-        MonthlySummary prevSummary = services.summaryService.loadRange(startPrev, endPrev, null, null);
-
-        long currentNet = currentSummary.getMonthIncomeMinor() - currentSummary.getMonthExpenseMinor();
-        long prevNet = prevSummary.getMonthIncomeMinor() - prevSummary.getMonthExpenseMinor();
-
-        int percentageTrend = 0;
-        if (prevNet != 0L) {
-          percentageTrend = (int) Math.round(((double) (currentNet - prevNet) / Math.abs(prevNet)) * 100);
-        } else if (currentNet > 0) {
-          percentageTrend = 100;
-        } else if (currentNet < 0) {
-          percentageTrend = -100;
-        }
-        return new long[]{currentNet, percentageTrend};
-      } catch (Exception e) {
-        return null;
-      }
-    }, result -> {
-      if (result != null && !isFinishing() && !isDestroyed()) {
-        updateBottomBarSummary(result[0], (int) result[1]);
-      }
-    });
+    services = ServicesProvider.get(this);
 
     FragmentManager fm = getSupportFragmentManager();
     CaptureFragment captureFragment = (CaptureFragment) fm.findFragmentById(R.id.capture_container);
@@ -406,6 +380,7 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
   }
 
   private void applyTransition(Screen from, Screen to) {
+    if (from == Screen.CAPTURE && (to == Screen.DASHBOARD || to == Screen.SETTINGS)) requestBottomBarRecalculate();
     NavigationTransition transition = NavigationTransition.resolve(from, to);
     cancelNavigationAnimations();
     prepareDestination(from, to, transition);
@@ -624,36 +599,80 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
       if (bottomBarBtnSettings != null) {
         configureBottomBarFor(Screen.DASHBOARD);
       }
+      requestBottomBarRecalculate();
     } else { // SETTINGS — unlikely on cold start but handle it
       applyImmediateState(Screen.CAPTURE);
       navigateTo(Screen.SETTINGS);
     }
   }
 
-  public void updateBottomBarSummary(long balanceMinor, int percentageTrend) {
-    if (bottomBarBalanceText != null) {
-      bottomBarBalanceText.setText(MoneyFormatter.format(balanceMinor));
-    }
-    if (bottomBarTrendIcon != null && bottomBarTrendText != null) {
-      if (percentageTrend > 0) {
-        bottomBarTrendIcon.setImageResource(R.drawable.ic_trend_up);
-        bottomBarTrendIcon.setImageTintList(ColorStateList.valueOf(Color.parseColor("#A3F5CF")));
-        bottomBarTrendText.setTextColor(Color.parseColor("#A3F5CF"));
-        bottomBarTrendText.setText("+" + percentageTrend + "%");
-      } else if (percentageTrend < 0) {
-        bottomBarTrendIcon.setImageResource(R.drawable.ic_trend_down);
-        bottomBarTrendIcon.setImageTintList(ColorStateList.valueOf(Color.parseColor("#FFB4AB")));
-        bottomBarTrendText.setTextColor(Color.parseColor("#FFB4AB"));
-        bottomBarTrendText.setText(percentageTrend + "%");
+  private enum BottomBarPhase { IDLE, COMPUTING, READY }
+  private BottomBarPhase bottomBarPhase = BottomBarPhase.IDLE;
+  private MonthlyBalanceCalculator.Result bottomBarResult;
+
+  private void requestBottomBarRecalculate() {
+    if (bottomBarPhase == BottomBarPhase.COMPUTING) return;
+    bottomBarPhase = BottomBarPhase.COMPUTING;
+    renderBottomBar();
+    LocalDate today = LocalDate.now();
+    LocalDate start = today.withDayOfMonth(1);
+    LocalDate end = today.withDayOfMonth(today.lengthOfMonth());
+    LocalDate prevStart = start.minusMonths(1);
+    LocalDate prevEnd = prevStart.withDayOfMonth(prevStart.lengthOfMonth());
+    MonthlyBalanceCalculator calculator = services.monthlyBalanceCalculator;
+    services.dbWorker.compute(() -> {
+      try {
+        return calculator.calculate(start, end, prevStart, prevEnd, null, null);
+      } catch (Exception e) {
+        return null;
+      }
+    }, result -> {
+      if (isFinishing() || isDestroyed()) return;
+      if (result == null) {
+        bottomBarPhase = BottomBarPhase.IDLE;
       } else {
-        bottomBarTrendIcon.setImageResource(R.drawable.ic_trend_neutral);
-        bottomBarTrendIcon.setImageTintList(ColorStateList.valueOf(Color.parseColor("#D7E8E6")));
-        bottomBarTrendText.setTextColor(Color.parseColor("#D7E8E6"));
-        bottomBarTrendText.setText("0%");
+        bottomBarPhase = BottomBarPhase.READY;
+        bottomBarResult = result;
+      }
+      renderBottomBar();
+    });
+  }
+
+  private void renderBottomBar() {
+    if (bottomBarBalanceText == null) return;
+    boolean showResult = bottomBarPhase == BottomBarPhase.READY && bottomBarResult != null;
+    if (bottomBarBalanceSpinner != null) {
+      bottomBarBalanceSpinner.setVisibility(showResult ? View.GONE : View.VISIBLE);
+    }
+    bottomBarBalanceText.setVisibility(showResult ? View.VISIBLE : View.INVISIBLE);
+    if (bottomBarTrendPill != null) {
+      bottomBarTrendPill.setVisibility(showResult ? View.VISIBLE : View.INVISIBLE);
+    }
+    if (showResult) {
+      bottomBarBalanceText.setText(MoneyFormatter.format(bottomBarResult.getNetMinor()));
+      int percentageTrend = bottomBarResult.getTrendPercent();
+      if (bottomBarTrendIcon != null && bottomBarTrendText != null) {
+        if (percentageTrend > 0) {
+          bottomBarTrendIcon.setImageResource(R.drawable.ic_trend_up);
+          bottomBarTrendIcon.setImageTintList(ColorStateList.valueOf(Color.parseColor("#A3F5CF")));
+          bottomBarTrendText.setTextColor(Color.parseColor("#A3F5CF"));
+          bottomBarTrendText.setText("+" + percentageTrend + "%");
+        } else if (percentageTrend < 0) {
+          bottomBarTrendIcon.setImageResource(R.drawable.ic_trend_down);
+          bottomBarTrendIcon.setImageTintList(ColorStateList.valueOf(Color.parseColor("#FFB4AB")));
+          bottomBarTrendText.setTextColor(Color.parseColor("#FFB4AB"));
+          bottomBarTrendText.setText(percentageTrend + "%");
+        } else {
+          bottomBarTrendIcon.setImageResource(R.drawable.ic_trend_neutral);
+          bottomBarTrendIcon.setImageTintList(ColorStateList.valueOf(Color.parseColor("#D7E8E6")));
+          bottomBarTrendText.setTextColor(Color.parseColor("#D7E8E6"));
+          bottomBarTrendText.setText("0%");
+        }
       }
     }
   }
 
+  @SuppressLint("MissingSuperCall")
   @Override
   public void onBackPressed() {
     if (isSettingsOpen()) {
