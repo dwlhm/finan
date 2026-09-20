@@ -151,6 +151,47 @@ public class TransactionTemplateDao {
     return list;
   }
 
+  public boolean isOccurrenceHandled(long templateId, String dueDate) {
+    try (Cursor cursor = db.rawQuery(
+        "SELECT 1 FROM scheduled_occurrences WHERE template_id = ? AND due_date = ? LIMIT 1",
+        new String[] {String.valueOf(templateId), dueDate})) {
+      return cursor.moveToFirst();
+    }
+  }
+
+  public boolean hasOccurrenceHistory(long templateId) {
+    try (Cursor cursor = db.rawQuery(
+        "SELECT 1 FROM scheduled_occurrences WHERE template_id = ? LIMIT 1",
+        new String[] {String.valueOf(templateId)})) {
+      return cursor.moveToFirst();
+    }
+  }
+
+  public boolean markOccurrence(long templateId, String dueDate, String status, Long transactionId) {
+    if (templateId <= 0 || dueDate == null
+        || !java.time.LocalDate.parse(dueDate).toString().equals(dueDate)
+        || !("RECORDED".equals(status) || "SKIPPED".equals(status))
+        || ("RECORDED".equals(status) && (transactionId == null || transactionId <= 0))
+        || ("SKIPPED".equals(status) && transactionId != null)) {
+      throw new IllegalArgumentException("Invalid scheduled occurrence");
+    }
+    ContentValues values = new ContentValues();
+    values.put("template_id", templateId);
+    values.put("due_date", dueDate);
+    values.put("status", status);
+    values.put("transaction_id", transactionId);
+    boolean inserted = db.insertWithOnConflict("scheduled_occurrences", null, values,
+        SQLiteDatabase.CONFLICT_IGNORE) > 0;
+    if (inserted) {
+      // Modern occurrence history supersedes the ambiguous legacy timestamp, even
+      // when a recorded transaction is later deleted and its status cascades away.
+      ContentValues legacy = new ContentValues();
+      legacy.put("last_recorded_at", 0L);
+      db.update(TABLE_NAME, legacy, "id = ?", new String[] {String.valueOf(templateId)});
+    }
+    return inserted;
+  }
+
   public boolean markRecorded(long templateId, long timestampMillis) {
     ContentValues values = new ContentValues();
     values.put("last_recorded_at", timestampMillis);
@@ -229,6 +270,7 @@ public class TransactionTemplateDao {
     values.put("sort_order", t.getSortOrder());
     values.put("frequency", t.getFrequency() != null ? t.getFrequency().name() : RecurringFrequency.NONE.name());
     values.put("due_day", t.getDueDay());
+    values.put("due_month", t.getDueMonth());
     values.put("is_scheduled", t.isScheduled() ? 1 : 0);
     values.put("last_recorded_at", t.getLastRecordedAt());
     return values;
@@ -277,7 +319,7 @@ public class TransactionTemplateDao {
       lastRecordedAt = c.getLong(lastRecIdx);
     }
 
-    return new TransactionTemplate(
+    TransactionTemplate template = new TransactionTemplate(
         id,
         name,
         type,
@@ -292,5 +334,8 @@ public class TransactionTemplateDao {
         dueDay,
         isScheduled,
         lastRecordedAt);
+    int monthIndex = c.getColumnIndex("due_month");
+    template.setDueMonth(monthIndex < 0 ? 0 : c.getInt(monthIndex));
+    return template;
   }
 }

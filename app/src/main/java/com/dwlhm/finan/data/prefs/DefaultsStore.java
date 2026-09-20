@@ -133,4 +133,14 @@ public final class DefaultsStore {
     shortcuts.add(100_000L);
     return shortcuts;
   }
+
+  private static final String KEY_THEME_MODE = "theme_mode";
+
+  public int getThemeMode() {
+    return prefs.getInt(KEY_THEME_MODE, androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+  }
+
+  public void setThemeMode(int mode) {
+    prefs.edit().putInt(KEY_THEME_MODE, mode).apply();
+  }
 }

@@ -19,6 +19,7 @@ public class TransactionTemplate {
   private int sortOrder;
   @NonNull private RecurringFrequency frequency;
   private int dueDay;
+  private int dueMonth;
   private boolean isScheduled;
   private long lastRecordedAt;
 
@@ -211,6 +212,10 @@ public class TransactionTemplate {
     this.dueDay = dueDay;
   }
 
+  public int getDueMonth() { return dueMonth; }
+
+  public void setDueMonth(int dueMonth) { this.dueMonth = dueMonth; }
+
   public boolean isScheduled() {
     return isScheduled;
   }
@@ -236,6 +241,7 @@ public class TransactionTemplate {
         && amountMinor == that.amountMinor
         && sortOrder == that.sortOrder
         && dueDay == that.dueDay
+        && dueMonth == that.dueMonth
         && isScheduled == that.isScheduled
         && lastRecordedAt == that.lastRecordedAt
         && Objects.equals(name, that.name)
@@ -263,6 +269,7 @@ public class TransactionTemplate {
         sortOrder,
         frequency,
         dueDay,
+        dueMonth,
         isScheduled,
         lastRecordedAt);
   }

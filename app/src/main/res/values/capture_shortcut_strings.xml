@@ -1,0 +1,15 @@
+<resources>
+    <string name="capture_shortcut_title">Pintasan</string>
+    <string name="capture_shortcut_add">＋ Tambah</string>
+    <string name="capture_shortcut_add_description">Tambah pintasan</string>
+    <string name="capture_shortcut_helper"></string>
+    <string name="capture_shortcut_empty">Belum ada pintasan. Tambahkan transaksi yang sering dipakai.</string>
+    <string name="capture_shortcut_loading">Memuat pintasan…</string>
+    <string name="capture_shortcut_routine">Rutin</string>
+    <string name="capture_shortcut_variable">Isi nominal</string>
+    <string name="capture_shortcut_accessibility">%1$s, %2$s. %3$s.</string>
+    <string name="capture_shortcut_error">Pintasan belum bisa dimuat. Coba lagi.</string>
+    <string name="capture_shortcut_choose_category">Pilih kategori</string>
+    <string name="capture_shortcut_choose_wallet">Pilih dompet</string>
+    <string name="capture_shortcut_choose_destination">Pilih tujuan</string>
+</resources>

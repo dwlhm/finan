@@ -1,0 +1,11 @@
+<resources>
+    <dimen name="capture_shortcut_touch_target">48dp</dimen>
+    <dimen name="capture_shortcut_corner">12dp</dimen>
+    <dimen name="capture_shortcut_padding">12dp</dimen>
+    <dimen name="capture_shortcut_small_gap">4dp</dimen>
+    <dimen name="capture_shortcut_gap">8dp</dimen>
+    <dimen name="capture_shortcut_section_gap">8dp</dimen>
+    <dimen name="capture_shortcut_name_max_width">148dp</dimen>
+    <dimen name="capture_shortcut_name_size">13sp</dimen>
+    <dimen name="capture_shortcut_detail_size">11sp</dimen>
+</resources>

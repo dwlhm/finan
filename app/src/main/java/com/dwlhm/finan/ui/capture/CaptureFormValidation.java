@@ -73,7 +73,7 @@ final class CaptureFormValidation {
   }
 
   void clearErrorBackground(TextView view) {
-    view.setTextColor(view.getContext().getResources().getColor(R.color.finan_primary, null));
+    view.setTextColor(view.getContext().getResources().getColor(R.color.finan_text_dark_primary, null));
   }
 
   private void rebuildBanner() {

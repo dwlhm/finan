@@ -43,6 +43,8 @@ import com.dwlhm.finan.ui.components.FinancialKeypadView;
 import com.dwlhm.finan.ui.components.KeypadAmountManager;
 import com.dwlhm.finan.ui.components.FinanToast;
 import com.dwlhm.finan.util.math.ExpressionEvaluator;
+import com.dwlhm.finan.util.ui.StatusBarInsetsHelper;
+import com.dwlhm.finan.util.ui.ViewPressAnimator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,8 +57,21 @@ public final class CaptureFragment extends ScreenFragment {
   private DefaultsStore defaultsStore;
 
 
+  public interface OnCaptureNavigationListener {
+      void onNavigateToBukuKas();
+      void onNavigateToSettings();
+  }
+
+  private OnCaptureNavigationListener navigationListener;
+
+  public void setOnCaptureNavigationListener(OnCaptureNavigationListener listener) {
+      this.navigationListener = listener;
+  }
+
   private EditText amountInput;
   private TextView sentencePrefix;
+  private TextView sentenceLine1Label;
+  private TextView sentenceLine2Label;
   private TextView sentenceFor;
   private TextView categoryText;
   private TextView sentenceFrom;
@@ -73,6 +88,12 @@ public final class CaptureFragment extends ScreenFragment {
   private TextView captureUndoTitle;
   private TextView captureUndoActionText;
   private CaptureFormValidation formValidation;
+  private TextView batalkanBtn;
+  private View floatingToast;
+  private TextView floatingToastMessage;
+  private final Runnable dismissFloatingToastRunnable = this::dismissFloatingToast;
+  private boolean saveCooldownActive = false;
+  private android.os.CountDownTimer saveCooldownTimer;
 
   private CalculatorStripView calculatorStrip;
   private StringBuilder exprString;
@@ -92,6 +113,9 @@ public final class CaptureFragment extends ScreenFragment {
   private boolean captureDraftRestored;
   private int refreshGeneration;
   private boolean isDataLoaded = false;
+  private boolean captureDataReady;
+  private long shortcutGeneration;
+  @Nullable private Long pendingTemplateId;
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -107,10 +131,16 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private boolean saveInProgress;
+  private boolean undoInProgress;
+  /** Advances when a new save takes ownership, preventing an older undo restoring over it. */
+  private long saveGeneration;
+  private final android.os.Handler holdTriggerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+  private Runnable startHoldRunnable;
 
   @android.annotation.SuppressLint("ClickableViewAccessibility")
   @Override
   protected void onViewReady(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    StatusBarInsetsHelper.applyTopPadding(view.findViewById(R.id.capture_top_header), 12);
     amountInput = view.findViewById(R.id.capture_amount);
     MoneyInputFormatter.attach(amountInput, false);
     amountInput.addTextChangedListener(calcTextWatcher);
@@ -123,29 +153,24 @@ public final class CaptureFragment extends ScreenFragment {
     walletText = view.findViewById(R.id.capture_wallet_text);
     dateText = view.findViewById(R.id.capture_date_text);
     noteInput = view.findViewById(R.id.capture_note);
-    if (noteInput != null) {
-      noteInput.addTextChangedListener(new android.text.TextWatcher() {
-        @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {
-          updateFilteredTemplates();
-        }
-        @Override
-        public void afterTextChanged(android.text.Editable s) {}
-      });
-    }
     captureSaveButtonArea = view.findViewById(R.id.capture_save_button_area);
+    ViewPressAnimator.bindScale(sentencePrefix);
+    ViewPressAnimator.bindScale(categoryText);
+    ViewPressAnimator.bindScale(walletText);
+    ViewPressAnimator.bindScale(dateText);
+    ViewPressAnimator.bindScale(captureSaveButtonArea);
     captureSaveLabel = view.findViewById(R.id.capture_save_label);
     captureUndoRow = view.findViewById(R.id.capture_undo_row);
     captureUndoTitle = view.findViewById(R.id.capture_undo_title);
     captureHoldProgress = view.findViewById(R.id.capture_hold_progress);
     captureUndoActionText = view.findViewById(R.id.capture_undo_action_text);
     View captureUndoAction = view.findViewById(R.id.capture_undo_action);
-    captureUndoAction.setOnClickListener(v -> {
-        expireAmountAutoFocus();
-        performUndo();
-    });
+    if (captureUndoAction != null) {
+        captureUndoAction.setOnClickListener(v -> {
+            expireAmountAutoFocus();
+            performUndo();
+        });
+    }
 
     occurredAtMillis = System.currentTimeMillis();
     updateDateLabel();
@@ -265,13 +290,18 @@ public final class CaptureFragment extends ScreenFragment {
 
     installAmountAutoFocusExpiry(view);
 
-    android.os.Handler holdTriggerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    captureSaveButtonArea.setOnClickListener(v -> {
+      if (!isResumed() || getView() != view) return;
+      expireAmountAutoFocus();
+      saveTransaction(true);
+    });
     
     captureSaveButtonArea.setOnTouchListener(new android.view.View.OnTouchListener() {
         private boolean isHolding = false;
         private boolean isTapValid = true;
 
-        private final Runnable startHoldRunnable = () -> {
+        { startHoldRunnable = () -> {
+            if (!isResumed() || getView() != view) return;
             isHolding = true;
             isTapValid = false;
             captureSaveLabel.setText(R.string.java_CaptureFragment_tahan_untuk_pertahankan);
@@ -283,17 +313,23 @@ public final class CaptureFragment extends ScreenFragment {
             holdAnimator.addUpdateListener(anim -> captureHoldProgress.setScaleX((float) anim.getAnimatedValue()));
             holdAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
                 boolean triggered = false;
+                boolean canceled = false;
+                @Override
+                public void onAnimationCancel(android.animation.Animator animation) {
+                    canceled = true;
+                }
                 @Override
                 public void onAnimationEnd(android.animation.Animator animation) {
-                    if (triggered || !isAdded()) return;
+                    if (canceled || triggered || !isResumed() || getView() != view) return;
                     triggered = true;
+                    holdAnimator = null;
                     hideHoldState(); // reset visual
                     expireAmountAutoFocus();
                     saveTransaction(false); // false = don't clear form (retain state)
                 }
             });
             holdAnimator.start();
-        };
+        }; }
 
         @Override
         public boolean onTouch(android.view.View v, android.view.MotionEvent event) {
@@ -304,6 +340,7 @@ public final class CaptureFragment extends ScreenFragment {
                     isHolding = false;
                     isTapValid = true;
                     v.setPressed(true);
+                    v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(80).start();
                     holdTriggerHandler.postDelayed(startHoldRunnable, 500); // 500ms is standard long press timeout
                     return true;
                 
@@ -313,9 +350,10 @@ public final class CaptureFragment extends ScreenFragment {
                     float y = event.getY();
                     int slop = android.view.ViewConfiguration.get(v.getContext()).getScaledTouchSlop();
                     if (x < -slop || x > v.getWidth() + slop || y < -slop || y > v.getHeight() + slop) {
-                        if (isTapValid) {
+                        {
                             isTapValid = false;
                             v.setPressed(false);
+                            v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
                             holdTriggerHandler.removeCallbacks(startHoldRunnable);
                             if (isHolding) {
                                 hideHoldState();
@@ -326,13 +364,12 @@ public final class CaptureFragment extends ScreenFragment {
                     
                 case android.view.MotionEvent.ACTION_UP:
                     v.setPressed(false);
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
                     holdTriggerHandler.removeCallbacks(startHoldRunnable);
                     if (isHolding) {
                         hideHoldState(); // Canceled hold
                     } else if (isTapValid) {
                         // Short tap
-                        expireAmountAutoFocus();
-                        saveTransaction(true); // true = clear form (reset state)
                         v.performClick();
                     }
                     return true;
@@ -340,6 +377,7 @@ public final class CaptureFragment extends ScreenFragment {
                 case android.view.MotionEvent.ACTION_CANCEL:
                     android.util.Log.d("CaptureFragment", "Touch CANCEL.");
                     v.setPressed(false);
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
                     holdTriggerHandler.removeCallbacks(startHoldRunnable);
                     if (isHolding) {
                         hideHoldState();
@@ -349,7 +387,9 @@ public final class CaptureFragment extends ScreenFragment {
             return false;
         }
     });
+    setupNewUiElements(view);
     updateCaptureMode();
+    updateFilteredTemplates();
   }
   private void updateInteractiveFieldTheme(TextView view, int textColorRes, int bgColorRes) {
       view.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), textColorRes));
@@ -412,14 +452,26 @@ public final class CaptureFragment extends ScreenFragment {
 
   @Override
   public void onPause() {
+    hideHoldState();
     persistCaptureDraft();
     super.onPause();
   }
 
   @Override
   public void onDestroyView() {
+    if (saveCooldownTimer != null) {
+      saveCooldownTimer.cancel();
+      saveCooldownTimer = null;
+    }
+    saveCooldownActive = false;
+    hideHoldState();
+    startHoldRunnable = null;
     dismissUndoBar();
     captureDraftRestored = false;
+    isDataLoaded = false;
+    captureDataReady = false;
+    pendingTemplateId = null;
+    shortcutGeneration++;
     refreshGeneration++;
     super.onDestroyView();
   }
@@ -453,34 +505,27 @@ public final class CaptureFragment extends ScreenFragment {
           bindWallets();
           updateCategoryLabel();
           loadedTemplates = state.templates != null ? state.templates : new ArrayList<>();
+          captureDataReady = true;
           updateFilteredTemplates();
+          if (pendingTemplateId != null) {
+            // Restore may have queued a category lookup; consume the deep link after it.
+            View ownerView = getView();
+            services.dbWorker.run(() -> {}, () -> {
+              if (!isAdded() || getView() != ownerView || generation != refreshGeneration
+                  || pendingTemplateId == null) return;
+              long requestedTemplate = pendingTemplateId;
+              pendingTemplateId = null;
+              executeTemplateById(requestedTemplate);
+            });
+          }
         });
   }
 
   private void updateFilteredTemplates() {
-    if (loadedTemplates == null || loadedTemplates.isEmpty()) {
-      renderTemplateChips(new ArrayList<>());
-      return;
-    }
-    String query = noteInput != null && noteInput.getText() != null
-        ? noteInput.getText().toString().trim().toLowerCase()
-        : "";
-
-    List<TransactionTemplate> filtered = new ArrayList<>();
-    for (TransactionTemplate t : loadedTemplates) {
-      if (t.getType() != null && t.getType() != selectedType) {
-        continue;
-      }
-      if (!query.isEmpty()) {
-        boolean matchesName = t.getName() != null && t.getName().toLowerCase().contains(query);
-        boolean matchesNote = t.getNote() != null && t.getNote().toLowerCase().contains(query);
-        if (!matchesName && !matchesNote) {
-          continue;
-        }
-      }
-      filtered.add(t);
-    }
-    renderTemplateChips(filtered);
+    List<TransactionTemplate> ordered = new ArrayList<>(loadedTemplates);
+    // Stable sorting preserves the user's order within each group.
+    ordered.sort((left, right) -> Boolean.compare(right.isScheduled(), left.isScheduled()));
+    renderTemplateChips(ordered);
   }
 
   private void renderTemplateChips(@Nullable List<TransactionTemplate> templates) {
@@ -489,225 +534,172 @@ public final class CaptureFragment extends ScreenFragment {
     ViewGroup chipsLayout = view.findViewById(R.id.capture_template_chips_layout);
     if (chipsLayout == null) return;
     chipsLayout.removeAllViews();
-
-    LayoutInflater inflater = LayoutInflater.from(requireContext());
-    if (templates != null) {
-      for (TransactionTemplate template : templates) {
-        View chipView = inflater.inflate(R.layout.item_template_chip, chipsLayout, false);
-        TextView iconView = chipView.findViewById(R.id.chip_template_icon);
-        TextView nameView = chipView.findViewById(R.id.chip_template_name);
-        TextView detailsView = chipView.findViewById(R.id.chip_template_details);
-
-        if (iconView != null) iconView.setText(template.getIcon());
-        if (nameView != null) nameView.setText(template.getName());
-
-        if (detailsView != null) {
-          StringBuilder details = new StringBuilder();
-          if (template.getAmountMinor() > 0) {
-            details.append(" • ").append(MoneyFormatter.format(template.getAmountMinor()));
-          } else if (template.getCategoryId() != null && template.getCategoryId() > 0) {
-            for (Category cat : allCategoriesForType) {
-              if (cat.getId() == template.getCategoryId()) {
-                details.append(" • ").append(cat.getName());
-                break;
-              }
-            }
-          }
-          detailsView.setText(details.toString());
-          detailsView.setVisibility(details.length() > 0 ? View.VISIBLE : View.GONE);
-        }
-
-        chipView.setOnClickListener(v -> executeShortcut(template));
-        chipsLayout.addView(chipView);
+    view.findViewById(R.id.capture_template_add).setOnClickListener(v -> {
+      if (!saveInProgress) showCreateTemplateDialog();
+    });
+    TextView hint = view.findViewById(R.id.capture_template_hint);
+    if (hint != null) {
+      if (!captureDataReady) {
+        hint.setVisibility(View.VISIBLE);
+        hint.setText(R.string.capture_shortcut_loading);
+      } else if (templates == null || templates.isEmpty()) {
+        hint.setVisibility(View.VISIBLE);
+        hint.setText(R.string.capture_shortcut_empty);
+      } else {
+        hint.setVisibility(View.GONE);
       }
     }
-
-    // Add button (Catat page allows creating new shortcuts only; no edit or delete)
-    View addChip = inflater.inflate(R.layout.item_template_add_chip, chipsLayout, false);
-    addChip.setOnClickListener(v -> showCreateTemplateDialog());
-    chipsLayout.addView(addChip);
+    LayoutInflater inflater = LayoutInflater.from(requireContext());
+    if (templates == null) return;
+    for (TransactionTemplate template : templates) {
+      View chipView = inflater.inflate(R.layout.item_template_chip, chipsLayout, false);
+      ((TextView) chipView.findViewById(R.id.chip_template_icon)).setText(template.getIcon());
+      ((TextView) chipView.findViewById(R.id.chip_template_name)).setText(template.getName());
+      String details = template.getAmountMinor() > 0
+          ? MoneyFormatter.format(template.getAmountMinor()) : getString(R.string.capture_shortcut_variable);
+      TextView detailsView = chipView.findViewById(R.id.chip_template_details);
+      detailsView.setText(details);
+      if (template.isScheduled()) detailsView.setTextColor(
+          androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_text_primary));
+      chipView.findViewById(R.id.chip_template_routine)
+          .setVisibility(template.isScheduled() ? View.VISIBLE : View.GONE);
+      chipView.setBackgroundResource(template.isScheduled()
+          ? R.drawable.bg_capture_shortcut_routine : R.drawable.bg_capture_shortcut_normal);
+      String kind = getString(template.isScheduled() ? R.string.capture_shortcut_routine
+          : template.getType().isTransfer() ? R.string.capture_type_transfer
+          : template.getType() == TransactionType.INCOME ? R.string.capture_type_income
+          : R.string.capture_type_expense);
+      chipView.setContentDescription(getString(R.string.capture_shortcut_accessibility,
+          template.getName(), kind, details));
+      chipView.setTag(template.getId());
+      chipView.setOnClickListener(v -> executeShortcut(template));
+      chipsLayout.addView(chipView);
+    }
   }
 
+  /** Opens a shortcut draft only after the initial form restoration and app unlock. */
   public void executeTemplateById(long templateId) {
-    if (services == null || services.transactionTemplateDao == null) return;
+    if (templateId <= 0 || services == null || services.transactionTemplateDao == null
+        || !isAdded() || getView() == null || saveInProgress) return;
+    if (!captureDataReady) {
+      pendingTemplateId = templateId;
+      return;
+    }
+    View ownerView = getView();
+    android.app.Activity owner = requireActivity();
+    long generation = ++shortcutGeneration;
+    String snapshot = buildCaptureDraft().toJson();
     services.dbWorker.compute(
-        () -> services.transactionTemplateDao.findById(templateId),
+        () -> {
+          try { return services.transactionTemplateDao.findById(templateId); }
+          catch (RuntimeException error) { return null; }
+        },
         template -> {
-          if (template != null) {
-            executeShortcut(template);
+          if (!isAdded() || getView() != ownerView || owner.isDestroyed()
+              || generation != shortcutGeneration || !snapshot.equals(buildCaptureDraft().toJson())) return;
+          if (template == null) {
+            Toast.makeText(requireContext(), R.string.capture_shortcut_error, Toast.LENGTH_SHORT).show();
+            return;
           }
+          com.dwlhm.finan.service.privacy.AppLock.afterUnlock(owner, () -> {
+            if (isResumed() && getView() == ownerView && getActivity() == owner
+                && !owner.isDestroyed() && generation == shortcutGeneration
+                && snapshot.equals(buildCaptureDraft().toJson())) executeShortcut(template);
+          });
         });
   }
 
   private void executeShortcut(@NonNull TransactionTemplate template) {
-    if (saveInProgress) return;
-
-    TransactionType type = template.getType() != null ? template.getType() : selectedType;
-
-    long amountMinor = template.getAmountMinor();
-    if (amountMinor <= 0) {
-      String rawInput = getRawInput();
-      if (!rawInput.isEmpty()) {
-        try {
-          amountMinor = Long.parseLong(rawInput);
-        } catch (NumberFormatException ignored) {}
-      }
-    }
-    if (amountMinor <= 0) {
-      Toast.makeText(requireContext(), "Masukkan nominal untuk pintasan \"" + template.getName() + "\"", Toast.LENGTH_SHORT).show();
-      if (amountInput != null) {
-        amountInput.requestFocus();
-      }
-      return;
-    }
-
-    Wallet walletToUse = null;
-    if (template.getWalletId() != null && template.getWalletId() > 0) {
-      for (Wallet w : wallets) {
-        if (w.getId() == template.getWalletId()) {
-          walletToUse = w;
-          break;
-        }
-      }
-    }
-    if (walletToUse == null) {
-      walletToUse = activeWallet;
-    }
-    if (walletToUse == null && !wallets.isEmpty()) {
-      walletToUse = wallets.get(0);
-    }
-    if (walletToUse == null) {
-      Toast.makeText(requireContext(), R.string.capture_error_wallet, Toast.LENGTH_SHORT).show();
-      return;
-    }
-
-    String noteToUse = template.getNote();
-    if (TextUtils.isEmpty(noteToUse)) {
-      noteToUse = template.getName();
-    }
-
-    long occurredAt = occurredAtMillis;
-
-    if (type.isTransfer()) {
-      Wallet destWalletToUse = null;
-      if (template.getDestinationWalletId() != null && template.getDestinationWalletId() > 0) {
-        for (Wallet w : wallets) {
-          if (w.getId() == template.getDestinationWalletId()) {
-            destWalletToUse = w;
-            break;
+    if (saveInProgress || !isResumed() || getView() == null) return;
+    expireAmountAutoFocus();
+    pendingTemplateId = null;
+    View ownerView = getView();
+    long generation = ++shortcutGeneration;
+    long savedGeneration = saveGeneration;
+    TransactionFormDraft current = buildCaptureDraft();
+    String snapshot = current.toJson();
+    // A pending defaults refresh or draft-category callback must not win over this tap.
+    refreshGeneration++;
+    captureDraftRestored = true;
+    services.dbWorker.compute(
+        () -> {
+          try { return resolveShortcutState(template, current); }
+          catch (RuntimeException error) { return null; }
+        },
+        state -> {
+          if (!isResumed() || getView() != ownerView || generation != shortcutGeneration
+              || savedGeneration != saveGeneration || !snapshot.equals(buildCaptureDraft().toJson())) return;
+          if (state == null) {
+            Toast.makeText(requireContext(), R.string.capture_shortcut_error, Toast.LENGTH_SHORT).show();
+            return;
           }
-        }
-      }
-      if (destWalletToUse == null) {
-        destWalletToUse = destinationWallet;
-      }
-      if (destWalletToUse == null || destWalletToUse.getId() == walletToUse.getId()) {
-        Toast.makeText(requireContext(), R.string.wallet_transfer_same_wallet, Toast.LENGTH_SHORT).show();
-        return;
-      }
+          saveGeneration++;
+          applyShortcutState(template, state);
+        });
+  }
 
-      final Wallet finalSource = walletToUse;
-      final Wallet finalDest = destWalletToUse;
-      final long finalAmount = amountMinor;
-      final String finalNote = noteToUse;
+  private CaptureState resolveShortcutState(@NonNull TransactionTemplate template,
+      @NonNull TransactionFormDraft current) {
+    List<Wallet> available = services.walletDao.findAll();
+    Wallet source = findWallet(template.getWalletId() != null
+        ? template.getWalletId() : current.getWalletId(), available);
+    if (template.getWalletId() == null && current.getWalletId() == null) {
+      source = resolveActiveWallet(available);
+    }
+    List<Category> categories = template.getType().isTransfer() ? new ArrayList<>()
+        : services.categoryDao.findByTypeFilterOrderByUsage(template.getType().name());
+    Long categoryId = template.getCategoryId() != null ? template.getCategoryId() : current.getCategoryId();
+    Category category = null;
+    for (Category candidate : categories) {
+      if (categoryId != null && candidate.getId() == categoryId) {
+        category = candidate;
+        break;
+      }
+    }
+    return new CaptureState(available, source, categories, category, services.transactionTemplateDao.findAll());
+  }
 
-      saveInProgress = true;
-      services.dbWorker.compute(
-          () -> {
-            try {
-              return services.transferService.create(
-                  finalSource.getId(),
-                  finalDest.getId(),
-                  finalAmount,
-                  occurredAt,
-                  finalNote);
-            } catch (RuntimeException e) {
-              return 0L;
-            }
-          },
-          transferId -> {
-            saveInProgress = false;
-            if (!isAdded()) return;
-            if (transferId == null || transferId <= 0L) {
-              Toast.makeText(requireContext(), R.string.wallet_transfer_error_save, Toast.LENGTH_SHORT).show();
-              return;
-            }
-            defaultsStore.setLastWalletId(finalSource.getId());
-            defaultsStore.clearCaptureDraft();
-            dismissUndoBar();
-            pendingUndo = PendingSaveUndo.transfer(
-                transferId,
-                finalAmount,
-                finalSource.getId(),
-                finalDest.getId(),
-                occurredAt,
-                finalNote);
-            showUndoState();
-            forceClearSavedForm();
-            refreshCaptureData(false);
-          });
+  private void applyShortcutState(@NonNull TransactionTemplate template, @NonNull CaptureState state) {
+    wallets = state.wallets;
+    activeWallet = state.activeWallet;
+    allCategoriesForType = state.categoriesForType;
+    selectedCategory = state.selectedCategory;
+    Long destinationId = template.getDestinationWalletId() != null ? template.getDestinationWalletId()
+        : destinationWallet != null ? destinationWallet.getId() : null;
+    destinationWallet = template.getType().isTransfer() ? findWallet(destinationId, wallets) : null;
+    if (destinationWallet != null && activeWallet != null
+        && destinationWallet.getId() == activeWallet.getId()) destinationWallet = null;
+    selectedType = template.getType();
+    if (template.getAmountMinor() > 0) {
+      exprString = null;
+      calcOperand = null;
+      setAmountInput(template.getAmountMinor());
+      if (calculatorStrip != null) {
+        calculatorStrip.setVisibility(View.VISIBLE);
+        calculatorStrip.show(String.valueOf(template.getAmountMinor()));
+        calculatorStrip.showPreview(null);
+      }
     } else {
-      Category catToUse = null;
-      if (template.getCategoryId() != null && template.getCategoryId() > 0) {
-        for (Category c : allCategoriesForType) {
-          if (c.getId() == template.getCategoryId()) {
-            catToUse = c;
-            break;
-          }
-        }
+      if (calculatorStrip != null) {
+        calculatorStrip.setVisibility(View.VISIBLE);
       }
-      if (catToUse == null) {
-        catToUse = selectedCategory;
-      }
-      if (catToUse == null && !allCategoriesForType.isEmpty()) {
-        catToUse = allCategoriesForType.get(0);
-      }
-      if (catToUse == null) {
-        Toast.makeText(requireContext(), R.string.capture_error_category, Toast.LENGTH_SHORT).show();
-        return;
-      }
-
-      final Wallet finalWallet = walletToUse;
-      final Category finalCategory = catToUse;
-      final long finalAmount = amountMinor;
-      final String finalNote = noteToUse;
-
-      Transaction tx = new Transaction(
-          0L,
-          finalAmount,
-          type,
-          finalWallet.getId(),
-          finalCategory.getId(),
-          occurredAt,
-          null);
-      tx.setNote(finalNote);
-
-      saveInProgress = true;
-      services.dbWorker.compute(
-          () -> {
-            try {
-              return transactionService.save(tx);
-            } catch (IllegalArgumentException e) {
-              return 0L;
-            }
-          },
-          savedId -> {
-            saveInProgress = false;
-            if (!isAdded()) return;
-            if (savedId == null || savedId <= 0L) {
-              Toast.makeText(requireContext(), R.string.capture_error_save, Toast.LENGTH_SHORT).show();
-              return;
-            }
-            defaultsStore.setLastWalletId(finalWallet.getId());
-            defaultsStore.clearCaptureDraft();
-            dismissUndoBar();
-            pendingUndo = snapshotPendingSaveUndo(
-                savedId, type, finalWallet.getId(), finalCategory.getId(), finalAmount, finalNote, occurredAt);
-            showUndoState();
-            forceClearSavedForm();
-            refreshCaptureData(false);
-          });
     }
+    if (!TextUtils.isEmpty(template.getNote())) {
+      noteInput.setText(template.getNote());
+    }
+    formValidation.clearAll();
+    validationBanner.setVisibility(View.GONE);
+    updateCaptureMode();
+    loadedTemplates = state.templates;
+    captureDataReady = true;
+    updateFilteredTemplates();
+  }
+
+  @Nullable
+  private static Wallet findWallet(@Nullable Long id, @NonNull List<Wallet> available) {
+    if (id == null) return null;
+    for (Wallet wallet : available) if (wallet.getId() == id) return wallet;
+    return null;
   }
 
   private void showCreateTemplateDialog() {
@@ -846,79 +838,273 @@ public final class CaptureFragment extends ScreenFragment {
     return -1;
   }
 
+  private void setupNewUiElements(View view) {
+      View bukuKasBtn = view.findViewById(R.id.capture_header_buku_kas_btn);
+      if (bukuKasBtn != null) {
+          bukuKasBtn.setOnClickListener(v -> {
+              if (navigationListener != null) {
+                  navigationListener.onNavigateToBukuKas();
+              }
+          });
+      }
+
+      View settingsBtn = view.findViewById(R.id.capture_header_settings_btn);
+      if (settingsBtn != null) {
+          settingsBtn.setOnClickListener(v -> {
+              if (navigationListener != null) {
+                  navigationListener.onNavigateToSettings();
+              }
+          });
+      }
+
+      batalkanBtn = view.findViewById(R.id.capture_btn_batalkan);
+      if (batalkanBtn != null) {
+          batalkanBtn.setText(getString(R.string.capture_btn_reset));
+          ViewPressAnimator.bindScale(batalkanBtn);
+          batalkanBtn.setOnClickListener(v -> {
+              expireAmountAutoFocus();
+              onCancelClicked();
+          });
+      }
+
+      floatingToast = view.findViewById(R.id.capture_floating_toast);
+      floatingToastMessage = view.findViewById(R.id.capture_floating_toast_message);
+      setupFloatingToastSwipe();
+
+      sentenceLine1Label = view.findViewById(R.id.capture_sentence_line1_label);
+      sentenceLine2Label = view.findViewById(R.id.capture_sentence_line2_label);
+
+  }
+
+  @SuppressLint("ClickableViewAccessibility")
+  private void setupFloatingToastSwipe() {
+    if (floatingToast == null) return;
+    floatingToast.setOnTouchListener(new View.OnTouchListener() {
+      private float initialY;
+
+      @Override
+      public boolean onTouch(View v, MotionEvent event) {
+        switch (event.getAction()) {
+          case MotionEvent.ACTION_DOWN:
+            initialY = event.getRawY();
+            return true;
+          case MotionEvent.ACTION_MOVE:
+            float deltaY = event.getRawY() - initialY;
+            if (deltaY < 0) {
+              floatingToast.setTranslationY(deltaY);
+            }
+            return true;
+          case MotionEvent.ACTION_UP:
+          case MotionEvent.ACTION_CANCEL:
+            float deltaYEnd = event.getRawY() - initialY;
+            float thresholdPx = -30f * v.getResources().getDisplayMetrics().density;
+            if (deltaYEnd < thresholdPx) {
+              float dismissTarget = floatingToast.getHeight() > 0 ? -floatingToast.getHeight() * 2f : -200f;
+              floatingToast.animate()
+                  .translationY(dismissTarget)
+                  .alpha(0f)
+                  .setDuration(200)
+                  .withEndAction(() -> floatingToast.setVisibility(View.GONE))
+                  .start();
+            } else {
+              floatingToast.animate()
+                  .translationY(0f)
+                  .alpha(1f)
+                  .setDuration(150)
+                  .start();
+            }
+            return true;
+        }
+        return false;
+      }
+    });
+  }
+
+  private void showFloatingToast(String message) {
+    if (floatingToast == null) return;
+    if (floatingToastMessage != null) {
+      floatingToastMessage.setText(message);
+    }
+    floatingToast.animate().cancel();
+    floatingToast.setAlpha(0f);
+    floatingToast.setTranslationY(-20f * getResources().getDisplayMetrics().density);
+    floatingToast.setVisibility(View.VISIBLE);
+    floatingToast.animate()
+        .alpha(1f)
+        .translationY(0f)
+        .setDuration(250)
+        .start();
+    floatingToast.removeCallbacks(dismissFloatingToastRunnable);
+    floatingToast.postDelayed(dismissFloatingToastRunnable, 4000);
+  }
+
+  private void showFloatingSuccessToast(long amountMinor) {
+    showFloatingToast(amountMinor > 0 ? MoneyFormatter.format(amountMinor) + " tersimpan" : getString(R.string.capture_saved));
+  }
+
+  private void dismissFloatingToast() {
+    if (floatingToast != null && floatingToast.getVisibility() == View.VISIBLE) {
+      float dismissTarget = floatingToast.getHeight() > 0 ? -floatingToast.getHeight() * 2f : -200f;
+      floatingToast.animate()
+          .alpha(0f)
+          .translationY(dismissTarget)
+          .setDuration(200)
+          .withEndAction(() -> floatingToast.setVisibility(View.GONE))
+          .start();
+    }
+  }
+
+  private void startSaveCooldownTimer() {
+    saveCooldownActive = true;
+    if (captureSaveButtonArea != null) {
+      captureSaveButtonArea.setEnabled(false);
+      captureSaveButtonArea.setAlpha(0.5f);
+    }
+    if (captureSaveLabel != null) {
+      captureSaveLabel.setText(R.string.capture_saved);
+    }
+    if (batalkanBtn != null) {
+      batalkanBtn.setText(getString(R.string.capture_btn_cancel_countdown, 5));
+    }
+    if (saveCooldownTimer != null) {
+      saveCooldownTimer.cancel();
+    }
+    saveCooldownTimer = new android.os.CountDownTimer(5000, 1000) {
+      @Override
+      public void onTick(long millisUntilFinished) {
+        int seconds = (int) Math.ceil(millisUntilFinished / 1000.0);
+        if (batalkanBtn != null) {
+          batalkanBtn.setText(getString(R.string.capture_btn_cancel_countdown, seconds));
+        }
+      }
+
+      @Override
+      public void onFinish() {
+        saveCooldownActive = false;
+        pendingUndo = null;
+        if (batalkanBtn != null) {
+          batalkanBtn.setText(R.string.capture_btn_reset);
+        }
+        if (captureSaveButtonArea != null) {
+          captureSaveButtonArea.setAlpha(1.0f);
+          checkSaveButtonState();
+        }
+        if (captureSaveLabel != null) {
+          captureSaveLabel.setText(R.string.capture_save);
+        }
+        dismissFloatingToast();
+      }
+    }.start();
+  }
+
+  private void onCancelClicked() {
+      if (pendingUndo != null) {
+          if (saveCooldownTimer != null) {
+              saveCooldownTimer.cancel();
+          }
+          saveCooldownActive = false;
+          if (batalkanBtn != null) {
+              batalkanBtn.setText(R.string.capture_btn_reset);
+          }
+          if (captureSaveButtonArea != null) {
+              captureSaveButtonArea.setAlpha(1.0f);
+              checkSaveButtonState();
+          }
+          if (captureSaveLabel != null) {
+              captureSaveLabel.setText(R.string.capture_save);
+          }
+          dismissFloatingToast();
+          performUndo();
+      } else {
+          resetForm();
+      }
+  }
+
+  private void resetForm() {
+      if (amountInput != null) {
+          amountInput.setText("");
+      }
+      if (exprString != null) {
+          exprString.setLength(0);
+          exprString = null;
+      }
+      if (calcOperand != null) {
+          calcOperand.setLength(0);
+          calcOperand = null;
+      }
+      if (calculatorStrip != null) {
+          calculatorStrip.show("");
+          calculatorStrip.showPreview(null);
+      }
+      if (noteInput != null) {
+          noteInput.setText("");
+      }
+      occurredAtMillis = System.currentTimeMillis();
+      updateDateLabel();
+      if (formValidation != null) {
+          formValidation.clear(CaptureFormValidation.Field.AMOUNT);
+          formValidation.clear(CaptureFormValidation.Field.CATEGORY);
+          formValidation.clear(CaptureFormValidation.Field.WALLET);
+          formValidation.clear(CaptureFormValidation.Field.DESTINATION);
+      }
+  }
+
   private void applyCurrentTheme() {
       if (selectedType == null) return;
-      int textColorRes;
-      int bgColorRes;
-      if (selectedType == TransactionType.EXPENSE) {
-          textColorRes = R.color.finan_expense;
-          bgColorRes = R.color.finan_expense_bg;
-      } else if (selectedType == TransactionType.INCOME) {
-          textColorRes = R.color.finan_income;
-          bgColorRes = R.color.finan_income_bg;
-      } else {
-          textColorRes = R.color.finan_primary;
-          bgColorRes = R.color.finan_chip_bg;
+      if (sentencePrefix != null) {
+          sentencePrefix.setBackgroundResource(R.drawable.bg_field_pill);
       }
-      
-      updateInteractiveFieldTheme(sentencePrefix, textColorRes, bgColorRes);
   }
 
   private void updateCaptureMode() {
     boolean transfer = selectedType.isTransfer();
     boolean income = selectedType == TransactionType.INCOME;
 
-    if (transfer) {
-        sentencePrefix.setText(R.string.java_CaptureFragment_transfer);
-        sentenceFor.setText(R.string.java_CaptureFragment_ke);
-        sentenceFrom.setText(R.string.java_CaptureFragment_dari);
-        if (captureSaveLabel != null) captureSaveLabel.setText(R.string.java_CaptureFragment_simpan_transfer);
-        updateCategoryLabel(); // Will display destination wallet
-    } else {
-        sentencePrefix.setText(income ? "Masuk " : "Keluar ");
-        sentenceFor.setText(R.string.java_CaptureFragment_untuk);
-        sentenceFrom.setText(income ? " ke " : " dari ");
-        if (captureSaveLabel != null) captureSaveLabel.setText(income ? "Simpan Pemasukan" : "Simpan Pengeluaran");
-        updateCategoryLabel();
+    if (sentenceLine1Label != null) {
+      sentenceLine1Label.setText(income || transfer ? "dari" : "untuk");
     }
-    applyCurrentTheme();
-    updateSaveButtonTheme();
+    if (sentenceLine2Label != null) {
+      sentenceLine2Label.setText(income || transfer ? "ke" : "dari");
+    }
+
+    if (transfer) {
+        if (sentencePrefix != null) {
+            sentencePrefix.setText("🔄 Transfer");
+            sentencePrefix.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_text_dark_primary));
+            sentencePrefix.setBackgroundResource(R.drawable.bg_field_pill);
+        }
+        if (sentenceFor != null) sentenceFor.setText(R.string.java_CaptureFragment_ke);
+        if (sentenceFrom != null) sentenceFrom.setText(R.string.java_CaptureFragment_dari);
+        if (captureSaveLabel != null) captureSaveLabel.setText(R.string.capture_save);
+        updateCategoryLabel(); // Will display destination wallet
+        updateWalletLabel();
+    } else if (income) {
+        if (sentencePrefix != null) {
+            sentencePrefix.setText("✨ Masuk");
+            sentencePrefix.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_text_dark_primary));
+            sentencePrefix.setBackgroundResource(R.drawable.bg_field_pill);
+        }
+        if (sentenceFor != null) sentenceFor.setText(R.string.java_CaptureFragment_untuk);
+        if (sentenceFrom != null) sentenceFrom.setText(" ke ");
+        if (captureSaveLabel != null) captureSaveLabel.setText(R.string.capture_save);
+        updateCategoryLabel();
+        updateWalletLabel();
+    } else {
+        if (sentencePrefix != null) {
+            sentencePrefix.setText("💸 Keluar");
+            sentencePrefix.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_expense));
+            sentencePrefix.setBackgroundResource(R.drawable.bg_field_pill);
+        }
+        if (sentenceFor != null) sentenceFor.setText(R.string.java_CaptureFragment_untuk);
+        if (sentenceFrom != null) sentenceFrom.setText(R.string.java_CaptureFragment_dari);
+        if (captureSaveLabel != null) captureSaveLabel.setText(R.string.capture_save);
+        updateCategoryLabel();
+        updateWalletLabel();
+    }
   }
 
   private void updateSaveButtonTheme() {
-    if (captureSaveButtonArea == null) return;
-    
-    int colorRes;
-    if (selectedType == TransactionType.EXPENSE) {
-        colorRes = R.color.finan_expense;
-    } else if (selectedType == TransactionType.INCOME) {
-        colorRes = R.color.finan_income;
-    } else {
-        colorRes = R.color.finan_primary;
-    }
-    
-    int enabledColor = androidx.core.content.ContextCompat.getColor(requireContext(), colorRes);
-    int disabledColor = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_btn_disabled_bg);
-    
-    android.content.res.ColorStateList colorStateList = new android.content.res.ColorStateList(
-        new int[][] {
-            new int[] {-android.R.attr.state_enabled},
-            new int[] {}
-        },
-        new int[] {
-            disabledColor,
-            enabledColor
-        }
-    );
-    
-    android.graphics.drawable.Drawable bg = captureSaveButtonArea.getBackground();
-    if (bg != null) {
-        bg = bg.mutate();
-        androidx.core.graphics.drawable.DrawableCompat.setTintList(bg, colorStateList);
-    }
-    if (captureSaveLabel != null) {
-        captureSaveLabel.setTextColor(androidx.core.content.ContextCompat.getColorStateList(requireContext(), R.color.btn_text_pill));
-    }
+    // Save button uses bg_button_simpan_mint
   }
 
   private void applyErrorBackground(TextView view) {
@@ -927,24 +1113,42 @@ public final class CaptureFragment extends ScreenFragment {
 
   private void updateCategoryLabel() {
       if (selectedType.isTransfer()) {
-          categoryText.setText(destinationWallet != null ? destinationWallet.getName() : "Wallet");
+          String icon = (destinationWallet != null && destinationWallet.getIcon() != null) ? destinationWallet.getIcon() + " " : "👛 ";
+          String name = destinationWallet != null ? destinationWallet.getName() : getString(R.string.capture_shortcut_choose_destination);
+          categoryText.setText(icon + name);
+          categoryText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_text_dark_primary));
           categoryText.setOnClickListener(v -> {
               expireAmountAutoFocus();
               openWalletSearchDialog(true);
           });
       } else {
-          categoryText.setText(selectedCategory != null ? "#" + selectedCategory.getName() : "#Category");
+          String defaultIcon = selectedType == TransactionType.INCOME ? "👨‍💻 " : "🥣 ";
+          String defaultName = getString(R.string.capture_shortcut_choose_category);
+          String icon = (selectedCategory != null && selectedCategory.getIcon() != null) ? selectedCategory.getIcon() + " " : defaultIcon;
+          String name = selectedCategory != null ? selectedCategory.getName() : defaultName;
+          categoryText.setText(icon + name);
+          categoryText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_text_dark_primary));
           categoryText.setOnClickListener(v -> {
               expireAmountAutoFocus();
               openCategorySearchDialog();
           });
       }
-      applyCurrentTheme();
   }
 
   private void updateWalletLabel() {
-      walletText.setText(activeWallet != null ? activeWallet.getName() : "Wallet");
-      applyCurrentTheme();
+      if (selectedType.isTransfer()) {
+          String icon = (activeWallet != null && activeWallet.getIcon() != null) ? activeWallet.getIcon() + " " : "👛 ";
+          String name = activeWallet != null ? activeWallet.getName() : getString(R.string.capture_shortcut_choose_wallet);
+          walletText.setText(icon + name);
+          walletText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_text_dark_primary));
+      } else {
+          String defaultIcon = selectedType == TransactionType.INCOME ? "💰 " : "👛 ";
+          String defaultName = getString(R.string.capture_shortcut_choose_wallet);
+          String icon = (activeWallet != null && activeWallet.getIcon() != null) ? activeWallet.getIcon() + " " : defaultIcon;
+          String name = activeWallet != null ? activeWallet.getName() : defaultName;
+          walletText.setText(icon + name);
+          walletText.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.finan_text_dark_primary));
+      }
   }
 
   private void updateDateLabel() {
@@ -953,11 +1157,11 @@ public final class CaptureFragment extends ScreenFragment {
     java.time.LocalDate today = java.time.LocalDate.now();
     java.time.LocalDate d = dt.toLocalDate();
     String datePart;
-    if (d.equals(today)) datePart = "@hari ini";
-    else if (d.equals(today.minusDays(1))) datePart = "@kemarin";
-    else if (d.equals(today.plusDays(1))) datePart = "@besok";
-    else datePart = "@" + dt.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy", java.util.Locale.forLanguageTag("id-ID")));
-    dateText.setText(datePart + ", " + dt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
+    if (d.equals(today)) datePart = "hari ini";
+    else if (d.equals(today.minusDays(1))) datePart = "kemarin";
+    else if (d.equals(today.plusDays(1))) datePart = "besok";
+    else datePart = dt.format(java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale.forLanguageTag("id-ID")));
+    dateText.setText("🕒 " + datePart + ", " + dt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
   }
 
   private void openCategorySearchDialog() {
@@ -1069,6 +1273,7 @@ public final class CaptureFragment extends ScreenFragment {
 
   private void checkSaveButtonState() {
       if (captureSaveButtonArea == null) return;
+      if (saveCooldownActive) return;
       if (saveInProgress) return;
       String raw = getRawInput();
       long amount = raw.isEmpty() ? 0 : Long.parseLong(raw);
@@ -1182,7 +1387,8 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void saveTransaction(boolean clearAfterSave) {
-    if (saveInProgress) return;
+    if (saveInProgress || !isResumed() || getView() == null) return;
+    saveGeneration++;
     ValidatedCaptureInput input = validateCaptureInput();
     if (input == null) {
       return;
@@ -1209,6 +1415,7 @@ public final class CaptureFragment extends ScreenFragment {
     final String savedNote = TextUtils.isEmpty(note) ? null : note;
 
     Wallet walletToRemember = activeWallet;
+    View saveOwner = getView();
     saveInProgress = true;
     services.dbWorker.compute(
         () -> {
@@ -1220,7 +1427,7 @@ public final class CaptureFragment extends ScreenFragment {
         },
         savedId -> {
           saveInProgress = false;
-          if (!isAdded()) {
+          if (!isResumed() || getView() != saveOwner) {
             return;
           }
           if (savedId == null || savedId <= 0L) {
@@ -1235,7 +1442,8 @@ public final class CaptureFragment extends ScreenFragment {
               snapshotPendingSaveUndo(
                   savedId, amountMinor, savedNote);
           
-          showUndoState();
+          showFloatingSuccessToast(amountMinor);
+          startSaveCooldownTimer();
 
           if (clearAfterSave) {
               forceClearSavedForm();
@@ -1247,6 +1455,7 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void saveTransfer(long amountMinor, boolean clearAfterSave) {
+    View saveOwner = getView();
     Wallet source = activeWallet;
     Wallet destination = destinationWallet;
     long occurredAt = occurredAtMillis;
@@ -1268,7 +1477,7 @@ public final class CaptureFragment extends ScreenFragment {
         },
         transferId -> {
           saveInProgress = false;
-          if (!isAdded()) {
+          if (!isResumed() || getView() != saveOwner) {
             return;
           }
           if (transferId == null || transferId <= 0L) {
@@ -1289,7 +1498,8 @@ public final class CaptureFragment extends ScreenFragment {
                   occurredAt,
                   savedNote);
 
-          showUndoState();
+          showFloatingSuccessToast(amountMinor);
+          startSaveCooldownTimer();
 
           if (clearAfterSave) {
               forceClearSavedForm();
@@ -1307,59 +1517,18 @@ public final class CaptureFragment extends ScreenFragment {
   }
 
   private void showUndoState() {
-    if (captureSaveButtonArea != null && captureUndoRow != null) {
-      if (undoCountdownTimer != null) {
-        undoCountdownTimer.cancel();
-        undoCountdownTimer = null;
+    if (captureUndoRow == null) return;
+    if (undoCountdownTimer != null) undoCountdownTimer.cancel();
+    captureUndoTitle.setText(pendingUndo == null ? "✓ Tersimpan"
+        : "✓ " + MoneyFormatter.format(pendingUndo.amountMinor) + " tersimpan");
+    captureUndoRow.setVisibility(View.VISIBLE);
+    captureSaveButtonArea.setVisibility(View.VISIBLE);
+    undoCountdownTimer = new android.os.CountDownTimer(5000, 1000) {
+      @Override public void onTick(long remaining) {
+        captureUndoActionText.setText("Batalkan (" + (int) Math.ceil(remaining / 1000.0) + "s)");
       }
-
-      if (captureUndoTitle != null && pendingUndo != null) {
-        String formatted = MoneyFormatter.format(pendingUndo.amountMinor);
-        captureUndoTitle.setText("✓ " + formatted + " tersimpan");
-      } else if (captureUndoTitle != null) {
-        captureUndoTitle.setText("✓ Tersimpan");
-      }
-
-      captureSaveButtonArea.animate()
-          .alpha(0f)
-          .setDuration(180)
-          .withEndAction(() -> {
-            captureSaveButtonArea.setVisibility(View.GONE);
-            captureSaveButtonArea.setAlpha(1f);
-          })
-          .start();
-
-      captureUndoRow.setVisibility(View.VISIBLE);
-      captureUndoRow.setAlpha(0f);
-      captureUndoRow.setScaleX(0.94f);
-      captureUndoRow.setScaleY(0.94f);
-      captureUndoRow.animate()
-          .alpha(1f)
-          .scaleX(1f)
-          .scaleY(1f)
-          .setDuration(220)
-          .setInterpolator(new androidx.interpolator.view.animation.FastOutSlowInInterpolator())
-          .start();
-
-      try {
-        captureUndoRow.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM);
-      } catch (Exception ignored) {}
-
-      undoCountdownTimer = new android.os.CountDownTimer(5000, 1000) {
-        @Override
-        public void onTick(long millisUntilFinished) {
-          if (captureUndoActionText != null) {
-            int seconds = (int) Math.ceil(millisUntilFinished / 1000.0);
-            captureUndoActionText.setText("Batalkan (" + seconds + "s)");
-          }
-        }
-
-        @Override
-        public void onFinish() {
-          hideUndoState();
-        }
-      }.start();
-    }
+      @Override public void onFinish() { dismissUndoBar(); }
+    }.start();
   }
 
   private void hideUndoState() {
@@ -1367,33 +1536,15 @@ public final class CaptureFragment extends ScreenFragment {
       undoCountdownTimer.cancel();
       undoCountdownTimer = null;
     }
-    if (captureUndoRow != null && captureUndoRow.getVisibility() == View.VISIBLE) {
-      captureUndoRow.animate()
-          .alpha(0f)
-          .scaleX(0.95f)
-          .scaleY(0.95f)
-          .setDuration(180)
-          .withEndAction(() -> {
-            captureUndoRow.setVisibility(View.GONE);
-            captureUndoRow.setAlpha(1f);
-            captureUndoRow.setScaleX(1f);
-            captureUndoRow.setScaleY(1f);
-            if (captureSaveButtonArea != null) {
-              captureSaveButtonArea.setVisibility(View.VISIBLE);
-              captureSaveButtonArea.setAlpha(0f);
-              captureSaveButtonArea.animate().alpha(1f).setDuration(180).start();
-              checkSaveButtonState();
-            }
-          })
-          .start();
-    } else if (captureSaveButtonArea != null) {
+    if (captureUndoRow != null) captureUndoRow.setVisibility(View.GONE);
+    if (captureSaveButtonArea != null) {
       captureSaveButtonArea.setVisibility(View.VISIBLE);
-      captureSaveButtonArea.setAlpha(1f);
       checkSaveButtonState();
     }
   }
 
   private void hideHoldState() {
+    if (startHoldRunnable != null) holdTriggerHandler.removeCallbacks(startHoldRunnable);
     if (holdAnimator != null) {
         holdAnimator.cancel();
         holdAnimator = null;
@@ -1420,9 +1571,14 @@ public final class CaptureFragment extends ScreenFragment {
 
   private void performUndo() {
     PendingSaveUndo draft = pendingUndo;
-    if (draft == null) {
+    if (draft == null || undoInProgress || !isResumed()) {
       return;
     }
+    undoInProgress = true;
+    String undoStartDraft = buildCaptureDraft().toJson();
+    long undoSaveGeneration = saveGeneration;
+    View undoOwner = getView();
+    dismissUndoBar();
     services.dbWorker.compute(
         () -> {
           if (draft.transfer) {
@@ -1433,28 +1589,31 @@ public final class CaptureFragment extends ScreenFragment {
               return Boolean.FALSE;
             }
           }
-          if (services.transactionGateway.findById(draft.recordId) == null) {
+          try {
+            if (services.transactionGateway.findById(draft.recordId) == null) return Boolean.FALSE;
+            transactionService.delete(draft.recordId);
+            return Boolean.TRUE;
+          } catch (RuntimeException e) {
             return Boolean.FALSE;
           }
-          transactionService.delete(draft.recordId);
-          return Boolean.TRUE;
         },
         deleted -> {
-          if (!isAdded()) {
+          undoInProgress = false;
+          if (!isResumed() || getView() != undoOwner) {
             return;
           }
-          dismissUndoBar();
           if (!Boolean.TRUE.equals(deleted)) {
             Toast.makeText(requireContext(), R.string.capture_undo_failed, Toast.LENGTH_SHORT)
                 .show();
             return;
           }
-          restoreDraft(draft);
-          persistCaptureDraft();
-          if (getActivity() != null) {
-            FinanToast.show(getActivity(), "✓ Transaksi dibatalkan. Form dikembalikan.");
+          // Restore only if neither editing nor a newer save has taken ownership of the form.
+          if (!saveInProgress && pendingUndo == null && saveGeneration == undoSaveGeneration
+              && undoStartDraft.equals(buildCaptureDraft().toJson())) {
+            restoreDraft(draft);
+            persistCaptureDraft();
           }
-          refreshCaptureData(true);
+          showFloatingToast("Transaksi dibatalkan");
         });
   }
 
@@ -1561,10 +1720,16 @@ public final class CaptureFragment extends ScreenFragment {
 
     Long categoryId = draft.getCategoryId();
     if (!selectedType.isTransfer() && categoryId != null) {
+      View draftOwner = getView();
+      String draftAtLookup = buildCaptureDraft().toJson();
+      long draftSaveGeneration = saveGeneration;
+      long draftShortcutGeneration = shortcutGeneration;
       services.dbWorker.compute(
           () -> services.categoryDao.findById(categoryId),
           category -> {
-            if (!isAdded()) return;
+            if (!isAdded() || getView() != draftOwner || saveGeneration != draftSaveGeneration
+                || draftShortcutGeneration != shortcutGeneration
+                || !draftAtLookup.equals(buildCaptureDraft().toJson())) return;
             if (category != null && selectedType.name().equals(category.getTypeFilter())) {
               selectedCategory = category;
             } else {
