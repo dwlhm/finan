@@ -10,6 +10,7 @@ import com.dwlhm.finan.R;
 import com.dwlhm.finan.domain.model.TransactionTemplate;
 import com.dwlhm.finan.service.privacy.AppLock;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.ServicesProvider;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class ShortcutWidgetService extends RemoteViewsService {
                 templates = java.util.Collections.emptyList();
                 return;
             }
-            AppServices services = AppServices.create(context);
+            AppServices services = ServicesProvider.get(context);
             templates = services.transactionTemplateDao.findAll();
         }
 
@@ -45,7 +46,7 @@ public class ShortcutWidgetService extends RemoteViewsService {
                 templates = java.util.Collections.emptyList();
                 return;
             }
-            AppServices services = AppServices.create(context);
+            AppServices services = ServicesProvider.get(context);
             templates = services.transactionTemplateDao.findAll();
         }
 

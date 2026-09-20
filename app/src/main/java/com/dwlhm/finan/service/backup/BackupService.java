@@ -87,7 +87,7 @@ public final class BackupService {
     byte[] plaintext = root.toString().getBytes(StandardCharsets.UTF_8);
     try {
       validate(root);
-      output.write(BackupCrypto.encrypt(plaintext, password));
+      BackupCrypto.encrypt(plaintext, password, output);
       output.flush();
     } finally { Arrays.fill(plaintext, (byte) 0); }
   }

@@ -1,7 +1,10 @@
 package com.dwlhm.finan.ui.dashboard;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
@@ -10,6 +13,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.button.MaterialButtonToggleGroup;
@@ -43,6 +47,9 @@ public class DashboardFragment extends ScreenFragment {
     private ImageButton searchClear;
     
     private DebouncedTextWatcher searchWatcher;
+    private BroadcastReceiver dataChangedReceiver;
+
+    public static final String ACTION_DATA_CHANGED = "com.dwlhm.finan.ACTION_DATA_CHANGED";
 
     @Override
     protected int getLayoutResId() {
@@ -89,6 +96,19 @@ public class DashboardFragment extends ScreenFragment {
         super.onStart();
         if (searchInput != null) {
             searchInput.clearFocus();
+        }
+        if (dataChangedReceiver == null) {
+            dataChangedReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    viewModel.bumpDataVersion();
+                }
+            };
+            ContextCompat.registerReceiver(
+                    requireContext(),
+                    dataChangedReceiver,
+                    new IntentFilter(ACTION_DATA_CHANGED),
+                    ContextCompat.RECEIVER_NOT_EXPORTED);
         }
     }
 
@@ -323,6 +343,15 @@ public class DashboardFragment extends ScreenFragment {
                 .edit()
                 .putInt(PREF_DISPLAY_MODE, mode.ordinal())
                 .apply();
+    }
+
+    @Override
+    public void onStop() {
+        if (dataChangedReceiver != null) {
+            requireContext().unregisterReceiver(dataChangedReceiver);
+            dataChangedReceiver = null;
+        }
+        super.onStop();
     }
 
     @Override

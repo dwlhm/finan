@@ -175,6 +175,105 @@ public class SummaryDao {
     return rows;
   }
 
+  public static final class WalletBalanceRow {
+    public final long walletId;
+    public final long balanceMinor;
+
+    public WalletBalanceRow(long walletId, long balanceMinor) {
+      this.walletId = walletId;
+      this.balanceMinor = balanceMinor;
+    }
+  }
+
+  public static final class PerWalletCashFlowTotalsRow {
+    public final long walletId;
+    public final long incomeMinor;
+    public final long expenseMinor;
+    public final long transferInMinor;
+    public final long transferOutMinor;
+    public final long adjIncreaseMinor;
+    public final long adjDecreaseMinor;
+
+    public PerWalletCashFlowTotalsRow(
+        long walletId,
+        long incomeMinor,
+        long expenseMinor,
+        long transferInMinor,
+        long transferOutMinor,
+        long adjIncreaseMinor,
+        long adjDecreaseMinor) {
+      this.walletId = walletId;
+      this.incomeMinor = incomeMinor;
+      this.expenseMinor = expenseMinor;
+      this.transferInMinor = transferInMinor;
+      this.transferOutMinor = transferOutMinor;
+      this.adjIncreaseMinor = adjIncreaseMinor;
+      this.adjDecreaseMinor = adjDecreaseMinor;
+    }
+  }
+
+  public List<WalletBalanceRow> walletBalancesAt(long endExclusive, Long walletId) {
+    List<String> args = new ArrayList<>();
+    args.add(String.valueOf(endExclusive));
+    String sql =
+        "SELECT wallets.id AS wallet_id, wallets.opening_balance_minor + COALESCE(SUM("
+            + "CASE transactions.type "
+            + "WHEN 'INCOME' THEN amount_minor "
+            + "WHEN 'ADJUSTMENT_INCREASE' THEN amount_minor "
+            + "WHEN 'TRANSFER_IN' THEN amount_minor "
+            + "WHEN 'EXPENSE' THEN -amount_minor "
+            + "WHEN 'ADJUSTMENT_DECREASE' THEN -amount_minor "
+            + "WHEN 'TRANSFER_OUT' THEN -amount_minor "
+            + "ELSE 0 END), 0) AS balance_minor FROM wallets "
+            + "LEFT JOIN transactions ON transactions.wallet_id = wallets.id "
+            + "AND transactions.occurred_at < ?";
+    if (walletId != null) {
+      sql += " WHERE wallets.id = ?";
+      args.add(String.valueOf(walletId));
+    }
+    sql += " GROUP BY wallets.id ORDER BY wallets.id";
+    List<WalletBalanceRow> rows = new ArrayList<>();
+    try (Cursor c = db.rawQuery(sql, args.toArray(new String[0]))) {
+      int walletIdx = c.getColumnIndexOrThrow("wallet_id");
+      int balanceIdx = c.getColumnIndexOrThrow("balance_minor");
+      while (c.moveToNext()) {
+        rows.add(new WalletBalanceRow(c.getLong(walletIdx), c.getLong(balanceIdx)));
+      }
+    }
+    return rows;
+  }
+
+  public List<PerWalletCashFlowTotalsRow> cashFlowTotalsPerWallet(
+      long startInclusive, long endExclusive) {
+    List<PerWalletCashFlowTotalsRow> rows = new ArrayList<>();
+    String sql =
+        "SELECT wallet_id, "
+        + "COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount_minor ELSE 0 END), 0) AS income, "
+        + "COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount_minor ELSE 0 END), 0) AS expense, "
+        + "COALESCE(SUM(CASE WHEN type = 'TRANSFER_IN' THEN amount_minor ELSE 0 END), 0) AS transfer_in, "
+        + "COALESCE(SUM(CASE WHEN type = 'TRANSFER_OUT' THEN amount_minor ELSE 0 END), 0) AS transfer_out, "
+        + "COALESCE(SUM(CASE WHEN type = 'ADJUSTMENT_INCREASE' THEN amount_minor ELSE 0 END), 0) AS adj_inc, "
+        + "COALESCE(SUM(CASE WHEN type = 'ADJUSTMENT_DECREASE' THEN amount_minor ELSE 0 END), 0) AS adj_dec "
+        + "FROM transactions WHERE occurred_at >= ? AND occurred_at < ? "
+        + "GROUP BY wallet_id ORDER BY wallet_id";
+    try (Cursor c =
+        db.rawQuery(
+            sql,
+            new String[] {String.valueOf(startInclusive), String.valueOf(endExclusive)})) {
+      while (c.moveToNext()) {
+        rows.add(new PerWalletCashFlowTotalsRow(
+            c.getLong(c.getColumnIndexOrThrow("wallet_id")),
+            c.getLong(c.getColumnIndexOrThrow("income")),
+            c.getLong(c.getColumnIndexOrThrow("expense")),
+            c.getLong(c.getColumnIndexOrThrow("transfer_in")),
+            c.getLong(c.getColumnIndexOrThrow("transfer_out")),
+            c.getLong(c.getColumnIndexOrThrow("adj_inc")),
+            c.getLong(c.getColumnIndexOrThrow("adj_dec"))));
+      }
+    }
+    return rows;
+  }
+
   public long walletBalanceBefore(long walletId, long endExclusive) {
     try (Cursor c =
         db.rawQuery(

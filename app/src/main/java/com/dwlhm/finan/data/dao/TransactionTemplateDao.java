@@ -11,7 +11,9 @@ import com.dwlhm.finan.domain.model.TransactionTemplate;
 import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class TransactionTemplateDao {
 
@@ -157,6 +159,36 @@ public class TransactionTemplateDao {
         new String[] {String.valueOf(templateId), dueDate})) {
       return cursor.moveToFirst();
     }
+  }
+
+  public Set<String> handledOccurrences(long templateId, List<String> dates) {
+    Set<String> handled = new HashSet<>();
+    if (dates.isEmpty()) {
+      return handled;
+    }
+    int chunkSize = 999;
+    for (int start = 0; start < dates.size(); start += chunkSize) {
+      List<String> chunk = dates.subList(start, Math.min(start + chunkSize, dates.size()));
+      StringBuilder placeholders = new StringBuilder();
+      String[] args = new String[chunk.size() + 1];
+      args[0] = String.valueOf(templateId);
+      for (int i = 0; i < chunk.size(); i++) {
+        if (i > 0) {
+          placeholders.append(',');
+        }
+        placeholders.append('?');
+        args[i + 1] = chunk.get(i);
+      }
+      try (Cursor cursor = db.rawQuery(
+          "SELECT due_date FROM scheduled_occurrences"
+              + " WHERE template_id = ? AND due_date IN (" + placeholders + ")",
+          args)) {
+        while (cursor.moveToNext()) {
+          handled.add(cursor.getString(0));
+        }
+      }
+    }
+    return handled;
   }
 
   public boolean hasOccurrenceHistory(long templateId) {

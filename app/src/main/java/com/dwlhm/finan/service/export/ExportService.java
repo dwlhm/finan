@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 public class ExportService {
 
@@ -67,15 +68,17 @@ public class ExportService {
     writeWallets(buffered, wallets);
     writeCategories(buffered, categories);
     List<Transfer> includedTransfers = new java.util.ArrayList<>();
+    Map<Long, Integer> transferCounts =
+        startDate == null && endDate == null
+            ? null
+            : transactionGateway.countByTransferIdBetween(startDate, endDate);
     for (Transfer transfer : transfers) {
       if (startDate == null && endDate == null) {
         includedTransfers.add(transfer);
         continue;
       }
-      List<Transaction> entries = transactionGateway.findByTransferId(transfer.getId());
-      if (entries.size() == 2 && entries.stream().allMatch(entry ->
-          (startDate == null || entry.getOccurredAt() >= startDate)
-              && (endDate == null || entry.getOccurredAt() < endDate))) {
+      Integer count = transferCounts.get(transfer.getId());
+      if (count != null && count == 2) {
         includedTransfers.add(transfer);
       }
     }

@@ -9,6 +9,7 @@ import com.dwlhm.finan.domain.model.TransactionType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public final class SqliteTransactionDao implements TransactionGateway {
@@ -122,6 +123,16 @@ public final class SqliteTransactionDao implements TransactionGateway {
   @Override
   public List<com.dwlhm.finan.domain.model.Transaction> findByTransferId(long transferId) {
     return toDomainList(table.findByTransferId(transferId));
+  }
+
+  @Override
+  public Map<Long, Integer> countByTransferIdBetween(Long startDate, Long endDate) {
+    return table.countByTransferIdBetween(startDate, endDate);
+  }
+
+  @Override
+  public long sumDeltaByWallet(long walletId) {
+    return table.sumDeltaByWallet(walletId);
   }
 
   private List<com.dwlhm.finan.domain.model.Transaction> toDomainList(List<Transaction> entities) {

@@ -15,9 +15,12 @@ import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
 import com.dwlhm.finan.service.privacy.AppLock;
 import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.ServicesProvider;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class QuickTransactionWidgetProvider extends AppWidgetProvider {
 
@@ -37,6 +40,13 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
     public static final String EXTRA_DIGIT = "extra_digit";
     public static final String EXTRA_PICKER_ITEM_ID = "extra_picker_item_id";
     public static final String EXTRA_PICKER_MODE = "extra_picker_mode";
+
+    private static final ExecutorService widgetExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "finan-widget-db");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
@@ -83,14 +93,16 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
             updateWidget(context, appWidgetManager, appWidgetId);
         } else if (ACTION_TOGGLE_TYPE.equals(action)) {
             String newType = WidgetStateStore.toggleType(context, appWidgetId);
-            AppServices services = AppServices.create(context);
-            List<Category> categories = services.categoryDao.findByTypeFilterOrderByUsage(newType);
-            if (categories != null && !categories.isEmpty()) {
-                WidgetStateStore.setCategoryId(context, appWidgetId, categories.get(0).getId());
-            } else {
-                WidgetStateStore.setCategoryId(context, appWidgetId, 0L);
-            }
-            updateWidget(context, appWidgetManager, appWidgetId);
+            widgetExecutor.execute(() -> {
+                AppServices services = ServicesProvider.get(context);
+                List<Category> categories = services.categoryDao.findByTypeFilterOrderByUsage(newType);
+                if (categories != null && !categories.isEmpty()) {
+                    WidgetStateStore.setCategoryId(context, appWidgetId, categories.get(0).getId());
+                } else {
+                    WidgetStateStore.setCategoryId(context, appWidgetId, 0L);
+                }
+                updateWidget(context, appWidgetManager, appWidgetId);
+            });
         } else if (ACTION_CYCLE_WALLET.equals(action) || ACTION_OPEN_WALLET_PICKER.equals(action)) {
             WidgetStateStore.setPickerMode(context, appWidgetId, "WALLET");
             updateWidget(context, appWidgetManager, appWidgetId);
@@ -132,12 +144,16 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
     }
 
     public static void updateWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        widgetExecutor.execute(() -> updateWidgetSync(context, appWidgetManager, appWidgetId));
+    }
+
+    private static void updateWidgetSync(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         if (AppLock.privateWidgets(context)) {
             appWidgetManager.updateAppWidget(appWidgetId, AppLock.privateWidgetViews(context, appWidgetId));
             return;
         }
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_quick_transaction);
-        AppServices services = AppServices.create(context);
+        AppServices services = ServicesProvider.get(context);
 
         String pickerMode = WidgetStateStore.getPickerMode(context, appWidgetId);
         if (pickerMode != null) {
@@ -369,93 +385,118 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
 
     private static void handleSaveTransaction(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         String amountStr = WidgetStateStore.getAmountStr(context, appWidgetId);
-        long amount = 0L;
+        long parsed = 0L;
         try {
-            amount = Long.parseLong(amountStr);
+            parsed = Long.parseLong(amountStr);
         } catch (NumberFormatException ignored) {
         }
+        final long amount = parsed;
 
         if (amount <= 0L) {
             Toast.makeText(context, "Masukkan nominal", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        AppServices services = AppServices.create(context);
+        widgetExecutor.execute(() -> {
+            AppServices services = ServicesProvider.get(context);
 
-        long walletId = WidgetStateStore.getWalletId(context, appWidgetId);
-        Wallet wallet = walletId > 0L ? services.walletDao.findById(walletId) : null;
-        if (wallet == null) {
-            wallet = services.walletDao.findDefault();
-        }
-        if (wallet == null) {
-            List<Wallet> wallets = services.walletDao.findAll();
-            if (wallets != null && !wallets.isEmpty()) {
-                wallet = wallets.get(0);
+            long walletId = WidgetStateStore.getWalletId(context, appWidgetId);
+            Wallet wallet = walletId > 0L ? services.walletDao.findById(walletId) : null;
+            if (wallet == null) {
+                wallet = services.walletDao.findDefault();
             }
-        }
-        if (wallet == null) {
-            Toast.makeText(context, "Tidak ada dompet tersedia", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        walletId = wallet.getId();
-
-        String typeStr = WidgetStateStore.getType(context, appWidgetId);
-        TransactionType type = "INCOME".equalsIgnoreCase(typeStr) ? TransactionType.INCOME : TransactionType.EXPENSE;
-
-        long categoryId = WidgetStateStore.getCategoryId(context, appWidgetId);
-        Category category = categoryId > 0L ? services.categoryDao.findById(categoryId) : null;
-        if (category == null || (category.getTypeFilter() != null && !"BOTH".equalsIgnoreCase(category.getTypeFilter()) && !typeStr.equalsIgnoreCase(category.getTypeFilter()))) {
-            List<Category> categories = services.categoryDao.findByTypeFilterOrderByUsage(typeStr);
-            if (categories != null && !categories.isEmpty()) {
-                category = categories.get(0);
+            if (wallet == null) {
+                List<Wallet> wallets = services.walletDao.findAll();
+                if (wallets != null && !wallets.isEmpty()) {
+                    wallet = wallets.get(0);
+                }
             }
-        }
-        if (category == null) {
-            Toast.makeText(context, "Tidak ada kategori tersedia", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        categoryId = category.getId();
+            if (wallet == null) {
+                postToast(context, "Tidak ada dompet tersedia");
+                return;
+            }
+            walletId = wallet.getId();
 
-        Transaction tx = new Transaction(0L, amount, type, walletId, categoryId, System.currentTimeMillis(), "Widget Quick Transaction");
-        long txId = services.transactionService.save(tx);
+            String typeStr = WidgetStateStore.getType(context, appWidgetId);
+            TransactionType type = "INCOME".equalsIgnoreCase(typeStr) ? TransactionType.INCOME : TransactionType.EXPENSE;
 
-        String catName = category.getName();
-        String formattedAmount = MoneyFormatter.format(amount);
-        if (AppLock.privateWidgets(context)) {
-            Toast.makeText(context, "Tersimpan (" + catName + ")", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(context, "Tersimpan: " + formattedAmount + " (" + catName + ")", Toast.LENGTH_SHORT).show();
-        }
-        WidgetStateStore.saveDraftSnapshot(context, appWidgetId, amountStr, typeStr, walletId, categoryId);
-        WidgetStateStore.setPendingUndo(context, appWidgetId, txId, System.currentTimeMillis() + 5000L);
-        WidgetStateStore.resetAmount(context, appWidgetId);
+            long categoryId = WidgetStateStore.getCategoryId(context, appWidgetId);
+            Category category = categoryId > 0L ? services.categoryDao.findById(categoryId) : null;
+            if (category == null || (category.getTypeFilter() != null && !"BOTH".equalsIgnoreCase(category.getTypeFilter()) && !typeStr.equalsIgnoreCase(category.getTypeFilter()))) {
+                List<Category> categories = services.categoryDao.findByTypeFilterOrderByUsage(typeStr);
+                if (categories != null && !categories.isEmpty()) {
+                    category = categories.get(0);
+                }
+            }
+            if (category == null) {
+                postToast(context, "Tidak ada kategori tersedia");
+                return;
+            }
+            categoryId = category.getId();
 
-        updateWidget(context, appWidgetManager, appWidgetId);
-        startUndoCountdownHandler(context, appWidgetId);
+            Transaction tx = new Transaction(0L, amount, type, walletId, categoryId, System.currentTimeMillis(), "Widget Quick Transaction");
+            long txId = services.transactionService.save(tx);
 
-        Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
-        broadcastIntent.setPackage(context.getPackageName());
-        context.sendBroadcast(broadcastIntent);
+            String catName = category.getName();
+            String formattedAmount = MoneyFormatter.format(amount);
+
+            WidgetStateStore.saveDraftSnapshot(context, appWidgetId, amountStr, typeStr, walletId, categoryId);
+            WidgetStateStore.setPendingUndo(context, appWidgetId, txId, System.currentTimeMillis() + 5000L);
+            WidgetStateStore.resetAmount(context, appWidgetId);
+
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (AppLock.privateWidgets(context)) {
+                    Toast.makeText(context, "Tersimpan (" + catName + ")", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "Tersimpan: " + formattedAmount + " (" + catName + ")", Toast.LENGTH_SHORT).show();
+                }
+                updateWidget(context, appWidgetManager, appWidgetId);
+                startUndoCountdownHandler(context, appWidgetId);
+
+                Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
+                broadcastIntent.setPackage(context.getPackageName());
+                context.sendBroadcast(broadcastIntent);
+            });
+        });
     }
 
     private static void handleUndoTransaction(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-        long txId = WidgetStateStore.getPendingUndoTxId(context, appWidgetId);
-        if (txId > 0L) {
-            AppServices services = AppServices.create(context);
-            try {
-                services.transactionService.delete(txId);
-                WidgetStateStore.restoreDraftSnapshot(context, appWidgetId);
-                Toast.makeText(context, "Transaksi dibatalkan. Input dikembalikan.", Toast.LENGTH_SHORT).show();
-            } catch (Exception e) {
-                Toast.makeText(context, "Gagal membatalkan transaksi", Toast.LENGTH_SHORT).show();
+        widgetExecutor.execute(() -> {
+            long txId = WidgetStateStore.getPendingUndoTxId(context, appWidgetId);
+            boolean attempted = false;
+            boolean failed = false;
+            if (txId > 0L) {
+                attempted = true;
+                try {
+                    ServicesProvider.get(context).transactionService.delete(txId);
+                    WidgetStateStore.restoreDraftSnapshot(context, appWidgetId);
+                } catch (Exception e) {
+                    failed = true;
+                }
             }
-        }
-        WidgetStateStore.clearPendingUndo(context, appWidgetId);
-        updateWidget(context, appWidgetManager, appWidgetId);
+            WidgetStateStore.clearPendingUndo(context, appWidgetId);
+            final boolean undoAttempted = attempted;
+            final boolean undoFailed = failed;
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                if (undoAttempted) {
+                    if (undoFailed) {
+                        Toast.makeText(context, "Gagal membatalkan transaksi", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(context, "Transaksi dibatalkan. Input dikembalikan.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                updateWidget(context, appWidgetManager, appWidgetId);
 
-        Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
-        broadcastIntent.setPackage(context.getPackageName());
-        context.sendBroadcast(broadcastIntent);
+                Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
+                broadcastIntent.setPackage(context.getPackageName());
+                context.sendBroadcast(broadcastIntent);
+            });
+        });
+    }
+
+    private static void postToast(Context context, String message) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(
+                () -> Toast.makeText(context, message, Toast.LENGTH_SHORT).show());
     }
 
     private static void startUndoCountdownHandler(Context context, int appWidgetId) {
@@ -463,17 +504,19 @@ public class QuickTransactionWidgetProvider extends AppWidgetProvider {
         Runnable updateRunnable = new Runnable() {
             @Override
             public void run() {
-                if (WidgetStateStore.isPendingUndoActive(context, appWidgetId)) {
+                long txId = WidgetStateStore.getPendingUndoTxId(context, appWidgetId);
+                if (txId <= 0L) {
+                    return;
+                }
+                long remaining = WidgetStateStore.getUndoDeadline(context, appWidgetId) - System.currentTimeMillis();
+                if (remaining > 0L) {
                     AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
                     updateWidget(context, appWidgetManager, appWidgetId);
-                    long remaining = WidgetStateStore.getUndoDeadline(context, appWidgetId) - System.currentTimeMillis();
-                    if (remaining > 0) {
-                        handler.postDelayed(this, 1000L);
-                    } else {
-                        WidgetStateStore.clearPendingUndo(context, appWidgetId);
-                        WidgetStateStore.clearDraftSnapshot(context, appWidgetId);
-                        updateWidget(context, appWidgetManager, appWidgetId);
-                    }
+                    handler.postDelayed(this, 1000L);
+                } else {
+                    WidgetStateStore.clearPendingUndo(context, appWidgetId);
+                    WidgetStateStore.clearDraftSnapshot(context, appWidgetId);
+                    updateWidget(context, AppWidgetManager.getInstance(context), appWidgetId);
                 }
             }
         };

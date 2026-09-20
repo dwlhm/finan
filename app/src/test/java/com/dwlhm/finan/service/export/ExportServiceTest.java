@@ -12,6 +12,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertTrue;
@@ -112,6 +113,16 @@ public class ExportServiceTest {
             @Override
             public List<Transaction> findByTransferId(long transferId) {
                 return List.of();
+            }
+
+            @Override
+            public Map<Long, Integer> countByTransferIdBetween(Long startDate, Long endDate) {
+                return Map.of();
+            }
+
+            @Override
+            public long sumDeltaByWallet(long walletId) {
+                return 0L;
             }
 
             @Override

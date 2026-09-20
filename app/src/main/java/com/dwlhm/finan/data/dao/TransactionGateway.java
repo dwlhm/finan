@@ -7,6 +7,7 @@ import com.dwlhm.finan.domain.model.HistoryTotals;
 import com.dwlhm.finan.domain.model.Transaction;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public interface TransactionGateway {
@@ -32,6 +33,10 @@ public interface TransactionGateway {
     List<Transaction> findByWalletId(long walletId);
 
     List<Transaction> findByTransferId(long transferId);
+
+    Map<Long, Integer> countByTransferIdBetween(Long startDate, Long endDate);
+
+    long sumDeltaByWallet(long walletId);
 
     void forEachTransaction(Consumer<Transaction> consumer);
 

@@ -22,8 +22,10 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -359,6 +361,13 @@ public class UpcomingCashFlowServiceTest {
       for (String key : occurrences.keySet()) if (key.startsWith(id + ":")) return true;
       return false;
     }
+    @Override public Set<String> handledOccurrences(long id, List<String> dates) {
+      Set<String> handled = new HashSet<>();
+      for (String date : dates) {
+        if (occurrences.containsKey(id + ":" + date)) handled.add(date);
+      }
+      return handled;
+    }
     @Override public boolean markOccurrence(long id, String date, String status, Long transactionId) {
       return occurrences.putIfAbsent(id + ":" + date, status) == null;
     }
@@ -411,6 +420,11 @@ public class UpcomingCashFlowServiceTest {
     @Override
     public Category findById(long id) {
       return categories.get(id);
+    }
+
+    @Override
+    public List<Category> findAllOrdered() {
+      return new ArrayList<>(categories.values());
     }
   }
 

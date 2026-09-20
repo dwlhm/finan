@@ -375,7 +375,6 @@ public final class CaptureFragment extends ScreenFragment {
                     return true;
                     
                 case android.view.MotionEvent.ACTION_CANCEL:
-                    android.util.Log.d("CaptureFragment", "Touch CANCEL.");
                     v.setPressed(false);
                     v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
                     holdTriggerHandler.removeCallbacks(startHoldRunnable);
@@ -1450,8 +1449,16 @@ public final class CaptureFragment extends ScreenFragment {
           } else {
               clearSavedForm();
           }
+          sendTransactionChangedBroadcast();
           refreshCaptureData(false);
         });
+  }
+
+  private void sendTransactionChangedBroadcast() {
+    android.content.Intent intent = new android.content.Intent(
+        com.dwlhm.finan.ui.dashboard.DashboardFragment.ACTION_DATA_CHANGED);
+    intent.setPackage(requireContext().getPackageName());
+    requireContext().sendBroadcast(intent);
   }
 
   private void saveTransfer(long amountMinor, boolean clearAfterSave) {
@@ -1506,6 +1513,7 @@ public final class CaptureFragment extends ScreenFragment {
           } else {
               clearSavedForm();
           }
+          sendTransactionChangedBroadcast();
           refreshCaptureData(false);
         });
   }
@@ -1613,6 +1621,7 @@ public final class CaptureFragment extends ScreenFragment {
             restoreDraft(draft);
             persistCaptureDraft();
           }
+          sendTransactionChangedBroadcast();
           showFloatingToast("Transaksi dibatalkan");
         });
   }

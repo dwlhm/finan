@@ -9,7 +9,9 @@ import com.dwlhm.finan.domain.model.HistoryQuery;
 import com.dwlhm.finan.domain.model.HistorySearch;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public final class TransactionDao {
@@ -326,6 +328,46 @@ public final class TransactionDao {
       }
     }
     return transactions;
+  }
+
+  public Map<Long, Integer> countByTransferIdBetween(Long startDate, Long endDate) {
+    Map<Long, Integer> counts = new HashMap<>();
+    StringBuilder where = new StringBuilder("transfer_id IS NOT NULL");
+    List<String> args = new ArrayList<>();
+    if (startDate != null) {
+      where.append(" AND occurred_at >= ?");
+      args.add(String.valueOf(startDate));
+    }
+    if (endDate != null) {
+      where.append(" AND occurred_at < ?");
+      args.add(String.valueOf(endDate));
+    }
+    try (Cursor c =
+        db.rawQuery(
+            "SELECT transfer_id, COUNT(*) FROM transactions WHERE " + where
+                + " GROUP BY transfer_id",
+            args.isEmpty() ? null : args.toArray(new String[0]))) {
+      while (c.moveToNext()) {
+        counts.put(c.getLong(0), c.getInt(1));
+      }
+    }
+    return counts;
+  }
+
+  public long sumDeltaByWallet(long walletId) {
+    try (Cursor c =
+        db.rawQuery(
+            "SELECT COALESCE(SUM(CASE type"
+                + " WHEN 'INCOME' THEN amount_minor"
+                + " WHEN 'ADJUSTMENT_INCREASE' THEN amount_minor"
+                + " WHEN 'TRANSFER_IN' THEN amount_minor"
+                + " WHEN 'EXPENSE' THEN -amount_minor"
+                + " WHEN 'ADJUSTMENT_DECREASE' THEN -amount_minor"
+                + " WHEN 'TRANSFER_OUT' THEN -amount_minor"
+                + " ELSE 0 END), 0) FROM transactions WHERE wallet_id = ?",
+            new String[] {String.valueOf(walletId)})) {
+      return c.moveToFirst() ? c.getLong(0) : 0L;
+    }
   }
 
   public int updateCashFlowActivityForCategory(long categoryId, String cashFlowActivity) {

@@ -111,12 +111,6 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     }
     bindCaptureNavigationListener(captureFragment);
 
-    DashboardFragment dashboardFragment = (DashboardFragment) fm.findFragmentById(R.id.dashboard_container);
-    if (dashboardFragment == null) {
-      dashboardFragment = new DashboardFragment();
-      fm.beginTransaction().replace(R.id.dashboard_container, dashboardFragment, "dashboard").commit();
-    }
-
     Screen initialScreen = savedInstanceState != null
         ? Screen.fromTag(savedInstanceState.getString(KEY_SELECTED_SCREEN), Screen.CAPTURE)
         : Screen.CAPTURE;
@@ -348,6 +342,15 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     return navStack.isEmpty() ? Screen.CAPTURE : navStack.peek();
   }
 
+  private void ensureDashboardFragment() {
+    FragmentManager fm = getSupportFragmentManager();
+    if (fm.findFragmentById(R.id.dashboard_container) == null) {
+      fm.beginTransaction()
+          .replace(R.id.dashboard_container, new DashboardFragment(), "dashboard")
+          .commitNow();
+    }
+  }
+
   private boolean isSettingsOpen() {
     return currentScreen() == Screen.SETTINGS;
   }
@@ -441,6 +444,7 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
     }
 
     if (to == Screen.DASHBOARD) {
+      ensureDashboardFragment();
       if (settingsOverlayContainer != null) {
         settingsOverlayContainer.setVisibility(View.GONE);
         settingsOverlayContainer.setTranslationY(-sheetHeight(settingsOverlayContainer));
@@ -590,6 +594,7 @@ public final class MainActivity extends AppCompatActivity implements ScreenNavig
         configureBottomBarFor(Screen.CAPTURE);
       }
     } else if (screen == Screen.DASHBOARD) {
+      ensureDashboardFragment();
       if (captureContainer != null) captureContainer.setVisibility(View.GONE);
       if (bottomBarBukuKas != null) bottomBarBukuKas.setVisibility(View.VISIBLE);
       if (whiteSlidingSheet != null) {

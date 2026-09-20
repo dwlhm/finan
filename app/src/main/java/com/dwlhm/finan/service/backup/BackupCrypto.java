@@ -1,6 +1,8 @@
 package com.dwlhm.finan.service.backup;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -27,15 +29,39 @@ public final class BackupCrypto {
   /** Encrypts with a fresh salt and nonce; the caller retains ownership of plaintext and password. */
   public static byte[] encrypt(byte[] plaintext, char[] password)
       throws GeneralSecurityException, IOException {
-    if (plaintext == null || plaintext.length > MAX_FILE_BYTES - HEADER_BYTES - 16)
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    encrypt(plaintext, password, buffer);
+    return buffer.toByteArray();
+  }
+
+  /** Streams the same envelope format as {@link #encrypt(byte[], char[])} without buffering the ciphertext. */
+  public static void encrypt(byte[] plaintext, char[] password, OutputStream output)
+      throws GeneralSecurityException, IOException {
+    if (output == null || plaintext == null || plaintext.length > MAX_FILE_BYTES - HEADER_BYTES - 16)
       throw new java.io.StreamCorruptedException("Backup exceeds 32 MiB limit");
+    if (password == null || password.length == 0) throw new GeneralSecurityException("Password required");
     byte[] salt = new byte[16], nonce = new byte[12];
     SecureRandom random = new SecureRandom();
     random.nextBytes(salt); random.nextBytes(nonce);
     byte[] header = ByteBuffer.allocate(HEADER_BYTES).put(MAGIC).putInt(1)
         .putInt(ITERATIONS).put(salt).put(nonce).array();
-    byte[] encrypted = crypt(Cipher.ENCRYPT_MODE, plaintext, password, salt, nonce, header);
-    return ByteBuffer.allocate(header.length + encrypted.length).put(header).put(encrypted).array();
+    PBEKeySpec spec = new PBEKeySpec(password, salt, ITERATIONS, 256);
+    byte[] key = null;
+    try {
+      key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
+      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+      cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, nonce));
+      cipher.updateAAD(header);
+      output.write(header);
+      if (plaintext.length > 0) {
+        byte[] chunk = cipher.update(plaintext);
+        if (chunk != null) output.write(chunk);
+      }
+      output.write(cipher.doFinal());
+    } finally {
+      spec.clearPassword();
+      if (key != null) Arrays.fill(key, (byte) 0);
+    }
   }
 
   /** Authenticates the entire envelope before returning plaintext; rejects unsupported headers. */

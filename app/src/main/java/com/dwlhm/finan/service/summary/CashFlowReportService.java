@@ -1,5 +1,6 @@
 package com.dwlhm.finan.service.summary;
 
+import com.dwlhm.finan.BuildConfig;
 import com.dwlhm.finan.data.dao.CategoryDao;
 import com.dwlhm.finan.data.dao.SummaryDao;
 import com.dwlhm.finan.data.dao.WalletDao;
@@ -16,6 +17,7 @@ import com.dwlhm.finan.util.date.TimeProvider;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,11 @@ public final class CashFlowReportService {
     List<Wallet> wallets = walletDao.findAll();
     Map<String, List<Wallet>> walletsByCurrency = groupByCurrency(wallets, walletId);
 
+    Map<Long, Category> categoryById = new HashMap<>();
+    for (Category category : categoryDao.findAllOrdered()) {
+      categoryById.put(category.getId(), category);
+    }
+
     Map<String, List<CashFlowReport>> reportsByCurrency = new LinkedHashMap<>();
     for (Map.Entry<String, List<Wallet>> entry : walletsByCurrency.entrySet()) {
       String currency = entry.getKey();
@@ -59,13 +66,14 @@ public final class CashFlowReportService {
 
       if (walletId != null) {
         currencyReports.add(buildSingleReport(normalizedStart, normalizedEnd,
-            startInclusive, endExclusive, currency, walletId, cutoffDay));
+            startInclusive, endExclusive, currency, walletId, cutoffDay, categoryById));
       } else if (currencyWallets.size() == 1) {
         currencyReports.add(buildSingleReport(normalizedStart, normalizedEnd,
-            startInclusive, endExclusive, currency, currencyWallets.get(0).getId(), cutoffDay));
+            startInclusive, endExclusive, currency, currencyWallets.get(0).getId(), cutoffDay,
+            categoryById));
       } else {
         currencyReports.add(buildCombinedReport(normalizedStart, normalizedEnd,
-            startInclusive, endExclusive, currency, currencyWallets, cutoffDay));
+            startInclusive, endExclusive, currency, currencyWallets, cutoffDay, categoryById));
       }
 
       reportsByCurrency.put(currency, currencyReports);
@@ -77,15 +85,18 @@ public final class CashFlowReportService {
   private CashFlowReport buildSingleReport(
       LocalDate startDate, LocalDate endDate,
       long startInclusive, long endExclusive,
-      String currencyCode, long walletId, int cutoffDay) {
+      String currencyCode, long walletId, int cutoffDay,
+      Map<Long, Category> categoryById) {
     long openingBalance = summaryDao.walletBalanceBefore(walletId, startInclusive);
     long closingBalance = summaryDao.walletBalanceBefore(walletId, endExclusive);
     SummaryDao.CashFlowTotalsRow totals =
         summaryDao.cashFlowTotalsBetween(startInclusive, endExclusive, walletId);
     List<SummaryDao.CashFlowAggregateRow> activityRows =
         summaryDao.activityTotalsBetween(startInclusive, endExclusive, walletId);
-    List<CategoryTotal> incomeCategories = loadTopCategories("INCOME", startInclusive, endExclusive, walletId, 5);
-    List<CategoryTotal> expenseCategories = loadTopCategories("EXPENSE", startInclusive, endExclusive, walletId, 5);
+    List<CategoryTotal> incomeCategories =
+        loadTopCategories("INCOME", startInclusive, endExclusive, walletId, 5, categoryById);
+    List<CategoryTotal> expenseCategories =
+        loadTopCategories("EXPENSE", startInclusive, endExclusive, walletId, 5, categoryById);
     long zoneOffsetMillis = zoneId.getRules().getOffset(java.time.Instant.now()).getTotalSeconds() * 1000L;
     List<CashFlowReport.WeekSummary> weeks = buildWeekSummaries(startDate, endDate, cutoffDay,
         summaryDao.dailyTotalsBetween(startInclusive, endExclusive, walletId, zoneOffsetMillis));
@@ -97,40 +108,43 @@ public final class CashFlowReportService {
         totals.transferInMinor, totals.transferOutMinor,
         totals.adjIncreaseMinor, totals.adjDecreaseMinor,
         closingBalance,
-        buildActivityTotals(activityRows, walletId),
+        buildActivityTotals(activityRows, categoryById),
         incomeCategories, expenseCategories, weeks));
   }
 
   private CashFlowReport buildCombinedReport(
       LocalDate startDate, LocalDate endDate,
       long startInclusive, long endExclusive,
-      String currencyCode, List<Wallet> wallets, int cutoffDay) {
+      String currencyCode, List<Wallet> wallets, int cutoffDay,
+      Map<Long, Category> categoryById) {
     long openingBalance = 0L;
     long closingBalance = 0L;
     long income = 0L, expense = 0L;
     long transferIn = 0L, transferOut = 0L;
     long adjInc = 0L, adjDec = 0L;
-    List<SummaryDao.CashFlowAggregateRow> allActivityRows = new ArrayList<>();
 
-    for (Wallet w : wallets) {
-      openingBalance += summaryDao.walletBalanceBefore(w.getId(), startInclusive);
-      closingBalance += summaryDao.walletBalanceBefore(w.getId(), endExclusive);
-      SummaryDao.CashFlowTotalsRow t =
-          summaryDao.cashFlowTotalsBetween(startInclusive, endExclusive, w.getId());
+    for (SummaryDao.WalletBalanceRow row : summaryDao.walletBalancesAt(startInclusive, null)) {
+      openingBalance += row.balanceMinor;
+    }
+    for (SummaryDao.WalletBalanceRow row : summaryDao.walletBalancesAt(endExclusive, null)) {
+      closingBalance += row.balanceMinor;
+    }
+    for (SummaryDao.PerWalletCashFlowTotalsRow t :
+        summaryDao.cashFlowTotalsPerWallet(startInclusive, endExclusive)) {
       income += t.incomeMinor;
       expense += t.expenseMinor;
       transferIn += t.transferInMinor;
       transferOut += t.transferOutMinor;
       adjInc += t.adjIncreaseMinor;
       adjDec += t.adjDecreaseMinor;
-      allActivityRows.addAll(
-          summaryDao.activityTotalsBetween(startInclusive, endExclusive, w.getId()));
     }
+    List<SummaryDao.CashFlowAggregateRow> allActivityRows =
+        summaryDao.activityTotalsBetween(startInclusive, endExclusive, null);
 
     List<CategoryTotal> incomeCategories = new ArrayList<>();
     for (Wallet w : wallets) {
       mergeCategoryTotals(incomeCategories,
-          loadTopCategories("INCOME", startInclusive, endExclusive, w.getId(), 5));
+          loadTopCategories("INCOME", startInclusive, endExclusive, w.getId(), 5, categoryById));
     }
     incomeCategories.sort((a, b) -> Long.compare(b.getTotalMinor(), a.getTotalMinor()));
     if (incomeCategories.size() > 5) incomeCategories = incomeCategories.subList(0, 5);
@@ -138,7 +152,7 @@ public final class CashFlowReportService {
     List<CategoryTotal> expenseCategories = new ArrayList<>();
     for (Wallet w : wallets) {
       mergeCategoryTotals(expenseCategories,
-          loadTopCategories("EXPENSE", startInclusive, endExclusive, w.getId(), 5));
+          loadTopCategories("EXPENSE", startInclusive, endExclusive, w.getId(), 5, categoryById));
     }
     expenseCategories.sort((a, b) -> Long.compare(b.getTotalMinor(), a.getTotalMinor()));
     if (expenseCategories.size() > 5) expenseCategories = expenseCategories.subList(0, 5);
@@ -154,12 +168,12 @@ public final class CashFlowReportService {
         transferIn, transferOut,
         adjInc, adjDec,
         closingBalance,
-        buildActivityTotals(allActivityRows, null),
+        buildActivityTotals(allActivityRows, categoryById),
         incomeCategories, expenseCategories, weeks));
   }
 
   private List<CashFlowActivityTotal> buildActivityTotals(
-      List<SummaryDao.CashFlowAggregateRow> activityRows, Long walletId) {
+      List<SummaryDao.CashFlowAggregateRow> activityRows, Map<Long, Category> categoryById) {
     Map<CashFlowActivity, Long> incomeByActivity = new java.util.HashMap<>();
     Map<CashFlowActivity, Long> expenseByActivity = new java.util.HashMap<>();
     Map<CashFlowActivity, List<CategoryTotal>> incomeCatsByActivity = new java.util.HashMap<>();
@@ -171,9 +185,6 @@ public final class CashFlowReportService {
       incomeCatsByActivity.put(act, new ArrayList<>());
       expenseCatsByActivity.put(act, new ArrayList<>());
     }
-
-    Map<Long, String> categoryNames = new java.util.HashMap<>();
-    Map<Long, String> categoryActivities = new java.util.HashMap<>();
 
     for (SummaryDao.CashFlowAggregateRow row : activityRows) {
       CashFlowActivity activity;
@@ -193,12 +204,8 @@ public final class CashFlowReportService {
       }
 
       if (row.categoryId > 0) {
-        String name = categoryNames.get(row.categoryId);
-        if (name == null) {
-          Category cat = categoryDao.findById(row.categoryId);
-          name = cat != null ? cat.getName() : ("#" + row.categoryId);
-          categoryNames.put(row.categoryId, name);
-        }
+        Category cat = categoryById.get(row.categoryId);
+        String name = cat != null ? cat.getName() : ("#" + row.categoryId);
         CategoryTotal ct = new CategoryTotal(row.categoryId, name, amt, "INCOME".equals(row.type));
         if ("INCOME".equals(row.type)) {
           incomeCatsByActivity.get(activity).add(ct);
@@ -224,13 +231,14 @@ public final class CashFlowReportService {
   }
 
   private List<CategoryTotal> loadTopCategories(
-      String type, long startInclusive, long endExclusive, Long walletId, int limit) {
+      String type, long startInclusive, long endExclusive, Long walletId, int limit,
+      Map<Long, Category> categoryById) {
     List<SummaryDao.CategorySumRow> rows =
         summaryDao.categoryTotalsBetween(type, startInclusive, endExclusive, walletId, limit);
     List<CategoryTotal> result = new ArrayList<>();
     for (SummaryDao.CategorySumRow row : rows) {
       if (row.categoryId <= 0) continue;
-      Category cat = categoryDao.findById(row.categoryId);
+      Category cat = categoryById.get(row.categoryId);
       String name = cat != null ? cat.getName() : ("#" + row.categoryId);
       result.add(new CategoryTotal(row.categoryId, name, row.totalMinor, "INCOME".equals(type)));
     }
@@ -332,18 +340,22 @@ public final class CashFlowReportService {
         report.getNetCashFlowMinor() + report.getNetTransferMinor() + report.getNetAdjustmentMinor();
     long actualChange = report.getClosingBalanceMinor() - report.getOpeningBalanceMinor();
     if (expectedChange != actualChange) {
-      android.util.Log.e("CashFlowReport",
-          "Invariant failed: closing - opening (" + actualChange
-          + ") != netCashFlow + netTransfer + netAdjustment (" + expectedChange
-          + ") for wallet=" + report.getWalletId()
-          + " currency=" + report.getCurrencyCode());
+      if (BuildConfig.DEBUG) {
+        android.util.Log.e("CashFlowReport",
+            "Invariant failed: closing - opening (" + actualChange
+            + ") != netCashFlow + netTransfer + netAdjustment (" + expectedChange
+            + ") for wallet=" + report.getWalletId()
+            + " currency=" + report.getCurrencyCode());
+      }
     }
     if (report.getWalletId() == null) {
       long netTransfer = report.getNetTransferMinor();
       if (netTransfer != 0) {
-        android.util.Log.w("CashFlowReport",
-            "Combined report has non-zero net transfer: " + netTransfer
-            + " for currency=" + report.getCurrencyCode());
+        if (BuildConfig.DEBUG) {
+          android.util.Log.w("CashFlowReport",
+              "Combined report has non-zero net transfer: " + netTransfer
+              + " for currency=" + report.getCurrencyCode());
+        }
       }
     }
     return report;

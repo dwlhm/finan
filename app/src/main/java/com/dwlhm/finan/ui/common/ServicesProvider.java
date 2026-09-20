@@ -9,6 +9,9 @@ public final class ServicesProvider {
   private ServicesProvider() {}
 
   public static AppServices get(Context context) {
-    return ((FinanApplication) context.getApplicationContext()).getServices();
+    FinanApplication application = (FinanApplication) context.getApplicationContext();
+    AppServices services = application.getServices();
+    if (services != null) return services;
+    return application.awaitServices();
   }
 }

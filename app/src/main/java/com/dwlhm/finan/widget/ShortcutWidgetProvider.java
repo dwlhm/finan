@@ -14,9 +14,11 @@ import android.widget.RemoteViews;
 import com.dwlhm.finan.R;
 import com.dwlhm.finan.service.privacy.AppLock;
 import com.dwlhm.finan.ui.MainActivity;
-import com.dwlhm.finan.ui.common.AppServices;
+import com.dwlhm.finan.ui.common.ServicesProvider;
 
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ShortcutWidgetProvider extends AppWidgetProvider {
 
@@ -27,6 +29,12 @@ public class ShortcutWidgetProvider extends AppWidgetProvider {
     public static final String ACTION_TYPE_UNDO = "undo";
     public static final String ACTION_TYPE_EXECUTE = "execute";
     public static final String EXTRA_NAV_TARGET = "com.dwlhm.finan.EXTRA_NAV_TARGET";
+
+    private static final ExecutorService widgetExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "finan-widget-db");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -154,24 +162,27 @@ public class ShortcutWidgetProvider extends AppWidgetProvider {
     }
 
     private void handleUndoShortcut(Context context) {
-        long shortcutId = WidgetStateStore.getPendingShortcutUndoId(context);
-        long txId = WidgetStateStore.getPendingShortcutUndoTxId(context);
-        if (txId > 0) {
-            AppServices services = AppServices.create(context);
-            services.transactionService.delete(txId);
-        }
-        WidgetStateStore.clearPendingShortcutUndo(context);
-        WidgetStateStore.setPendingShortcutCancelled(context, shortcutId, System.currentTimeMillis() + 1500L);
-        updateAllWidgets(context);
+        widgetExecutor.execute(() -> {
+            long shortcutId = WidgetStateStore.getPendingShortcutUndoId(context);
+            long txId = WidgetStateStore.getPendingShortcutUndoTxId(context);
+            if (txId > 0) {
+                ServicesProvider.get(context).transactionService.delete(txId);
+            }
+            WidgetStateStore.clearPendingShortcutUndo(context);
+            WidgetStateStore.setPendingShortcutCancelled(context, shortcutId, System.currentTimeMillis() + 1500L);
+            new Handler(Looper.getMainLooper()).post(() -> {
+                updateAllWidgets(context);
 
-        Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
-        broadcastIntent.setPackage(context.getPackageName());
-        context.sendBroadcast(broadcastIntent);
+                Intent broadcastIntent = new Intent("com.dwlhm.finan.ACTION_DATA_CHANGED");
+                broadcastIntent.setPackage(context.getPackageName());
+                context.sendBroadcast(broadcastIntent);
 
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            WidgetStateStore.clearPendingShortcutCancelled(context);
-            updateAllWidgets(context);
-        }, 1500L);
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    WidgetStateStore.clearPendingShortcutCancelled(context);
+                    updateAllWidgets(context);
+                }, 1500L);
+            });
+        });
     }
 
 }

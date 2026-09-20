@@ -19,6 +19,18 @@ import java.util.Locale;
 
 public class Circular24HourClockView extends View {
 
+  private static final String[] MINUTE_LABELS = {
+      "00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"
+  };
+
+  private static final String[] MINUTE_LABELS_ALL = new String[60];
+
+  static {
+    for (int i = 0; i < 60; i++) {
+      MINUTE_LABELS_ALL[i] = String.format(Locale.US, "%02d", i);
+    }
+  }
+
   public enum Mode {
     HOUR,
     MINUTE
@@ -49,6 +61,9 @@ public class Circular24HourClockView extends View {
   private final Paint textInnerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint textOuterPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint textSelectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+  private final float selectorRadius = dp(16);
+  private final float pivotRadius = dp(4);
 
   public Circular24HourClockView(Context context) {
     this(context, null);
@@ -133,7 +148,7 @@ public class Circular24HourClockView extends View {
 
     float cx = getWidth() / 2f;
     float cy = getHeight() / 2f;
-    float radius = Math.min(cx, cy) - dp(16);
+    float radius = Math.min(cx, cy) - selectorRadius;
     if (radius <= 0) {
       return;
     }
@@ -165,10 +180,10 @@ public class Circular24HourClockView extends View {
       canvas.drawLine(cx, cy, targetX, targetY, handPaint);
 
       // Gambar lingkaran pemilih di target (finan_primary, radius 16dp)
-      canvas.drawCircle(targetX, targetY, dp(16), selectorPaint);
+      canvas.drawCircle(targetX, targetY, selectorRadius, selectorPaint);
 
       // Gambar pivot tengah di (cx, cy) (finan_primary, radius 4dp)
-      canvas.drawCircle(cx, cy, dp(4), pivotPaint);
+      canvas.drawCircle(cx, cy, pivotRadius, pivotPaint);
 
       // Gambar 12 angka layer luar (i=1..12): i==12 ? "00" : (i+12). Sudut: i * 30 - 90 derajat.
       for (int i = 1; i <= 12; i++) {
@@ -211,16 +226,16 @@ public class Circular24HourClockView extends View {
       canvas.drawLine(cx, cy, targetX, targetY, handPaint);
 
       // Gambar lingkaran pemilih di target (radius 16dp) berwarna finan_primary
-      canvas.drawCircle(targetX, targetY, dp(16), selectorPaint);
+      canvas.drawCircle(targetX, targetY, selectorRadius, selectorPaint);
 
       // Gambar pivot tengah
-      canvas.drawCircle(cx, cy, dp(4), pivotPaint);
+      canvas.drawCircle(cx, cy, pivotRadius, pivotPaint);
 
       // Gambar angka menit kelipatan 5: "00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"
       boolean isMultipleOfFive = (minute % 5 == 0);
       for (int i = 1; i <= 12; i++) {
         int mVal = (i * 5) % 60;
-        String label = String.format(Locale.getDefault(), "%02d", mVal);
+        String label = MINUTE_LABELS[i % 12];
         double angleDeg = i * 30.0 - 90.0;
         double angleRad = Math.toRadians(angleDeg);
         float x = (float) (cx + rMinute * Math.cos(angleRad));
@@ -235,7 +250,7 @@ public class Circular24HourClockView extends View {
 
       // Angka menit terpilih format %02d warna putih #FFFFFF di dalam lingkaran pemilih
       if (!isMultipleOfFive) {
-        String selectedMinuteLabel = String.format(Locale.getDefault(), "%02d", minute);
+        String selectedMinuteLabel = MINUTE_LABELS_ALL[minute];
         drawCenteredText(canvas, selectedMinuteLabel, targetX, targetY, textSelectedPaint);
       }
     }

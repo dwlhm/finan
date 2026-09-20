@@ -83,6 +83,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private TextView collapsedBalanceText;
     private ImageView collapsedAdviceBtn;
     private RecyclerView recyclerView;
+    private androidx.swiperefreshlayout.widget.SwipeRefreshLayout swipeRefresh;
     private LinearLayoutManager layoutManager;
 
     // Hero Statement UI Elements
@@ -119,6 +120,8 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     private HistoryQuery activeQuery = new HistoryQuery(null, null, null, null, null, false, HistorySearch.empty());
     
     private int reloadGeneration;
+    private int lastLoadedVersion = -1;
+    private int lastLoadedFiltersHash = 0;
     private Map<Long, Category> categoriesById = Map.of();
     private Map<Long, Wallet> walletsById = Map.of();
 
@@ -165,8 +168,23 @@ public class MonthlyDashboardFragment extends ScreenFragment {
     @Override
     public void onResume() {
         super.onResume();
-        // Always refresh data on resume so new transactions added in Capture show up
-        loadData();
+        Integer version = sharedViewModel.getDataVersion().getValue();
+        int currentVersion = version != null ? version : 0;
+        int filtersHash = currentFiltersHash();
+        if (currentVersion != lastLoadedVersion
+                || filtersHash != lastLoadedFiltersHash
+                || transactionAdapter == null
+                || transactionAdapter.getItemCount() == 0) {
+            loadData();
+        }
+    }
+
+    private int currentFiltersHash() {
+        return java.util.Objects.hash(
+                sharedViewModel.getSearchQuery().getValue(),
+                sharedViewModel.getWalletFilter().getValue(),
+                sharedViewModel.getCategoryFilter().getValue(),
+                sharedViewModel.getTransactionTypeFilter().getValue());
     }
 
     @Override
@@ -216,12 +234,25 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         }
 
         recyclerView = view.findViewById(R.id.monthly_recycler_view);
+        swipeRefresh = view.findViewById(R.id.monthly_swipe_refresh);
+        if (swipeRefresh != null) {
+            swipeRefresh.setOnRefreshListener(() -> {
+                lastLoadedVersion = -1;
+                loadData();
+            });
+        }
         layoutManager = new LinearLayoutManager(requireContext());
         recyclerView.setLayoutManager(layoutManager);
         summaryHeaderView = getLayoutInflater().inflate(
                 R.layout.item_monthly_summary, recyclerView, false);
         summaryEmptyState = summaryHeaderView.findViewById(R.id.monthly_summary_empty);
         monthlyTransactionsTitle = summaryHeaderView.findViewById(R.id.monthly_transactions_title);
+        View sectionRefreshBtn = summaryHeaderView.findViewById(R.id.monthly_section_refresh_btn);
+        sectionRefreshBtn.setOnClickListener(v -> {
+            if (swipeRefresh != null) swipeRefresh.setRefreshing(true);
+            lastLoadedVersion = -1;
+            loadData();
+        });
         
         transactionAdapter = new TransactionRecyclerAdapter(requireContext());
         transactionAdapter.setOnTransactionClickListener((t, p) -> openTransactionDetail(p));
@@ -423,6 +454,7 @@ public class MonthlyDashboardFragment extends ScreenFragment {
 
     private void setupScrollListener() {
         appBarLayout.addOnOffsetChangedListener((appBarLayout, verticalOffset) -> {
+            if (swipeRefresh != null) swipeRefresh.setEnabled(verticalOffset == 0);
             int totalScrollRange = appBarLayout.getTotalScrollRange();
             float percentage = (float) Math.abs(verticalOffset) / (float) totalScrollRange;
             
@@ -453,6 +485,9 @@ public class MonthlyDashboardFragment extends ScreenFragment {
         sharedViewModel.getCategoryFilter().observe(getViewLifecycleOwner(), c -> { invalidateSummaryCache(); loadData(); });
         sharedViewModel.getTransactionTypeFilter().observe(getViewLifecycleOwner(), t -> { invalidateSummaryCache(); loadData(); });
         sharedViewModel.getDisplayMode().observe(getViewLifecycleOwner(), mode -> updateDisplayModeUi());
+        sharedViewModel.getDataVersion().observe(getViewLifecycleOwner(), version -> {
+            if (isResumed()) loadData();
+        });
     }
 
     private void invalidateSummaryCache() {
@@ -501,8 +536,13 @@ public class MonthlyDashboardFragment extends ScreenFragment {
                 return new Object[]{wMap, cMap, query, totals, reportResult, summary, prevSummary, prevPrevSummary, forwardSummary, balance};
             },
             data -> {
-                if (!isAdded() || generation != reloadGeneration || data == null) return;
-                
+                if (!isAdded() || generation != reloadGeneration) return;
+                if (swipeRefresh != null) swipeRefresh.setRefreshing(false);
+                if (data == null) return;
+
+                Integer version = sharedViewModel.getDataVersion().getValue();
+                lastLoadedVersion = version != null ? version : 0;
+                lastLoadedFiltersHash = currentFiltersHash();
                 @SuppressWarnings("unchecked")
                 Map<Long, Wallet> w = (Map<Long, Wallet>) data[0];
                 walletsById = w;

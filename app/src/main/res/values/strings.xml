@@ -418,6 +418,7 @@
     <string name="monthly_summary_filtered_title">Tidak ada transaksi yang cocok</string>
     <string name="monthly_summary_filtered_hint">Coba ubah atau hapus filter yang aktif.</string>
     <string name="monthly_transactions_section_title">Transaksi</string>
+    <string name="action_refresh">Refresh</string>
     <string name="hc_item_wallet_hapus_dompet">Hapus dompet</string>
     <string name="hc_layout_bottom_nav_buku_kas">Buku Kas</string>
     <string name="java_CaptureFragment_tahan_untuk_pertahankan">Tahan untuk Pertahankan...</string>

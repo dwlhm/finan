@@ -13,6 +13,11 @@ public class StickyHeaderItemDecoration extends RecyclerView.ItemDecoration {
     private final StickyHeaderInterface mListener;
     private int mStickyHeaderHeight;
     private int mStickyYOffset;
+    private View cachedHeader;
+    private int cachedHeaderPos = Integer.MIN_VALUE;
+    private int cachedLayoutRes = -1;
+    private int cachedWidth = -1;
+    private boolean cacheObserverRegistered;
 
     public StickyHeaderItemDecoration(@NonNull StickyHeaderInterface listener) {
         mListener = listener;
@@ -25,6 +30,7 @@ public class StickyHeaderItemDecoration extends RecyclerView.ItemDecoration {
     @Override
     public void onDrawOver(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         super.onDrawOver(c, parent, state);
+        registerCacheObserver(parent);
         View topChild = parent.getChildAt(0);
         if (topChild == null) {
             return;
@@ -50,10 +56,67 @@ public class StickyHeaderItemDecoration extends RecyclerView.ItemDecoration {
         drawHeader(c, currentHeader, parent);
     }
 
+    private void registerCacheObserver(RecyclerView parent) {
+        if (cacheObserverRegistered) {
+            return;
+        }
+        RecyclerView.Adapter<?> adapter = parent.getAdapter();
+        if (adapter == null) {
+            return;
+        }
+        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onChanged() {
+                invalidateHeaderCache();
+            }
+
+            @Override
+            public void onItemRangeChanged(int positionStart, int itemCount) {
+                invalidateHeaderCache();
+            }
+
+            @Override
+            public void onItemRangeChanged(int positionStart, int itemCount, Object payload) {
+                invalidateHeaderCache();
+            }
+
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                invalidateHeaderCache();
+            }
+
+            @Override
+            public void onItemRangeRemoved(int positionStart, int itemCount) {
+                invalidateHeaderCache();
+            }
+
+            @Override
+            public void onItemRangeMoved(int fromPosition, int toPosition, int itemCount) {
+                invalidateHeaderCache();
+            }
+        });
+        cacheObserverRegistered = true;
+    }
+
+    private void invalidateHeaderCache() {
+        cachedHeader = null;
+        cachedHeaderPos = Integer.MIN_VALUE;
+    }
+
     private View getHeaderViewForItem(int headerPosition, RecyclerView parent) {
         int layoutResId = mListener.getHeaderLayout(headerPosition);
+        if (cachedHeader != null
+            && cachedHeaderPos == headerPosition
+            && cachedLayoutRes == layoutResId
+            && parent.getWidth() == cachedWidth) {
+            return cachedHeader;
+        }
         View header = android.view.LayoutInflater.from(parent.getContext()).inflate(layoutResId, parent, false);
         mListener.bindHeaderData(header, headerPosition);
+        cachedHeader = header;
+        cachedHeaderPos = headerPosition;
+        cachedLayoutRes = layoutResId;
+        cachedWidth = parent.getWidth();
         return header;
     }
 
@@ -117,6 +180,9 @@ public class StickyHeaderItemDecoration extends RecyclerView.ItemDecoration {
     }
 
     private void fixLayoutSize(ViewGroup parent, View view) {
+        if (view == cachedHeader && parent.getWidth() == cachedWidth) {
+            return;
+        }
         int widthSpec = View.MeasureSpec.makeMeasureSpec(parent.getWidth(), View.MeasureSpec.EXACTLY);
         int heightSpec = View.MeasureSpec.makeMeasureSpec(parent.getHeight(), View.MeasureSpec.UNSPECIFIED);
 

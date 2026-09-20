@@ -23,7 +23,11 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class UpcomingCashFlowService {
 
@@ -109,6 +113,15 @@ public final class UpcomingCashFlowService {
       currentActualBalanceMinor += summaryDao.walletBalanceBefore(wallet.getId(), asOfMillis);
     }
 
+    Map<Long, Wallet> walletById = new HashMap<>();
+    for (Wallet wallet : allWallets) {
+      walletById.put(wallet.getId(), wallet);
+    }
+    Map<Long, Category> categoryById = new HashMap<>();
+    for (Category category : categoryDao.findAllOrdered()) {
+      categoryById.put(category.getId(), category);
+    }
+
     List<TransactionTemplate> scheduledTemplates = transactionTemplateDao.findScheduledTemplates();
     List<UpcomingObligation> upcomingObligations = new ArrayList<>();
 
@@ -123,16 +136,25 @@ public final class UpcomingCashFlowService {
           && !template.getWalletId().equals(walletFilterId) && !destinationSelected) continue;
 
       List<LocalDate> candidateDates = findOccurrences(template, fromDate, toDate);
+      List<String> candidateDateStrings = new ArrayList<>(candidateDates.size());
+      for (LocalDate candidateDate : candidateDates) {
+        candidateDateStrings.add(candidateDate.toString());
+      }
+      Set<String> handled =
+          candidateDateStrings.isEmpty()
+              ? Collections.emptySet()
+              : transactionTemplateDao.handledOccurrences(
+                  template.getId(), candidateDateStrings);
       boolean hasHistory = transactionTemplateDao.hasOccurrenceHistory(template.getId());
       for (LocalDate candidateDate : candidateDates) {
-        if (transactionTemplateDao.isOccurrenceHandled(template.getId(), candidateDate.toString())
+        if (handled.contains(candidateDate.toString())
             || (!hasHistory && isLegacyHandled(template, candidateDate))) continue;
         long dueEpochMillis = candidateDate.atStartOfDay(zoneId).toInstant().toEpochMilli();
         int daysRemaining = (int) ChronoUnit.DAYS.between(today, candidateDate);
 
         String walletName = null;
         if (template.getWalletId() != null) {
-          Wallet w = walletDao.findById(template.getWalletId());
+          Wallet w = walletById.get(template.getWalletId());
           if (w != null) {
             walletName = w.getName();
           }
@@ -140,7 +162,7 @@ public final class UpcomingCashFlowService {
 
         String categoryName = null;
         if (template.getCategoryId() != null) {
-          Category c = categoryDao.findById(template.getCategoryId());
+          Category c = categoryById.get(template.getCategoryId());
           if (c != null) {
             categoryName = c.getName();
           }

@@ -5,6 +5,7 @@ import com.dwlhm.finan.data.dao.WalletBalanceDao;
 import com.dwlhm.finan.domain.model.HistoryQuery;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.model.TransactionType;
+import com.dwlhm.finan.domain.rule.BalanceRules;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -123,6 +124,22 @@ public class BalanceServiceTest {
         @Override
         public List<Transaction> findByTransferId(long transferId) {
             return List.of();
+        }
+
+        @Override
+        public Map<Long, Integer> countByTransferIdBetween(Long startDate, Long endDate) {
+            return Map.of();
+        }
+
+        @Override
+        public long sumDeltaByWallet(long walletId) {
+            long sum = 0L;
+            for (Transaction t : transactions) {
+                if (t.getWalletId() == walletId) {
+                    sum += BalanceRules.deltaFor(t.getType(), t.getAmountMinor());
+                }
+            }
+            return sum;
         }
 
         @Override

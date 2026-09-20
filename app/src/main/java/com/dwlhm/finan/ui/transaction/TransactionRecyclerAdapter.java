@@ -19,12 +19,15 @@ import com.dwlhm.finan.ui.common.infinitescroll.InfiniteScrollRecyclerAdapter;
 import com.dwlhm.finan.util.money.MoneyFormatter;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 public final class TransactionRecyclerAdapter
     extends InfiniteScrollRecyclerAdapter<Transaction, TransactionItemViewHolder>
@@ -49,6 +52,9 @@ public final class TransactionRecyclerAdapter
       new SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("id-ID"));
   private OnTransactionClickListener clickListener;
   private final Map<String, Long> dailyTotals = new HashMap<>();
+  private long[] dayByPosition = new long[0];
+  private String[] headerLabelByPosition = new String[0];
+  private final Map<Long, String> headerLabelCache = new HashMap<>();
 
   public interface OnTransactionClickListener {
     void onTransactionClick(Transaction transaction, int position);
@@ -89,29 +95,64 @@ public final class TransactionRecyclerAdapter
 
   @Override
   public void replaceItems(List<Transaction> items) {
-    recomputeDailyTotals(items);
+    recomputeHeaderIndex(items);
     super.replaceItems(items);
   }
 
   @Override
   public void appendItems(List<Transaction> items) {
-    if (items != null) {
+    if (items != null && !items.isEmpty()) {
+      int oldLen = dayByPosition.length;
+      int newLen = oldLen + items.size();
+      long[] newDays = Arrays.copyOf(dayByPosition, newLen);
+      String[] newLabels = Arrays.copyOf(headerLabelByPosition, newLen);
+      int i = oldLen;
       for (Transaction t : items) {
-        String header = headerDateFormat.format(new Date(t.getOccurredAt()));
+        long dayKey = dayKeyFor(t);
+        newDays[i] = dayKey;
+        newLabels[i] = labelFor(t, dayKey);
+        String header = newLabels[i];
         dailyTotals.put(header, dailyTotals.getOrDefault(header, 0L) + t.getAmountMinor());
+        i++;
       }
+      dayByPosition = newDays;
+      headerLabelByPosition = newLabels;
     }
     super.appendItems(items);
   }
 
-  private void recomputeDailyTotals(List<Transaction> items) {
+  private void recomputeHeaderIndex(List<Transaction> items) {
     dailyTotals.clear();
+    int size = items != null ? items.size() : 0;
+    long[] days = new long[size];
+    String[] labels = new String[size];
     if (items != null) {
+      int i = 0;
       for (Transaction t : items) {
-        String header = headerDateFormat.format(new Date(t.getOccurredAt()));
-        dailyTotals.put(header, dailyTotals.getOrDefault(header, 0L) + t.getAmountMinor());
+        long dayKey = dayKeyFor(t);
+        days[i] = dayKey;
+        labels[i] = labelFor(t, dayKey);
+        dailyTotals.put(labels[i], dailyTotals.getOrDefault(labels[i], 0L) + t.getAmountMinor());
+        i++;
       }
     }
+    dayByPosition = days;
+    headerLabelByPosition = labels;
+  }
+
+  private long dayKeyFor(Transaction t) {
+    long occurredAt = t.getOccurredAt();
+    long zoneOffsetMillis = TimeZone.getDefault().getOffset(occurredAt);
+    return TimeUnit.MILLISECONDS.toDays(occurredAt + zoneOffsetMillis);
+  }
+
+  private String labelFor(Transaction t, long dayKey) {
+    String label = headerLabelCache.get(dayKey);
+    if (label == null) {
+      label = headerDateFormat.format(new Date(t.getOccurredAt()));
+      headerLabelCache.put(dayKey, label);
+    }
+    return label;
   }
 
   public Transaction getTransactionAt(int position) {
@@ -186,10 +227,14 @@ public final class TransactionRecyclerAdapter
       holder.note.setText(note.trim());
     }
     
-    String currentHeader = headerDateFormat.format(new Date(transaction.getOccurredAt()));
+    String currentHeader = position < headerLabelByPosition.length
+        ? headerLabelByPosition[position]
+        : headerDateFormat.format(new Date(transaction.getOccurredAt()));
     final boolean showHeader;
     if (position == 0) {
       showHeader = true;
+    } else if (position < dayByPosition.length) {
+      showHeader = dayByPosition[position] != dayByPosition[position - 1];
     } else {
       Transaction prevTransaction = getItemAt(position - 1);
       String prevHeader = headerDateFormat.format(new Date(prevTransaction.getOccurredAt()));
@@ -269,9 +314,9 @@ public final class TransactionRecyclerAdapter
   @Override
   public void bindHeaderData(View header, int headerPosition) {
     if (headerPosition < 0 || headerPosition >= getContentItemCount()) return;
-    Transaction transaction = getItemAt(headerPosition);
-    if (transaction == null) return;
-    String currentHeader = headerDateFormat.format(new Date(transaction.getOccurredAt()));
+    String currentHeader = headerPosition < headerLabelByPosition.length
+        ? headerLabelByPosition[headerPosition]
+        : headerDateFormat.format(new Date(getItemAt(headerPosition).getOccurredAt()));
     
     android.widget.TextView dateLabel = header.findViewById(R.id.item_transaction_date_label);
     android.widget.TextView dailyTotalTv = header.findViewById(R.id.item_transaction_daily_total);
@@ -317,12 +362,7 @@ public final class TransactionRecyclerAdapter
   @Override
   public boolean isHeader(int itemPosition) {
     if (itemPosition == 0) return true;
-    if (itemPosition < 0 || itemPosition >= getContentItemCount()) return false;
-    Transaction current = getItemAt(itemPosition);
-    Transaction prev = getItemAt(itemPosition - 1);
-    if (current == null || prev == null) return false;
-    String currentHeader = headerDateFormat.format(new Date(current.getOccurredAt()));
-    String prevHeader = headerDateFormat.format(new Date(prev.getOccurredAt()));
-    return !currentHeader.equals(prevHeader);
+    if (itemPosition < 0 || itemPosition >= dayByPosition.length) return false;
+    return dayByPosition[itemPosition] != dayByPosition[itemPosition - 1];
   }
 }

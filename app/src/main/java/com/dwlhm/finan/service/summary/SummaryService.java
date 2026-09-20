@@ -17,7 +17,9 @@ import com.dwlhm.finan.util.date.TimeProvider;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class SummaryService {
 
@@ -58,6 +60,11 @@ public final class SummaryService {
     long startInclusive = startRange.getStartInclusive();
     long endExclusive = endRange.getEndExclusive();
 
+    Map<Long, Category> categoryById = new HashMap<>();
+    for (Category category : categoryDao.findAllOrdered()) {
+      categoryById.put(category.getId(), category);
+    }
+
     List<SummaryDao.CashFlowAggregateRow> rows =
         summaryDao.getCashFlowCategoryTotals(startInclusive, endExclusive, walletId, categoryId);
 
@@ -93,7 +100,7 @@ public final class SummaryService {
         activityOutflows.put(activity, activityOutflows.get(activity) + amt);
       }
 
-      Category category = row.categoryId > 0 ? categoryDao.findById(row.categoryId) : null;
+      Category category = row.categoryId > 0 ? categoryById.get(row.categoryId) : null;
       String name = category != null ? category.getName() : (row.categoryId > 0 ? "#" + row.categoryId : "Lainnya");
       activityCategories.get(activity).add(new CategoryTotal(row.categoryId, name, amt, isIncome));
     }
@@ -109,16 +116,15 @@ public final class SummaryService {
       }
     }
 
-    List<WalletBalance> balances = new ArrayList<>();
+    Map<Long, Wallet> walletById = new HashMap<>();
     for (Wallet wallet : walletDao.findAll()) {
-      if (walletId != null && wallet.getId() != walletId) {
-        continue;
-      }
-      balances.add(
-          new WalletBalance(
-              wallet.getId(),
-              wallet.getName(),
-              summaryDao.walletBalanceBefore(wallet.getId(), endExclusive)));
+      walletById.put(wallet.getId(), wallet);
+    }
+    List<WalletBalance> balances = new ArrayList<>();
+    for (SummaryDao.WalletBalanceRow row : summaryDao.walletBalancesAt(endExclusive, walletId)) {
+      Wallet wallet = walletById.get(row.walletId);
+      String name = wallet != null ? wallet.getName() : "";
+      balances.add(new WalletBalance(row.walletId, name, row.balanceMinor));
     }
 
     return new MonthlySummary(

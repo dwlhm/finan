@@ -57,6 +57,8 @@ public final class DonutChartView extends View {
     private String centerLine1 = "";
     private String centerLine2 = "";
 
+    private int trackColorResolved = 0xFFE8ECEF;
+
     public DonutChartView(Context context) {
         super(context);
         init();
@@ -135,6 +137,21 @@ public final class DonutChartView extends View {
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        resolveTrackColor();
+    }
+
+    private void resolveTrackColor() {
+        int resolved = 0xFFE8ECEF;
+        android.util.TypedValue typedValue = new android.util.TypedValue();
+        if (getContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorSurfaceContainerHigh, typedValue, true)) {
+            resolved = typedValue.data;
+        }
+        trackColorResolved = resolved;
+    }
+
+    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
@@ -168,12 +185,7 @@ public final class DonutChartView extends View {
 
         paint.setStrokeWidth(strokeWidth);
 
-        int trackColor = 0xFFE8ECEF;
-        android.util.TypedValue typedValue = new android.util.TypedValue();
-        if (getContext().getTheme().resolveAttribute(com.google.android.material.R.attr.colorSurfaceContainerHigh, typedValue, true)) {
-            trackColor = typedValue.data;
-        }
-        paint.setColor(trackColor);
+        paint.setColor(trackColorResolved);
         canvas.drawArc(outerRect, -90f, 360f, false, paint);
 
         if (totalInflow > 0) {
@@ -191,7 +203,7 @@ public final class DonutChartView extends View {
         }
 
         // 2. Draw Inner Ring Outflow relative to Inflow
-        paint.setColor(trackColor);
+        paint.setColor(trackColorResolved);
         canvas.drawArc(innerRect, -90f, 360f, false, paint);
 
         if (totalOutflow > 0) {

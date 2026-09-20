@@ -5,8 +5,6 @@ import com.dwlhm.finan.data.dao.WalletBalanceDao;
 import com.dwlhm.finan.domain.model.Transaction;
 import com.dwlhm.finan.domain.rule.BalanceRules;
 
-import java.util.List;
-
 public class BalanceService {
 
     private final TransactionGateway transactionDao;
@@ -25,16 +23,10 @@ public class BalanceService {
     }
 
     public long recalculate(long walletId) {
-        List<Transaction> transactions = transactionDao.findByWalletId(walletId);
-        long[] deltas = new long[transactions.size()];
-        for (int i = 0; i < transactions.size(); i++) {
-            Transaction t = transactions.get(i);
-            deltas[i] = BalanceRules.deltaFor(t.getType(), t.getAmountMinor());
-        }
         long balance =
                 BalanceRules.apply(
                         walletBalanceDao.getOpeningBalance(walletId),
-                        BalanceRules.sumDeltas(deltas));
+                        transactionDao.sumDeltaByWallet(walletId));
         walletBalanceDao.setCachedBalance(walletId, balance);
         return balance;
     }

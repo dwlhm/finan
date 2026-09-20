@@ -62,6 +62,17 @@ public class DashboardViewModel extends ViewModel {
         transactionTypeFilter.setValue(type);
     }
 
+    private final MutableLiveData<Integer> dataVersion = new MutableLiveData<>(0);
+
+    public LiveData<Integer> getDataVersion() {
+        return dataVersion;
+    }
+
+    public void bumpDataVersion() {
+        Integer current = dataVersion.getValue();
+        dataVersion.postValue(current != null ? current + 1 : 1);
+    }
+
     public enum TimeRangeMode {
         MONTHLY,
         YEARLY
