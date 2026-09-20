@@ -4,7 +4,7 @@
   <img src="logo.svg" alt="Finan logo" width="96" />
 </p>
 
-Capture-first financial tracker for Android (production v1).
+Capture-first financial tracker for Android.
 
 ## Stack
 
@@ -46,7 +46,7 @@ app/src/androidTest/java/ # Migration & DAO integration tests
 Requires **JDK 17+** (Android Studio JBR) and Android SDK.
 
 ```bash
-JAVA_HOME="/Users/dwlhm/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug
+./gradlew assembleDebug
 ```
 
 Command options:
